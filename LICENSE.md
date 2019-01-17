@@ -235,12 +235,12 @@ Apache 2 license (https://git.k8s.io/helm/LICENSE)
 
 Cobra.  
 https://github.com/spf13/cobra.  
-Copyright © 2013 Steve Francia
+Copyright © 2013 Steve Francia.
 Apache 2 license (https://git.k8s.io/code-generator/LICENSE)  
 
-Logrus
+Logrus.
 https://github.com/sirupsen/logrus.
-Copyright (c) 2014 Simon Eskildsen
+Copyright (c) 2014 Simon Eskildsen.
 MIT license (https://github.com/sirupsen/logrus/blob/master/LICENSE)
 
 ------
