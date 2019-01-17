@@ -1,0 +1,17 @@
+test-controller
+/args
+/bin
+/.kube-secrets
+/tmp/*
+/local/
+/dev
+
+*.coverprofile
+*.html
+.vscode
+.idea
+.DS_Store
+
+# Virtual go & fuse
+.virtualgo
+.fuse_hidden*
