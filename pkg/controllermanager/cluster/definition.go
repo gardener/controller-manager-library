@@ -161,7 +161,7 @@ func (this *_Definitions) ExtendConfig(cfg *config.Config) {
 			opt.Description = req.Description()
 
 			opt, _ = cfg.AddStringOption(req.ConfigOptionName() + ID_SUB_OPTION)
-			opt.Description = fmt.Sprintf("Id for cluster %s", req.Name)
+			opt.Description = fmt.Sprintf("id for cluster %s", req.Name())
 		}
 		callExtensions(func(e Extension) error { e.ExtendConfig(req, cfg); return nil })
 	}

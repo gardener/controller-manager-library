@@ -8,5 +8,5 @@ import (
 )
 
 func main() {
-	controllermanager.Start("test-controller", "Launch the Test Controller", "nothing")
+	controllermanager.Start("test-controller", "Launch the Test Controller", "A test controller using the controller-manager-library")
 }

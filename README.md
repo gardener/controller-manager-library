@@ -172,12 +172,41 @@ import (
 )
 
 func main() {
-	controllermanager.Start("test-controller", "Launch the Test Controller", "nothing")
+	controllermanager.Start("test-controller", "Launch the Test Controller", "A test controller using the controller-manager-library")
 }
 ```
 
 Please refer to a complete [example](cmd/test-controller/main.go)
 
+### Command Line Interface
+
+The settings for all the configured controllers will be gathers and finally
+lead to a set of command line options.
+
+For the example controlelr above, this would look like this:
+
+```
+$ ./test-manager --help
+A test controller using the controller-manager-library
+
+Usage:
+  test-controller [flags]
+
+Flags:
+      --cm.default.pool.size int   worker pool size for pool default of controller cm
+      --cm.test string             Controller argument
+      --controllers string         comma separated list of controllers to start (<name>,source,target,all) (default "all")
+  -h, --help                       help for test-controller
+      --kubeconfig string          default cluster access
+      --kubeconfig.id string       id for cluster default
+  -D, --log-level string           logrus log level
+      --plugin-dir string          directory containing go plugins
+      --pool.size int              default for all controller "pool.size" options
+      --server-port-http int       directory containing go plugins
+      --test string                default for all controller "test" options
+time="2019-01-17T17:56:37+01:00" level=info msg="waiting for everything to shutdown (max. 120 seconds)"
+
+```
 ## The complete Story
 
 TBD

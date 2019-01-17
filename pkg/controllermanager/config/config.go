@@ -85,9 +85,9 @@ func (this *Config) AddIntOption(name string) (*ArbitraryOption, bool) {
 }
 
 func (this *Config) AddToCommand(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVarP(&this.Controllers, "controllers", "", "all", "Comma separated list of controllers to start (<name>,source,target,all)")
-	cmd.PersistentFlags().StringVarP(&this.PluginDir, "plugin-dir", "", "", "directory containing go plugins for DNS provider types")
-	cmd.PersistentFlags().IntVarP(&this.ServerPortHTTP, "server-port-http", "", 0, "directory containing go plugins for DNS provider types")
+	cmd.PersistentFlags().StringVarP(&this.Controllers, "controllers", "", "all", "comma separated list of controllers to start (<name>,source,target,all)")
+	cmd.PersistentFlags().StringVarP(&this.PluginDir, "plugin-dir", "", "", "directory containing go plugins")
+	cmd.PersistentFlags().IntVarP(&this.ServerPortHTTP, "server-port-http", "", 0, "directory containing go plugins")
 	cmd.PersistentFlags().StringVarP(&this.LogLevel, "log-level", "D", "", "logrus log level")
 
 	for _, o := range this.ArbitraryOptions {
