@@ -33,6 +33,7 @@ Building a controller manager consists of 4(6) steps:
   be aggragated into the controller manager.
 - _Optional:_ Provide the cluster mapping for the various controllers 
 - Implement a simple main function.
+- _Optional:_ Register additional non-standard API Groups
 
 ### Defining a Controller
 
@@ -177,6 +178,36 @@ func main() {
 ```
 
 Please refer to a complete [example](cmd/test-controller/main.go)
+
+
+### Using Own API Groups
+
+The used resource abstraction requires information about the object
+implementations for the resources of the used API Groups.
+Some standard API Groups are registered by default:
+
+```go
+import (
+	apps "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
+	
+	"github.com/gardener/controller-manager-library/pkg/resources"
+)
+
+func init() {
+	resources.Register(corev1.SchemeBuilder)
+	resources.Register(extensions.SchemeBuilder)
+	resources.Register(apps.SchemeBuilder)
+}
+```
+
+If other API groups are used by the controllers, they must explicity be
+registered according the example above. If this libraray is redistributed
+together with a new API group, this registration can directy be done in
+the package defining its _SchemeBuilder_. Otherwise it could be done together
+with the controller registration.
+
 
 ### Command Line Interface
 
