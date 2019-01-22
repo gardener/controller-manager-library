@@ -1,0 +1,7 @@
+helper: (( merge )) 
+
+settings:
+  repokey: ""
+  pipeline: controller-manager-library
+  branchsets:
+    main: (( .helper.main_branch("master") ))
