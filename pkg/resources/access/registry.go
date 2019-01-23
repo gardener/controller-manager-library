@@ -33,10 +33,10 @@ type entry struct {
 }
 
 func (this *entry) forCluster(clusterId string) []AccessController {
-	list:=this.clusters[clusterId]
-	global:=this.clusters[""]
-	if list!=nil {
-		if global !=nil {
+	list := this.clusters[clusterId]
+	global := this.clusters[""]
+	if list != nil {
+		if global != nil {
 			return append(append([]AccessController{}, list...), global...)
 		}
 		return list
@@ -45,21 +45,21 @@ func (this *entry) forCluster(clusterId string) []AccessController {
 }
 
 func Register(ctr AccessController, clusterId string, priority int) {
-	if priority<MIN_PRIO || priority>MAX_PRIO {
+	if priority < MIN_PRIO || priority > MAX_PRIO {
 		panic(fmt.Errorf("invalid access controller priority %d for %q", priority, ctr.Name()))
 	}
 	lock.Lock()
 	defer lock.Unlock()
 
-	if clusterId=="" {
+	if clusterId == "" {
 		logger.Infof("registering global access controller %q with priority %s", ctr.Name(), priority)
 	} else {
 		logger.Infof("registering access controller %q for cluster %q with priority %s", ctr.Name(), clusterId, priority)
 	}
 	entered := false
 	found := entries[priority]
-	if found ==nil {
-		found =&entry{priority, map[string][]AccessController{}}
+	if found == nil {
+		found = &entry{priority, map[string][]AccessController{}}
 		for i, e := range entries {
 			if e.priority > priority {
 				entries = append(entries[:i], append([]*entry{found}, entries[i:]...)...)
@@ -71,5 +71,5 @@ func Register(ctr AccessController, clusterId string, priority int) {
 			entries = append(entries, found)
 		}
 	}
-	found.clusters[clusterId]=append(found.clusters[clusterId],ctr)
+	found.clusters[clusterId] = append(found.clusters[clusterId], ctr)
 }

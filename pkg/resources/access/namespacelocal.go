@@ -26,7 +26,7 @@ type NamespaceLocalAccessOnly struct {
 var _ AccessController = &NamespaceLocalAccessOnly{}
 
 func (this *NamespaceLocalAccessOnly) Name() string {
-  return "LocalNamespaceAccessOnly"
+	return "LocalNamespaceAccessOnly"
 }
 
 func (this *NamespaceLocalAccessOnly) Allowed(src resources.ClusterObjectKey, verb string, tgt resources.ClusterObjectKey) (int, error) {
@@ -40,5 +40,5 @@ func (this *NamespaceLocalAccessOnly) Allowed(src resources.ClusterObjectKey, ve
 }
 
 func RegisterNamespaceOnlyAccess() {
-	Register(&NamespaceLocalAccessOnly{},"", MIN_PRIO)
+	Register(&NamespaceLocalAccessOnly{}, "", MIN_PRIO)
 }
