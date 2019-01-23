@@ -45,13 +45,13 @@ func NewFilteredDNSInformer(client versioned.Interface, namespace string, resync
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ExtensionsV1alpha1().DNSs(namespace).List(options)
+				return client.GardenextensionsV1alpha1().DNSs(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ExtensionsV1alpha1().DNSs(namespace).Watch(options)
+				return client.GardenextensionsV1alpha1().DNSs(namespace).Watch(options)
 			},
 		},
 		&extensionsv1alpha1.DNS{},

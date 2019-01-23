@@ -50,7 +50,7 @@ var (
 	types    = map[reflect.Type]key{}
 	lock     sync.Mutex
 
-	caseSensitiveJsonIterator = jsonserializer.CaseSensitiveJsonIterator()
+	caseSensitiveJSONIterator = jsonserializer.CaseSensitiveJsonIterator()
 )
 
 func MustRegister(kind, extensionType, subType, extensionVersion string, v interface{}) {
@@ -100,7 +100,7 @@ func Marshal(v interface{}) ([]byte, error) {
 	if key := getKeyForType(v); key != nil {
 		value := reflect.ValueOf(v)
 		value.Elem().FieldByName(apiVersionField).SetString(key.extensionVersion)
-		return caseSensitiveJsonIterator.Marshal(v)
+		return caseSensitiveJSONIterator.Marshal(v)
 	}
 
 	return nil, fmt.Errorf("unknown object type %T", v)
@@ -126,7 +126,7 @@ func MarshalToResource(r runtime.Object, s interface{}) error {
 
 func Unmarshal(kind, extensionType, subType string, data []byte) (interface{}, error) {
 	var version extensionVersion
-	if err := caseSensitiveJsonIterator.Unmarshal(data, &version); err != nil {
+	if err := caseSensitiveJSONIterator.Unmarshal(data, &version); err != nil {
 		return nil, err
 	}
 
@@ -135,7 +135,7 @@ func Unmarshal(kind, extensionType, subType string, data []byte) (interface{}, e
 		return nil, fmt.Errorf("not found in registry: (%s, %s, %s, %s)", kind, extensionType, subType, version.APIVersion)
 	}
 
-	if err := caseSensitiveJsonIterator.Unmarshal(data, into); err != nil {
+	if err := caseSensitiveJSONIterator.Unmarshal(data, into); err != nil {
 		return nil, err
 	}
 	return into, nil
@@ -146,7 +146,7 @@ func UnmarshalInto(data []byte, into interface{}) error {
 		return fmt.Errorf("type %T not registered", into)
 	}
 
-	return caseSensitiveJsonIterator.Unmarshal(data, into)
+	return caseSensitiveJSONIterator.Unmarshal(data, into)
 }
 
 func UnmarshalFromResource(subType string, r runtime.Object) (interface{}, error) {

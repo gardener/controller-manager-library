@@ -108,7 +108,7 @@ func LoadPlugins(dir string) error {
 }
 
 func HandleCommandLine(opt string, args []string) error {
-	for i, _ := range args {
+	for i := range args {
 		path := ""
 		if strings.HasPrefix(args[i], opt+"=") {
 			path = args[1][len(opt)+1:]

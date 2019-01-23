@@ -33,9 +33,9 @@ const (
 	CAKeyName = "ca-key.pem"
 	// CACertName is the name of the CA certificate
 	CACertName = "ca-cert.pem"
-	// ServerKeyName is the name of the server private key
+	// KeyName is the name of the server private key
 	KeyName = "key.pem"
-	// ServerCertName is the name of the serving certificate
+	// CertName is the name of the serving certificate
 	CertName = "cert.pem"
 )
 

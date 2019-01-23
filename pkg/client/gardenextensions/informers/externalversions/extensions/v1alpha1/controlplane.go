@@ -45,13 +45,13 @@ func NewFilteredControlPlaneInformer(client versioned.Interface, namespace strin
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ExtensionsV1alpha1().ControlPlanes(namespace).List(options)
+				return client.GardenextensionsV1alpha1().ControlPlanes(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.ExtensionsV1alpha1().ControlPlanes(namespace).Watch(options)
+				return client.GardenextensionsV1alpha1().ControlPlanes(namespace).Watch(options)
 			},
 		},
 		&extensionsv1alpha1.ControlPlane{},

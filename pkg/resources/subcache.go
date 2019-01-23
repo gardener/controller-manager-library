@@ -111,7 +111,7 @@ func (this *SubObjectCache) GetAllOwners(kind ...schema.GroupKind) ClusterObject
 
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	for k, _ := range this.byOwner {
+	for k := range this.byOwner {
 		if len(kinds) > 0 && !kinds.Contains(k.GroupKind()) {
 			continue
 		}

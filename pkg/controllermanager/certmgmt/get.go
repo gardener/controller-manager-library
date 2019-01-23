@@ -26,16 +26,16 @@ import (
 func GetCertificateInfo(logger logger.LogContext, access CertificateAccess, commonName, dnsName string) (cert.CertificateInfo, error) {
 	r, err := access.Get(logger)
 	if err != nil {
-		return nil, fmt.Errorf("error reading from certificate access: %s\n", err)
+		return nil, fmt.Errorf("error reading from certificate access: %s", err)
 	}
 	r, err = cert.UpdateCertificate(r, commonName, dnsName, 7*24*time.Hour)
 	if err != nil {
-		return nil, fmt.Errorf("cert update failed: %s\n", err)
+		return nil, fmt.Errorf("cert update failed: %s", err)
 	}
 
 	err = access.Set(logger, r)
 	if err != nil {
-		return r, fmt.Errorf("certificate update failed: %s\n", err)
+		return r, fmt.Errorf("certificate update failed: %s", err)
 	}
 	return r, nil
 }

@@ -40,6 +40,7 @@ func (l *locker) Unlock() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+// golint: ignore
 var aborted = fmt.Errorf("go routine aborted")
 
 type Runner struct {
