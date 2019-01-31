@@ -1,2 +1,2 @@
-external-dns-management:
+controller-manager-library:
   template: 'default'
