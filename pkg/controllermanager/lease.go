@@ -54,7 +54,7 @@ func (g *leasestartupgroup) Startup() error {
 	}
 	msg += ")"
 
-	runit:=func() {
+	runit := func() {
 		g.manager.Infof("Acquired leadership, starting controllers for %s.", msg)
 		for _, c := range g.controllers {
 			g.manager.startController(c)
@@ -75,7 +75,7 @@ func (g *leasestartupgroup) Startup() error {
 		}
 
 		leaderElectionConfig.Callbacks = leaderelection.LeaderCallbacks{
-			OnStartedLeading: func(ctx context.Context) {runit()},
+			OnStartedLeading: func(ctx context.Context) { runit() },
 			OnStoppedLeading: func() {
 				g.manager.Infof("Lost leadership, cleaning up %s.", msg)
 			},

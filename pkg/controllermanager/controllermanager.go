@@ -72,24 +72,25 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	if config.NamespaceRestriction {
 		access.RegisterNamespaceOnlyAccess()
 	}
-	if config.Namespace=="" {
-		n:=os.Getenv("NAMESPACE")
-		if n!="" {
-			config.Namespace=n
+	if config.Namespace == "" {
+		n := os.Getenv("NAMESPACE")
+		if n != "" {
+			config.Namespace = n
 		} else {
-			f:="/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-			bytes, err:=ioutil.ReadFile(f)
-			if err==nil {
-				n=string(bytes)
-				n=strings.TrimSpace(n)
-				if n!="" {
+			f := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+			bytes, err := ioutil.ReadFile(f)
+			if err == nil {
+				n = string(bytes)
+				n = strings.TrimSpace(n)
+				if n != "" {
 					config.Namespace = n
+
 				}
 			}
 		}
 	}
-	if config.Namespace=="" {
-		config.Namespace="kube-system"
+	if config.Namespace == "" {
+		config.Namespace = "kube-system"
 	}
 	groups := def.Groups()
 
