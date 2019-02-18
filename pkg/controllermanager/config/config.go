@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -85,6 +86,10 @@ func (this *Config) AddStringArrayOption(name string) (*ArbitraryOption, bool) {
 
 func (this *Config) AddIntOption(name string) (*ArbitraryOption, bool) {
 	return this.AddOption(name, reflect.TypeOf((*int)(nil)).Elem())
+}
+
+func (this *Config) AddDurationOption(name string) (*ArbitraryOption, bool) {
+	return this.AddOption(name, reflect.TypeOf((*time.Duration)(nil)).Elem())
 }
 
 func (this *Config) AddToCommand(cmd *cobra.Command) {
