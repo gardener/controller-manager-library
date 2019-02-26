@@ -98,26 +98,17 @@ func (this *_Definitions) CreateClusters(ctx context.Context, logger logger.LogC
 
 	logger.Infof("required clusters: %s", names)
 
-	lookupEffective := func(name string) Interface {
-		return clusters.effective[name]
-	}
-
-	alreadyFound := -1
+	lastFound := -1
 	missing := names
-	for len(missing) > 0 && alreadyFound != len(clusters.clusters) {
-		alreadyFound = len(clusters.clusters)
+	for len(missing) > 0 && lastFound != len(clusters.clusters) {
+		lastFound = len(clusters.clusters)
 		names = missing
 		missing = utils.StringSet{}
 		for name := range names {
 			if clusters.GetCluster(name) == nil {
-				c, err := this.createCluster(ctx, logger, cfg, lookupEffective, name)
+				err := this.handleCluster(ctx, logger, cfg, clusters, missing, name)
 				if err != nil {
 					return nil, err
-				}
-				if c != nil {
-					clusters.Add(name, c)
-				} else {
-					missing.Add(name)
 				}
 			}
 		}
@@ -129,7 +120,7 @@ func (this *_Definitions) CreateClusters(ctx context.Context, logger logger.LogC
 	return clusters, nil
 }
 
-func (this *_Definitions) createCluster(ctx context.Context, logger logger.LogContext, cfg *config.Config, lookupEffective func(string) Interface, name string) (Interface, error) {
+func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogContext, cfg *config.Config, found*_Clusters, missing utils.StringSet, name string) error {
 	var err error
 	var c Interface
 	fallback := ""
@@ -140,11 +131,11 @@ func (this *_Definitions) createCluster(ctx context.Context, logger logger.LogCo
 	if name != DEFAULT && opt != nil && opt.StringValue() != "" {
 		c, err = this.create(ctx, logger, cfg, req, opt.StringValue())
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		if req.Fallback() == "" || req.Fallback() == DEFAULT {
-			c = lookupEffective(DEFAULT)
+			c = found.effective[DEFAULT]
 			if c == nil {
 				opt := cfg.GetOption(defaultRequest.ConfigOptionName())
 				configname := ""
@@ -153,20 +144,23 @@ func (this *_Definitions) createCluster(ctx context.Context, logger logger.LogCo
 				}
 				c, err = this.create(ctx, logger, cfg, defaultRequest, configname)
 				if err != nil {
-					return nil, err
+					return err
 				}
 			}
 			fallback = fmt.Sprintf(" using default fallback")
 		} else {
-			c = lookupEffective(req.Fallback())
+			c = found.effective[req.Fallback()]
 			fallback = fmt.Sprintf(" using explicit fallback %q", req.Fallback())
 		}
 	}
 	if c != nil {
 		logger.Infof("adding cluster %q[%s] as %q%s", c.GetName(), c.GetId(), name, fallback)
+		found.Add(name, c)
+	} else {
+		missing.Add(name)
 	}
 
-	return c, nil
+	return nil
 }
 
 func (this *_Definitions) ExtendConfig(cfg *config.Config) {
