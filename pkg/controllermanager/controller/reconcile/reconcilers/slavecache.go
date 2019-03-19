@@ -40,6 +40,15 @@ type _resources struct {
 	clusters  utils.StringSet
 }
 
+func (this *_resources) Contains(g schema.GroupKind) bool {
+	for _, e := range this.kinds {
+		if e == g {
+			return true
+		}
+	}
+	return false
+}
+
 func newResources(c controller.Interface, f Resources) *_resources {
 	var kinds []schema.GroupKind
 	clusters := utils.StringSet{}
@@ -185,7 +194,7 @@ func (this *SlaveAccess) GetMasters(all_clusters bool, kinds ...schema.GroupKind
 	return filterKeysByClusters(set, this.master_resources.clusters)
 }
 
-func filterKeysByClusters(set resources.ClusterObjectKeySet, clusters utils.StringSet) resources.ClusterObjectKeySet {
+func filterKeysByClusters(set resources.ClusterObjectKeySet, clusters utils.StringSet, kinds ...schema.GroupKind) resources.ClusterObjectKeySet {
 	if clusters == nil {
 		return set
 	}
@@ -193,6 +202,17 @@ func filterKeysByClusters(set resources.ClusterObjectKeySet, clusters utils.Stri
 	for k := range set {
 		if clusters.Contains(k.Cluster()) {
 			new.Add(k)
+		}
+	}
+	if len(kinds) != 0 {
+	outer:
+		for k := range new {
+			for _, g := range kinds {
+				if k.GroupKind() == g {
+					continue outer
+				}
+			}
+			new.Remove(k)
 		}
 	}
 	return new

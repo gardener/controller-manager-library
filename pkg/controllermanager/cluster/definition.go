@@ -120,7 +120,7 @@ func (this *_Definitions) CreateClusters(ctx context.Context, logger logger.LogC
 	return clusters, nil
 }
 
-func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogContext, cfg *config.Config, found*_Clusters, missing utils.StringSet, name string) error {
+func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogContext, cfg *config.Config, found *_Clusters, missing utils.StringSet, name string) error {
 	var err error
 	var c Interface
 	fallback := ""
