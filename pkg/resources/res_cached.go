@@ -59,7 +59,17 @@ func (this *_resource) GetCached(obj interface{}) (Object, error) {
 			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", this.gvk, o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
+	case *ObjectKey:
+		if o.GroupKind() != this.GroupKind() {
+			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", this.gvk, o.GroupKind())
+		}
+		return this.getCached(o.Namespace(), o.Name())
 	case ClusterObjectKey:
+		if o.GroupKind() != this.GroupKind() {
+			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", this.gvk, o.GroupKind())
+		}
+		return this.getCached(o.Namespace(), o.Name())
+	case *ClusterObjectKey:
 		if o.GroupKind() != this.GroupKind() {
 			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", this.gvk, o.GroupKind())
 		}
