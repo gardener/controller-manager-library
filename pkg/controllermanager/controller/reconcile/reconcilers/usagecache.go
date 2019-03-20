@@ -38,28 +38,39 @@ type UsageAccess struct {
 	name             string
 	usages           *resources.UsageCache
 	master_resources *_resources
+	spec             UsageAccessSpec
 }
 
-func NewUsageAccess(c controller.Interface, name string, master_func Resources, used resources.UsedExtractor) *UsageAccess {
+type UsedExtractorFactory func(controller.Interface) resources.UsedExtractor
+
+type UsageAccessSpec struct {
+	Name             string
+	MasterResources  Resources
+	Extractor        resources.UsedExtractor
+	ExtractorFactory UsedExtractorFactory
+}
+
+func NewUsageAccessBySpec(c controller.Interface, spec UsageAccessSpec) *UsageAccess {
+	used := spec.Extractor
+	if used == nil {
+		used = spec.ExtractorFactory(c)
+	}
 	return &UsageAccess{
 		Interface:        c,
-		name:             name,
+		name:             spec.Name,
 		used:             used,
-		master_resources: newResources(c, master_func),
+		master_resources: newResources(c, spec.MasterResources),
+		spec:             spec,
 	}
 }
 
-type usagekey struct {
-	key
+func (this *UsageAccess) Key() interface{} {
+	return accesskey{name: this.name, masters: this.master_resources.String(), slaves: ""}
 }
 
 func (this *UsageAccess) Setup() {
-	key := usagekey{}
-	for _, gk := range this.master_resources.kinds {
-		key.names = key.names + "|" + (&gk).String()
-	}
-	this.usages = this.GetOrCreateSharedValue(key, this.setupUsageCache).(*resources.UsageCache)
-	if this.usages==nil {
+	this.usages = this.GetOrCreateSharedValue(this.Key(), this.setupUsageCache).(*resources.UsageCache)
+	if this.usages == nil {
 		panic("no usages created")
 	}
 }
@@ -140,15 +151,15 @@ func (this *UsageAccess) GetUsed(all_clusters bool, kinds ...schema.GroupKind) r
 //  nested reconcilers can cast the controller interface to *UsageReconciler
 ////////////////////////////////////////////////////////////////////////////////
 
-func UsageReconcilerType(name string, reconciler controller.ReconcilerType, masterResources Resources, used resources.UsedExtractor) controller.ReconcilerType {
+func UsageReconcilerTypeBySpec(reconciler controller.ReconcilerType, spec UsageAccessSpec) controller.ReconcilerType {
 	return func(c controller.Interface) (reconcile.Interface, error) {
-		return NewUsageReconciler(c, name, reconciler, masterResources, used)
+		return NewUsageReconcilerBySpec(c, reconciler, spec)
 	}
 }
 
-func NewUsageReconciler(c controller.Interface, name string, reconciler controller.ReconcilerType, masterResources Resources, used resources.UsedExtractor) (*UsageReconciler, error) {
+func NewUsageReconcilerBySpec(c controller.Interface, reconciler controller.ReconcilerType, spec UsageAccessSpec) (*UsageReconciler, error) {
 	r := &UsageReconciler{
-		UsageAccess: NewUsageAccess(c, name, masterResources, used),
+		UsageAccess: NewUsageAccessBySpec(c, spec),
 	}
 	nested, err := NewNestedReconciler(reconciler, r)
 	if err != nil {
