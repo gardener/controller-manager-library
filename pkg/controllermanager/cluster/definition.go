@@ -126,7 +126,7 @@ func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogCo
 	fallback := ""
 	defaultRequest := this.definitions[DEFAULT]
 	req := this.definitions[name]
-	if req==nil {
+	if req == nil {
 		return fmt.Errorf("no definition for cluster %s", name)
 	}
 
@@ -157,8 +157,8 @@ func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogCo
 					return err
 				}
 			}
-			fallback=""
-			if name!=DEFAULT {
+			fallback = ""
+			if name != DEFAULT {
 				fallback = fmt.Sprintf(" using default fallback")
 			}
 		} else {
@@ -168,7 +168,7 @@ func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogCo
 	}
 	if c != nil {
 		logger.Infof("adding cluster %q[%s] as %q%s", c.GetName(), c.GetId(), name, fallback)
-		found.Add(name, c, fmt.Sprintf("%s%s",name,fallback))
+		found.Add(name, c, fmt.Sprintf("%s%s", name, fallback))
 	} else {
 		missing.Add(name)
 	}
