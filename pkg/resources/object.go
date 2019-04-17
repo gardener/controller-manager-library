@@ -39,6 +39,10 @@ type _object struct {
 
 var _ Object = &_object{}
 
+func NewObject(data ObjectData, cluster Cluster, resource Internal) Object {
+	return &_object{data, cluster,resource}
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 
 func (this *_object) Resources() Resources {
@@ -126,7 +130,7 @@ func (this *_object) IsA(spec interface{}) bool {
 		for t.Kind() == reflect.Ptr {
 			t = t.Elem()
 		}
-		return t == this.resource.objectType()
+		return t == this.resource._objectType()
 	case schema.GroupVersionKind:
 		return s == this.resource.GroupVersionKind()
 	case *schema.GroupVersionKind:

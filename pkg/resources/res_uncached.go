@@ -138,10 +138,9 @@ func (this *_resource) get(namespace, name string, result ObjectData) (Object, e
 	if result == nil {
 		result = this.createData()
 	}
-	err := this.namespacedRequest(this.client.Get(), namespace).
-		Name(name).
-		Do().
-		Into(result)
+	result.SetNamespace(namespace)
+	result.SetName(name)
+	err := this._get(result)
 	return this.objectAsResource(result), err
 }
 

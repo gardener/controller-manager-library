@@ -30,20 +30,19 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type Internal interface {
-	Interface
-	getClient() restclient.Interface
-	namespacedRequest(*restclient.Request, string) *restclient.Request
-	resourceRequest(*restclient.Request, ObjectData, ...string) *restclient.Request
-	objectRequest(*restclient.Request, ObjectData, ...string) *restclient.Request
-	objectType() reflect.Type
-	createData() ObjectData
+type _internal interface {
+	_objectType() reflect.Type
 
 	_create(data ObjectData) (ObjectData, error)
 	_get(data ObjectData) error
 	_update(data ObjectData) (ObjectData, error)
 	_updateStatus(data ObjectData) (ObjectData, error)
 	_delete(data ObjectData) error
+}
+
+type Internal interface {
+	Interface
+	_internal
 }
 
 type _resource struct {
@@ -95,12 +94,12 @@ func (this *_resource) getInformer() (GenericInformer, error) {
 	return this.cache, nil
 }
 
-func (this *_resource) objectType() reflect.Type {
+func (this *_resource) _objectType() reflect.Type {
 	return this.otype
 }
 
 func (this *_resource) objectAsResource(obj ObjectData) Object {
-	return &_object{obj, this.context.cluster, this}
+	return NewObject(obj, this.context.cluster, this)
 }
 
 func (this *_resource) GroupVersionKind() schema.GroupVersionKind {
