@@ -21,25 +21,28 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
-func (this *_object) Create() error {
-	o, err := this.resource.Create(this.ObjectData)
+func (this *AbstractObject) Create() error {
+	o, err := this.self.GetResource().Create(this.ObjectData)
 	if err == nil {
 		this.ObjectData = o.Data()
 	}
 	return err
 }
 
-func (this *_object) CreateOrUpdate() error {
-	o, err := this.resource.CreateOrUpdate(this.ObjectData)
+func (this *AbstractObject) CreateOrUpdate() error {
+	o, err := this.self.GetResource().CreateOrUpdate(this.ObjectData)
 	if err == nil {
 		this.ObjectData = o.Data()
 	}
 	return err
 }
 
-func (this *_object) IsDeleting() bool {
+func (this *AbstractObject) IsDeleting() bool {
 	return this.GetDeletionTimestamp() != nil
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Methods using internal Resource Interface
 
 func (this *_object) Update() error {
 	result, err := this.resource._update(this.ObjectData)
@@ -83,7 +86,7 @@ func (this *_object) modify(create bool, modifier Modifier) (bool, error) {
 func (this *_object) _modify(status_only, create bool, modifier Modifier) (bool, error) {
 	var lasterr error
 
-	data := this.GetObject().DeepCopyObject().(ObjectData)
+	data := this.Data().DeepCopyObject().(ObjectData)
 
 	cnt := 10
 

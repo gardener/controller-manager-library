@@ -87,6 +87,9 @@ func (this *_resource) ListCached(selector labels.Selector) (ret []Object, err e
 	if err != nil {
 		return nil, err
 	}
+	if selector == nil {
+		selector = labels.Everything()
+	}
 	err = informer.Lister().List(selector, func(obj interface{}) {
 		ret = append(ret, this.objectAsResource(obj.(ObjectData)))
 	})
@@ -123,6 +126,9 @@ func (this *namespacedResource) ListCached(selector labels.Selector) (ret []Obje
 	lister, err := this.getLister()
 	if err != nil {
 		return nil, err
+	}
+	if selector == nil {
+		selector = labels.Everything()
 	}
 	err = lister.List(selector, func(obj interface{}) {
 		ret = append(ret, this.resource.objectAsResource(obj.(ObjectData)))

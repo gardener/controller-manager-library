@@ -37,6 +37,9 @@ type ResourceContext interface {
 
 	Resources() Resources
 	SharedInformerFactory() SharedInformerFactory
+
+	GetPreferred(gk schema.GroupKind) (*Info, error)
+	Get(gvk schema.GroupVersionKind) (*Info, error)
 }
 
 type resourceContext struct {

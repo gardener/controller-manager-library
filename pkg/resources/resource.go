@@ -18,6 +18,7 @@ package resources
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"sync"
@@ -70,6 +71,13 @@ func (this *_resource) GetCluster() Cluster {
 	return this.context.cluster
 }
 
+var unstructuredType = reflect.TypeOf(unstructured.Unstructured{})
+var unstructuredListType = reflect.TypeOf(unstructured.UnstructuredList{})
+
+func (this *_resource) IsUnstructured() bool {
+	return this.otype == unstructuredType
+}
+
 func (this *_resource) getInformer() (GenericInformer, error) {
 	if this.cache != nil {
 		return this.cache, nil
@@ -81,7 +89,10 @@ func (this *_resource) getInformer() (GenericInformer, error) {
 		return this.cache, nil
 	}
 
-	informers := this.context.SharedInformerFactory()
+	informers := this.context.SharedInformerFactory().Structured()
+	if this.IsUnstructured() {
+		informers = this.context.SharedInformerFactory().Unstructured()
+	}
 	informer, err := informers.InformerFor(this.gvk)
 	if err != nil {
 		return nil, err
@@ -151,10 +162,17 @@ func (this *_resource) Namespace(namespace string) Namespaced {
 	return &namespacedResource{this, namespace, nil}
 }
 
-func (this *_resource) checkOType(obj ObjectData) error {
+func (this *_resource) checkOType(obj ObjectData, unstructured ...bool) error {
 	t := reflect.TypeOf(obj)
-	if t.Kind() == reflect.Ptr && t.Elem() == this.otype {
-		return nil
+	if t.Kind() == reflect.Ptr {
+		if t.Elem() == this.otype {
+			return nil
+		}
+		if len(unstructured) > 0 && unstructured[0] {
+			if t.Elem() == unstructuredType {
+				return nil
+			}
+		}
 	}
 	return fmt.Errorf("wrong data type %T (expected %s)", obj, reflect.PtrTo(this.otype))
 }

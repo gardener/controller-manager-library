@@ -17,9 +17,7 @@
 package resources
 
 import (
-	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"reflect"
@@ -32,7 +30,7 @@ func init() {
 }
 
 type _object struct {
-	ObjectData
+	AbstractObject
 	cluster  Cluster
 	resource Internal
 }
@@ -40,85 +38,25 @@ type _object struct {
 var _ Object = &_object{}
 
 func NewObject(data ObjectData, cluster Cluster, resource Internal) Object {
-	return &_object{data, cluster,resource}
+	o := &_object{AbstractObject{data, nil}, cluster, resource}
+	o.self = o
+	return o
+}
+
+func (this *_object) DeepCopy() Object {
+	r := &_object{AbstractObject{this.ObjectData.DeepCopyObject().(ObjectData), nil}, this.cluster, this.resource}
+	r.self = r
+	return r
 }
 
 /////////////////////////////////////////////////////////////////////////////////
-
-func (this *_object) Resources() Resources {
-	return this.cluster.Resources()
-}
 
 func (this *_object) GetCluster() Cluster {
 	return this.cluster
 }
 
-func (this *_object) GetObject() ObjectData {
-	return this.ObjectData
-}
-
 func (this *_object) GetResource() Interface {
 	return this.resource
-}
-
-func (this *_object) Event(eventtype, reason, message string) {
-	this.cluster.Resources().Event(this.ObjectData, eventtype, reason, message)
-}
-
-func (this *_object) Eventf(eventtype, reason, messageFmt string, args ...interface{}) {
-	this.cluster.Resources().Eventf(this.ObjectData, eventtype, reason, messageFmt, args...)
-}
-
-func (this *_object) PastEventf(timestamp metav1.Time, eventtype, reason, messageFmt string, args ...interface{}) {
-	this.cluster.Resources().PastEventf(this.ObjectData, timestamp, eventtype, reason, messageFmt, args...)
-}
-
-func (this *_object) AnnotatedEventf(annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{}) {
-	this.cluster.Resources().AnnotatedEventf(this.ObjectData, annotations, eventtype, reason, messageFmt, args...)
-}
-
-func (this *_object) Data() ObjectData {
-	return this.ObjectData
-}
-
-func (this *_object) ObjectName() ObjectName {
-	return NewObjectName(this.GetNamespace(), this.GetName())
-}
-
-func (this *_object) Key() ObjectKey {
-	return NewKey(this.GroupKind(), this.GetNamespace(), this.GetName())
-}
-
-func (this *_object) ClusterKey() ClusterObjectKey {
-	return NewClusterKey(this.cluster.GetId(), this.GroupKind(), this.GetNamespace(), this.GetName())
-}
-
-func (this *_object) GroupKind() schema.GroupKind {
-	return this.resource.GroupKind()
-}
-
-func (this *_object) GroupVersionKind() schema.GroupVersionKind {
-	return this.resource.GroupVersionKind()
-}
-
-func (this *_object) Description() string {
-	return fmt.Sprintf("%s:%s", this.GetCluster().GetName(), this.Key())
-}
-
-func (this *_object) IsCoLocatedTo(o Object) bool {
-	if o == nil {
-		return true
-	}
-	return o.GetCluster() == this.GetCluster()
-}
-
-func (this *_object) Resource() Interface {
-	return this.resource
-}
-
-func (this *_object) DeepCopy() Object {
-	r := &_object{this.ObjectData.DeepCopyObject().(ObjectData), this.cluster, this.resource}
-	return r
 }
 
 func (this *_object) IsA(spec interface{}) bool {

@@ -41,6 +41,9 @@ type _resources struct {
 	handlersByGroupKind        map[schema.GroupKind]Interface
 	handlersByGroupVersionKind map[schema.GroupVersionKind]Interface
 
+	unstructuredHandlersByGroupKind        map[schema.GroupKind]Interface
+	unstructuredHandlersByGroupVersionKind map[schema.GroupVersionKind]Interface
+
 	record.EventRecorder
 }
 
@@ -71,6 +74,9 @@ func (this *_resources) new(c *resourceContext, source string) *_resources {
 	this.handlersByObjType = map[reflect.Type]Interface{}
 	this.handlersByGroupKind = map[schema.GroupKind]Interface{}
 	this.handlersByGroupVersionKind = map[schema.GroupVersionKind]Interface{}
+
+	this.unstructuredHandlersByGroupKind = map[schema.GroupKind]Interface{}
+	this.unstructuredHandlersByGroupVersionKind = map[schema.GroupVersionKind]Interface{}
 
 	client, _ := c.GetClient(schema.GroupVersion{"", "v1"})
 
@@ -188,11 +194,17 @@ func (this *_resources) GetByGK(gk schema.GroupKind) (Interface, error) {
 	if err != nil {
 		return nil, err
 	}
+	if handler, ok := this.handlersByGroupVersionKind[info.GroupVersionKind()]; ok {
+		this.handlersByGroupKind[gk] = handler
+		return handler, nil
+	}
+
 	h, err := this.getResource(info)
 	if err != nil {
 		return nil, err
 	}
 	this.handlersByGroupKind[gk] = h
+	this.handlersByGroupVersionKind[info.GroupVersionKind()] = h
 	return h, nil
 }
 
@@ -209,7 +221,12 @@ func (this *_resources) GetByGVK(gvk schema.GroupVersionKind) (Interface, error)
 		return nil, err
 	}
 
-	return this.getResource(info)
+	h, err := this.getResource(info)
+	if err != nil {
+		return nil, err
+	}
+	this.handlersByGroupVersionKind[gvk] = h
+	return h, nil
 }
 
 func (this *_resources) getResource(info *Info) (Interface, error) {
@@ -220,6 +237,58 @@ func (this *_resources) getResource(info *Info) (Interface, error) {
 	}
 
 	return this.newResource(gvk, informerType, info)
+}
+
+func (this *_resources) GetUnstructuredByGK(gk schema.GroupKind) (Interface, error) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	if handler, ok := this.unstructuredHandlersByGroupKind[gk]; ok {
+		return handler, nil
+	}
+
+	info, err := this.informers.context.GetPreferred(gk)
+	if err != nil {
+		return nil, err
+	}
+	if handler, ok := this.unstructuredHandlersByGroupVersionKind[info.GroupVersionKind()]; ok {
+		this.unstructuredHandlersByGroupKind[gk] = handler
+		return handler, nil
+	}
+
+	h, err := this.getUnstructuredResource(info)
+	if err != nil {
+		return nil, err
+	}
+	this.unstructuredHandlersByGroupKind[gk] = h
+	this.unstructuredHandlersByGroupVersionKind[info.GroupVersionKind()] = h
+	return h, nil
+}
+
+func (this *_resources) GetUnstructuredByGVK(gvk schema.GroupVersionKind) (Interface, error) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	if handler, ok := this.unstructuredHandlersByGroupVersionKind[gvk]; ok {
+		return handler, nil
+	}
+
+	info, err := this.ctx.Get(gvk)
+	if err != nil {
+		return nil, err
+	}
+
+	h, err := this.getUnstructuredResource(info)
+	if err != nil {
+		return nil, err
+	}
+	this.unstructuredHandlersByGroupVersionKind[gvk] = h
+	return h, err
+}
+
+func (this *_resources) getUnstructuredResource(info *Info) (Interface, error) {
+	gvk := info.GroupVersionKind()
+	return this.newResource(gvk, nil, info)
 }
 
 func (this *_resources) Wrap(obj ObjectData) (Object, error) {
@@ -274,6 +343,9 @@ func (r *_resources) newResource(gvk schema.GroupVersionKind, otype reflect.Type
 		return nil, err
 	}
 
+	if otype == nil {
+		otype = unstructuredType
+	}
 	ltype := kutil.DetermineListType(r.ctx.scheme, gvk.GroupVersion(), otype)
 	if ltype == nil {
 		return nil, fmt.Errorf("cannot determine list type for %s", otype)

@@ -71,6 +71,7 @@ type Interface interface {
 	GetResource(groupKind schema.GroupKind) (resources.Interface, error)
 	Config() restclient.Config
 	Resources() resources.Resources
+	ResourceContext() resources.ResourceContext
 	IsLocal() bool
 	Definition() Definition
 }
@@ -141,6 +142,10 @@ func (this *_Cluster) Clientsets() clientsets.Interface {
 
 func (this *_Cluster) Resources() resources.Resources {
 	return this.resources
+}
+
+func (this *_Cluster) ResourceContext() resources.ResourceContext {
+	return this.rctx
 }
 
 func (this *_Cluster) InformerFactories() informerfactories.Interface {

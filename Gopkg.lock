@@ -563,11 +563,12 @@
   version = "kubernetes-1.12.0"
 
 [[projects]]
-  digest = "1:b319b32c550d258b6fa1cb53de472a83433b9b4178686f43df46a8c94e7fda28"
+  digest = "1:ec20aca13facf394a3126dc10de61bb7640da9d25a133da935ddcf63e690b835"
   name = "k8s.io/client-go"
   packages = [
     "discovery",
     "discovery/fake",
+    "dynamic",
     "informers",
     "informers/admissionregistration",
     "informers/admissionregistration/v1alpha1",
@@ -823,6 +824,7 @@
     "k8s.io/apimachinery/pkg/watch",
     "k8s.io/client-go/discovery",
     "k8s.io/client-go/discovery/fake",
+    "k8s.io/client-go/dynamic",
     "k8s.io/client-go/informers",
     "k8s.io/client-go/kubernetes",
     "k8s.io/client-go/kubernetes/scheme",

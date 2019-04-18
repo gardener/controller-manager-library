@@ -171,7 +171,7 @@ func (this *_resource) GetInto(name ObjectName, obj ObjectData) (Object, error) 
 	if o, ok := obj.(Object); ok {
 		obj = o.Data()
 	}
-	if err := this.checkOType(obj); err != nil {
+	if err := this.checkOType(obj, true); err != nil {
 		return nil, err
 	}
 	return this.get(name.Namespace(), name.Name(), obj)

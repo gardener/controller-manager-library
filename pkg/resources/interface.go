@@ -178,6 +178,8 @@ type Interface interface {
 	Delete(ObjectData) error
 
 	Namespace(name string) Namespaced
+
+	IsUnstructured() bool
 }
 
 type Namespaced interface {
@@ -195,6 +197,9 @@ type Resources interface {
 	GetByExample(obj runtime.Object) (Interface, error)
 	GetByGK(gk schema.GroupKind) (Interface, error)
 	GetByGVK(gvk schema.GroupVersionKind) (Interface, error)
+
+	GetUnstructuredByGK(gk schema.GroupKind) (Interface, error)
+	GetUnstructuredByGVK(gvk schema.GroupVersionKind) (Interface, error)
 
 	Wrap(obj ObjectData) (Object, error)
 
