@@ -18,8 +18,8 @@ package resources
 
 import (
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/errors"
-	restclient "k8s.io/client-go/rest"
 )
 
 func (this *_object) Create() error {
@@ -142,12 +142,8 @@ func (this *_object) _modify(status_only, create bool, modifier Modifier) (bool,
 	return true, lasterr
 }
 
-func (this *_object) delete(client restclient.Interface) error {
-	return this.resource.objectRequest(client.Delete(), this).Do().Error()
-}
-
 func (this *_object) Delete() error {
-	return this.delete(this.resource.getClient())
+	return this.resource.Delete(this)
 }
 
 func (this *_object) UpdateFromCache() error {

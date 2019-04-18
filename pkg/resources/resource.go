@@ -18,9 +18,10 @@ package resources
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"sync"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/gardener/controller-manager-library/pkg/informerfactories"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -32,7 +33,6 @@ import (
 
 type Internal interface {
 	Interface
-	getClient() restclient.Interface
 	namespacedRequest(*restclient.Request, string) *restclient.Request
 	resourceRequest(*restclient.Request, ObjectData, ...string) *restclient.Request
 	objectRequest(*restclient.Request, ObjectData, ...string) *restclient.Request
@@ -115,17 +115,10 @@ func (this *_resource) Info() *Info {
 	return this.info
 }
 
-func (this *_resource) Client() restclient.Interface {
-	return this.client
-}
-
 func (this *_resource) Namespaced() bool {
 	return this.info.Namespaced()
 }
 
-func (this *_resource) getClient() restclient.Interface {
-	return this.client
-}
 func (this *_resource) ResourceContext() ResourceContext {
 	return this.context
 }

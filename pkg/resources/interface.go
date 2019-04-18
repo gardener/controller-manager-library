@@ -158,7 +158,6 @@ type Interface interface {
 	GetCluster() Cluster
 	GroupVersionKind() schema.GroupVersionKind
 	Info() *Info
-	Client() restclient.Interface
 	ResourceContext() ResourceContext
 	AddEventHandler(eventHandlers ResourceEventHandlerFuncs) error
 	AddRawEventHandler(handlers cache.ResourceEventHandlerFuncs) error
