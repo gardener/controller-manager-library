@@ -158,7 +158,6 @@ type Interface interface {
 	GetCluster() Cluster
 	GroupVersionKind() schema.GroupVersionKind
 	Info() *Info
-	Client() restclient.Interface
 	ResourceContext() ResourceContext
 	AddEventHandler(eventHandlers ResourceEventHandlerFuncs) error
 	AddRawEventHandler(handlers cache.ResourceEventHandlerFuncs) error
@@ -210,7 +209,4 @@ type Resources interface {
 
 	CreateObject(ObjectData) (Object, error)
 	CreateOrUpdateObject(obj ObjectData) (Object, error)
-	GetClient(spec interface{}) (restclient.Interface, error)
-
-	AddEventHandler(spec interface{}, funcs *ResourceEventHandlerFuncs) error
 }
