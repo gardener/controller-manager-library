@@ -82,10 +82,10 @@ func main() {
 	list, err := r.List(metav1.ListOptions{})
 	List("UNSTRUCTURED", list, err)
 
-	list, err = r.ListCached(nil)
+	list, err = r.Namespace("default").ListCached(nil)
 	List("UNSTRUCTURED CACHED", list, err)
 
-	list, err = st.ListCached(nil)
+	list, err = st.Namespace("default").ListCached(nil)
 	List("STRUCTURED CACHED", list, err)
 }
 

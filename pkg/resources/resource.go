@@ -18,11 +18,9 @@ package resources
 
 import (
 	"reflect"
-	"sync"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"github.com/gardener/controller-manager-library/pkg/informerfactories"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,20 +30,18 @@ import (
 
 type _resource struct {
 	AbstractResource
-	lock    sync.Mutex
 	context *resourceContext
 	gvk     schema.GroupVersionKind
 	otype   reflect.Type
 	ltype   reflect.Type
 	info    *Info
-	cache   GenericInformer
 	client  restclient.Interface
 }
 
 var _ Interface = &_resource{}
 
 type namespacedResource struct {
-	resource  *_resource
+	resource  *AbstractResource
 	namespace string
 	lister    NamespacedLister
 }
@@ -66,7 +62,7 @@ func newResource(
 		info:             info,
 		client:           client,
 	}
-	r.AbstractResource, _ = NewAbstractResource(&_i_resource{r})
+	r.AbstractResource, _ = NewAbstractResource(&_i_resource{_resource: r})
 	return r
 }
 
@@ -87,33 +83,6 @@ func (this *_resource) IsUnstructured() bool {
 	return this.otype == unstructuredType
 }
 
-func (this *_resource) getInformer() (GenericInformer, error) {
-	if this.cache != nil {
-		return this.cache, nil
-	}
-	this.lock.Lock()
-	defer this.lock.Unlock()
-
-	if this.cache != nil {
-		return this.cache, nil
-	}
-
-	informers := this.context.SharedInformerFactory().Structured()
-	if this.IsUnstructured() {
-		informers = this.context.SharedInformerFactory().Unstructured()
-	}
-	informer, err := informers.InformerFor(this.gvk)
-	if err != nil {
-		return nil, err
-	}
-	if err := informerfactories.Start(this.context.ctx, informers, informer.Informer().HasSynced); err != nil {
-		return nil, err
-	}
-
-	this.cache = informer
-	return this.cache, nil
-}
-
 func (this *_resource) Info() *Info {
 	return this.info
 }
@@ -128,7 +97,7 @@ func (this *_resource) ResourceContext() ResourceContext {
 
 func (this *_resource) AddRawEventHandler(handlers cache.ResourceEventHandlerFuncs) error {
 	logger.Infof("adding resourcename for %s", this.gvk)
-	informer, err := this.getInformer()
+	informer, err := this.self.I_getInformer()
 	if err != nil {
 		return err
 	}
@@ -138,10 +107,6 @@ func (this *_resource) AddRawEventHandler(handlers cache.ResourceEventHandlerFun
 
 func (this *_resource) AddEventHandler(handlers ResourceEventHandlerFuncs) error {
 	return this.AddRawEventHandler(*convert(this, &handlers))
-}
-
-func (this *_resource) Namespace(namespace string) Namespaced {
-	return &namespacedResource{this, namespace, nil}
 }
 
 func (this *_resource) namespacedRequest(req *restclient.Request, namespace string) *restclient.Request {

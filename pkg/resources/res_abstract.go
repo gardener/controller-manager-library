@@ -29,7 +29,7 @@ type AbstractResource struct {
 }
 
 type ResourceHelper struct {
-	self Internal
+	Internal
 }
 
 func NewAbstractResource(self Internal) (AbstractResource, *ResourceHelper) {
@@ -53,22 +53,46 @@ func (this *AbstractResource) Namespaced() bool {
 	return this.self.Info().Namespaced()
 }
 
-func (this *ResourceHelper) objectAsResource(obj ObjectData) Object {
-	return NewObject(obj, this.self.GetCluster(), this.self)
+func (this *AbstractResource) Wrap(obj ObjectData) (Object, error) {
+	if err := this.helper.CheckOType(obj); err != nil {
+		return nil, err
+	}
+	return this.helper.ObjectAsResource(obj), nil
 }
 
-func (this *ResourceHelper) createData() ObjectData {
-	return reflect.New(this.self.I_objectType()).Interface().(ObjectData)
+func (this *AbstractResource) New(name ObjectName) Object {
+	data := this.helper.CreateData()
+	data.GetObjectKind().SetGroupVersionKind(this.GroupVersionKind())
+	if name != nil {
+		data.SetName(name.Name())
+		data.SetNamespace(name.Namespace())
+	}
+	return this.helper.ObjectAsResource(data)
 }
 
-func (this *ResourceHelper) createListData() runtime.Object {
-	return reflect.New(this.self.I_listType()).Interface().(runtime.Object)
+func (this *AbstractResource) Namespace(namespace string) Namespaced {
+	return &namespacedResource{this, namespace, nil}
 }
 
-func (this *ResourceHelper) checkOType(obj ObjectData, unstructured ...bool) error {
+////////////////////////////////////////////////////////////////////////////////
+// Resource Helper
+
+func (this *ResourceHelper) ObjectAsResource(obj ObjectData) Object {
+	return NewObject(obj, this.GetCluster(), this.Internal)
+}
+
+func (this *ResourceHelper) CreateData() ObjectData {
+	return reflect.New(this.I_objectType()).Interface().(ObjectData)
+}
+
+func (this *ResourceHelper) CreateListData() runtime.Object {
+	return reflect.New(this.I_listType()).Interface().(runtime.Object)
+}
+
+func (this *ResourceHelper) CheckOType(obj ObjectData, unstructured ...bool) error {
 	t := reflect.TypeOf(obj)
 	if t.Kind() == reflect.Ptr {
-		if t.Elem() == this.self.I_objectType() {
+		if t.Elem() == this.I_objectType() {
 			return nil
 		}
 		if len(unstructured) > 0 && unstructured[0] {
@@ -77,22 +101,22 @@ func (this *ResourceHelper) checkOType(obj ObjectData, unstructured ...bool) err
 			}
 		}
 	}
-	return fmt.Errorf("wrong data type %T (expected %s)", obj, reflect.PtrTo(this.self.I_objectType()))
+	return fmt.Errorf("wrong data type %T (expected %s)", obj, reflect.PtrTo(this.I_objectType()))
 }
 
-func (this *AbstractResource) Wrap(obj ObjectData) (Object, error) {
-	if err := this.helper.checkOType(obj); err != nil {
-		return nil, err
+func (this *ResourceHelper) Get(namespace, name string, result ObjectData) (Object, error) {
+	if !this.Namespaced() && namespace != "" {
+		return nil, fmt.Errorf("%s is not namespaced", this.GroupKind())
 	}
-	return this.helper.objectAsResource(obj), nil
-}
+	if this.Namespaced() && namespace == "" {
+		return nil, fmt.Errorf("%s is namespaced", this.GroupKind())
+	}
 
-func (this *AbstractResource) New(name ObjectName) Object {
-	data := this.helper.createData()
-	data.GetObjectKind().SetGroupVersionKind(this.GroupVersionKind())
-	if name != nil {
-		data.SetName(name.Name())
-		data.SetNamespace(name.Namespace())
+	if result == nil {
+		result = this.CreateData()
 	}
-	return this.helper.objectAsResource(data)
+	result.SetNamespace(namespace)
+	result.SetName(name)
+	err := this.I_get(result)
+	return this.ObjectAsResource(result), err
 }

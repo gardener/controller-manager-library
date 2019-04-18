@@ -17,7 +17,9 @@
 package resources
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/informerfactories"
 	"reflect"
+	"sync"
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
@@ -35,6 +37,9 @@ type Internal interface {
 	I_update(data ObjectData) (ObjectData, error)
 	I_updateStatus(data ObjectData) (ObjectData, error)
 	I_delete(data ObjectData) error
+
+	I_getInformer() (GenericInformer, error)
+	I_list(namespace string) ([]Object, error)
 }
 
 // _i_resource is the implementation of the internal resource interface used by
@@ -47,6 +52,8 @@ type Internal interface {
 
 type _i_resource struct {
 	*_resource
+	lock  sync.Mutex
+	cache GenericInformer
 }
 
 var _ Internal = &_i_resource{}
@@ -60,7 +67,7 @@ func (this *_i_resource) I_listType() reflect.Type {
 
 func (this *_i_resource) I_update(data ObjectData) (ObjectData, error) {
 	logger.Infof("UPDATE %s/%s/%s", this.GroupKind(), data.GetNamespace(), data.GetName())
-	result := this.helper.createData()
+	result := this.helper.CreateData()
 	return result, this.objectRequest(this.client.Put(), data).
 		Body(data).
 		Do().
@@ -69,7 +76,7 @@ func (this *_i_resource) I_update(data ObjectData) (ObjectData, error) {
 
 func (this *_i_resource) I_updateStatus(data ObjectData) (ObjectData, error) {
 	logger.Infof("UPDATE STATUS %s/%s/%s", this.GroupKind(), data.GetNamespace(), data.GetName())
-	result := this.helper.createData()
+	result := this.helper.CreateData()
 	return result, this.objectRequest(this.client.Put(), data, "status").
 		Body(data).
 		Do().
@@ -77,7 +84,7 @@ func (this *_i_resource) I_updateStatus(data ObjectData) (ObjectData, error) {
 }
 
 func (this *_i_resource) I_create(data ObjectData) (ObjectData, error) {
-	result := this.helper.createData()
+	result := this.helper.CreateData()
 	return result, this.resourceRequest(this.client.Post(), data).
 		Body(data).
 		Do().
@@ -95,4 +102,42 @@ func (this *_i_resource) I_delete(data ObjectData) error {
 		Body(&metav1.DeleteOptions{}).
 		Do().
 		Error()
+}
+
+func (this *_i_resource) I_getInformer() (GenericInformer, error) {
+	if this.cache != nil {
+		return this.cache, nil
+	}
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	if this.cache != nil {
+		return this.cache, nil
+	}
+
+	informers := this.context.SharedInformerFactory().Structured()
+	if this.IsUnstructured() {
+		informers = this.context.SharedInformerFactory().Unstructured()
+	}
+	informer, err := informers.InformerFor(this.gvk)
+	if err != nil {
+		return nil, err
+	}
+	if err := informerfactories.Start(this.context.ctx, informers, informer.Informer().HasSynced); err != nil {
+		return nil, err
+	}
+
+	this.cache = informer
+	return this.cache, nil
+}
+
+func (this *_i_resource) I_list(namespace string) ([]Object, error) {
+	result := this.helper.CreateListData()
+	err := this.namespacedRequest(this.client.Get(), namespace).
+		Do().
+		Into(result)
+	if err != nil {
+		return nil, err
+	}
+	return this.handleList(result)
 }
