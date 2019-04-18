@@ -122,7 +122,7 @@ func SchemeMain() {
 	}
 
 	fmt.Printf("# add handler\n")
-	rctx.Resources().AddEventHandler(&corev1.ConfigMap{}, &resources.ResourceEventHandlerFuncs{
+	h.AddEventHandler(resources.ResourceEventHandlerFuncs{
 		AddFunc:    add,
 		UpdateFunc: update,
 		DeleteFunc: delete,
