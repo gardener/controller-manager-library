@@ -17,12 +17,10 @@
 package resources
 
 import (
-	"fmt"
 	"reflect"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/gardener/controller-manager-library/pkg/informerfactories"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -32,22 +30,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type _internal interface {
-	_objectType() reflect.Type
-
-	_create(data ObjectData) (ObjectData, error)
-	_get(data ObjectData) error
-	_update(data ObjectData) (ObjectData, error)
-	_updateStatus(data ObjectData) (ObjectData, error)
-	_delete(data ObjectData) error
-}
-
-type Internal interface {
-	Interface
-	_internal
-}
-
 type _resource struct {
+	AbstractResource
 	lock    sync.Mutex
 	context *resourceContext
 	gvk     schema.GroupVersionKind
@@ -66,10 +50,34 @@ type namespacedResource struct {
 	lister    NamespacedLister
 }
 
+func newResource(
+	context *resourceContext,
+	otype reflect.Type,
+	ltype reflect.Type,
+	info *Info,
+	client restclient.Interface) Interface {
+
+	r := &_resource{
+		AbstractResource: AbstractResource{},
+		context:          context,
+		gvk:              info.GroupVersionKind(),
+		otype:            otype,
+		ltype:            ltype,
+		info:             info,
+		client:           client,
+	}
+	r.AbstractResource, _ = NewAbstractResource(&_i_resource{r})
+	return r
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 
 func (this *_resource) GetCluster() Cluster {
 	return this.context.cluster
+}
+
+func (this *_resource) Resources() Resources {
+	return this.context.Resources()
 }
 
 var unstructuredType = reflect.TypeOf(unstructured.Unstructured{})
@@ -106,22 +114,6 @@ func (this *_resource) getInformer() (GenericInformer, error) {
 	return this.cache, nil
 }
 
-func (this *_resource) _objectType() reflect.Type {
-	return this.otype
-}
-
-func (this *_resource) objectAsResource(obj ObjectData) Object {
-	return NewObject(obj, this.context.cluster, this)
-}
-
-func (this *_resource) GroupVersionKind() schema.GroupVersionKind {
-	return this.gvk
-}
-
-func (this *_resource) Name() string {
-	return this.info.Name()
-}
-
 func (this *_resource) Info() *Info {
 	return this.info
 }
@@ -130,16 +122,8 @@ func (this *_resource) Client() restclient.Interface {
 	return this.client
 }
 
-func (this *_resource) Namespaced() bool {
-	return this.info.Namespaced()
-}
-
 func (this *_resource) ResourceContext() ResourceContext {
 	return this.context
-}
-
-func (this *_resource) GroupKind() schema.GroupKind {
-	return this.gvk.GroupKind()
 }
 
 func (this *_resource) AddRawEventHandler(handlers cache.ResourceEventHandlerFuncs) error {
@@ -160,29 +144,6 @@ func (this *_resource) Namespace(namespace string) Namespaced {
 	return &namespacedResource{this, namespace, nil}
 }
 
-func (this *_resource) checkOType(obj ObjectData, unstructured ...bool) error {
-	t := reflect.TypeOf(obj)
-	if t.Kind() == reflect.Ptr {
-		if t.Elem() == this.otype {
-			return nil
-		}
-		if len(unstructured) > 0 && unstructured[0] {
-			if t.Elem() == unstructuredType {
-				return nil
-			}
-		}
-	}
-	return fmt.Errorf("wrong data type %T (expected %s)", obj, reflect.PtrTo(this.otype))
-}
-
-func (this *_resource) createData() ObjectData {
-	return reflect.New(this.otype).Interface().(ObjectData)
-}
-
-func (this *_resource) createListData() runtime.Object {
-	return reflect.New(this.ltype).Interface().(runtime.Object)
-}
-
 func (this *_resource) namespacedRequest(req *restclient.Request, namespace string) *restclient.Request {
 	if this.Namespaced() {
 		return req.Namespace(namespace).Resource(this.Name())
@@ -199,21 +160,4 @@ func (this *_resource) resourceRequest(req *restclient.Request, obj ObjectData, 
 
 func (this *_resource) objectRequest(req *restclient.Request, obj ObjectData, sub ...string) *restclient.Request {
 	return this.resourceRequest(req, obj, sub...).Name(obj.GetName())
-}
-
-func (this *_resource) Wrap(obj ObjectData) (Object, error) {
-	if err := this.checkOType(obj); err != nil {
-		return nil, err
-	}
-	return this.objectAsResource(obj), nil
-}
-
-func (this *_resource) New(name ObjectName) Object {
-	data := this.createData()
-	data.GetObjectKind().SetGroupVersionKind(this.gvk)
-	if name != nil {
-		data.SetName(name.Name())
-		data.SetNamespace(name.Namespace())
-	}
-	return this.objectAsResource(data)
 }

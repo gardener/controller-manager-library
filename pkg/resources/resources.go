@@ -311,13 +311,6 @@ func (r *_resources) newResource(gvk schema.GroupVersionKind, otype reflect.Type
 		return nil, fmt.Errorf("cannot determine list type for %s", otype)
 	}
 
-	handler := &_resource{
-		context: r.ctx,
-		gvk:     gvk,
-		otype:   otype,
-		ltype:   ltype,
-		info:    info,
-		client:  client,
-	}
+	handler := newResource(r.ctx, otype, ltype, info, client)
 	return handler, nil
 }

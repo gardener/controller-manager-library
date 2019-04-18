@@ -74,6 +74,8 @@ type Interface interface {
 	ResourceContext() resources.ResourceContext
 	IsLocal() bool
 	Definition() Definition
+
+	resources.ClusterSource
 }
 
 type Extension interface {
@@ -96,6 +98,10 @@ type _Cluster struct {
 }
 
 var _ Interface = &_Cluster{}
+
+func (this *_Cluster) GetCluster() resources.Cluster {
+	return this
+}
 
 func (this *_Cluster) GetName() string {
 	return this.name

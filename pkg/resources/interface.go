@@ -51,8 +51,13 @@ type ResourcesSource interface {
 	Resources() Resources
 }
 
+type ClusterSource interface {
+	GetCluster() Cluster
+}
+
 type Cluster interface {
 	ResourcesSource
+	ClusterSource
 
 	GetName() string
 	GetId() string
@@ -92,6 +97,7 @@ type Object interface {
 	//runtime.ObjectData
 	EventRecorder
 	ResourcesSource
+	ClusterSource
 
 	GroupVersionKind() schema.GroupVersionKind
 	ObjectName() ObjectName
@@ -101,7 +107,6 @@ type Object interface {
 	ClusterKey() ClusterObjectKey
 	IsCoLocatedTo(o Object) bool
 
-	GetCluster() Cluster
 	GetResource() Interface
 
 	IsA(spec interface{}) bool
@@ -152,10 +157,11 @@ type ObjectData interface {
 
 type Interface interface {
 	GroupKindProvider
+	ClusterSource
+	ResourcesSource
 
 	Name() string
 	Namespaced() bool
-	GetCluster() Cluster
 	GroupVersionKind() schema.GroupVersionKind
 	Info() *Info
 	ResourceContext() ResourceContext

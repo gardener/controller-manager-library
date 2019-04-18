@@ -24,7 +24,11 @@ import (
 
 type AbstractObject struct {
 	ObjectData
-	self Object
+	self I_Object
+}
+
+func NewAbstractObject(self I_Object, data ObjectData) AbstractObject {
+	return AbstractObject{data, self}
 }
 
 func (this *AbstractObject) Data() ObjectData {

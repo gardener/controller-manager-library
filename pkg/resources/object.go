@@ -29,6 +29,9 @@ func init() {
 	cluster_key, _ = utils.TypeKey((*Cluster)(nil))
 }
 
+// _object is the standard implementation of the Object interface
+// it uses the AbstractObject as base to provide standard implementations
+// based on the internal object interface. (see _i_object)
 type _object struct {
 	AbstractObject
 	cluster  Cluster
@@ -38,14 +41,14 @@ type _object struct {
 var _ Object = &_object{}
 
 func NewObject(data ObjectData, cluster Cluster, resource Internal) Object {
-	o := &_object{AbstractObject{data, nil}, cluster, resource}
-	o.self = o
+	o := &_object{AbstractObject{}, cluster, resource}
+	o.AbstractObject = NewAbstractObject(&_i_object{o}, data)
 	return o
 }
 
 func (this *_object) DeepCopy() Object {
-	r := &_object{AbstractObject{this.ObjectData.DeepCopyObject().(ObjectData), nil}, this.cluster, this.resource}
-	r.self = r
+	r := &_object{AbstractObject{}, this.cluster, this.resource}
+	r.AbstractObject = NewAbstractObject(&_i_object{r}, this.ObjectData.DeepCopyObject().(ObjectData))
 	return r
 }
 
@@ -68,7 +71,7 @@ func (this *_object) IsA(spec interface{}) bool {
 		for t.Kind() == reflect.Ptr {
 			t = t.Elem()
 		}
-		return t == this.resource._objectType()
+		return t == this.resource.I_objectType()
 	case schema.GroupVersionKind:
 		return s == this.resource.GroupVersionKind()
 	case *schema.GroupVersionKind:

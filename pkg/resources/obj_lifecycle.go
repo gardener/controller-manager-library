@@ -18,8 +18,6 @@ package resources
 
 import (
 	"fmt"
-
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 func (this *AbstractObject) Create() error {
@@ -42,115 +40,55 @@ func (this *AbstractObject) IsDeleting() bool {
 	return this.GetDeletionTimestamp() != nil
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Methods using internal Resource Interface
-
-func (this *_object) Update() error {
-	result, err := this.resource._update(this.ObjectData)
-	if err == nil {
-		this.ObjectData = result
-	}
-	return err
-}
-
-func (this *_object) UpdateStatus() error {
-	if !this.resource.Info().HasStatusSubResource() {
-		return fmt.Errorf("resource %q has no status sub resource", this.resource.GroupVersionKind())
-	}
-	result, err := this.resource._updateStatus(this.ObjectData)
-	if err == nil {
-		this.ObjectData = result
-	}
-	return err
-}
-
-func (this *_object) Modify(modifier Modifier) (bool, error) {
+func (this *AbstractObject) Modify(modifier Modifier) (bool, error) {
 	return this.modify(false, modifier)
 }
 
-func (this *_object) ModifyStatus(modifier Modifier) (bool, error) {
+func (this *AbstractObject) ModifyStatus(modifier Modifier) (bool, error) {
 	return this.modifyStatus(modifier)
 }
 
-func (this *_object) CreateOrModify(modifier Modifier) (bool, error) {
+func (this *AbstractObject) CreateOrModify(modifier Modifier) (bool, error) {
 	return this.modify(true, modifier)
 }
 
-func (this *_object) modifyStatus(modifier Modifier) (bool, error) {
-	return this._modify(true, false, modifier)
+func (this *AbstractObject) modifyStatus(modifier Modifier) (bool, error) {
+	return this.self.I_modify(true, false, modifier)
 }
 
-func (this *_object) modify(create bool, modifier Modifier) (bool, error) {
-	return this._modify(false, create, modifier)
+func (this *AbstractObject) modify(create bool, modifier Modifier) (bool, error) {
+	return this.self.I_modify(false, create, modifier)
 }
 
-func (this *_object) _modify(status_only, create bool, modifier Modifier) (bool, error) {
-	var lasterr error
+////////////////////////////////////////////////////////////////////////////////
+// Methods using internal Resource Interface
 
-	data := this.Data().DeepCopyObject().(ObjectData)
-
-	cnt := 10
-
-	if create {
-		err := this.resource._get(data)
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				return false, err
-			}
-			_, err := modifier(data)
-			if err != nil {
-				return false, err
-			}
-			created, err := this.resource._create(data)
-			if err == nil {
-				this.ObjectData = created
-				return true, nil
-			}
-			if !errors.IsAlreadyExists(err) {
-				return false, err
-			}
-			err = this.resource._get(data)
-			if err != nil {
-				return false, err
-			}
-		}
+func (this *AbstractObject) Update() error {
+	result, err := this.self.I_resource().I_update(this.ObjectData)
+	if err == nil {
+		this.ObjectData = result
 	}
+	return err
+}
 
-	for cnt > 0 {
-		var modified ObjectData
-		mod, err := modifier(data)
-		if !mod {
-			return mod, err
-		}
-		if err == nil {
-			if status_only {
-				modified, lasterr = this.resource._updateStatus(data)
-			} else {
-				modified, lasterr = this.resource._update(data)
-			}
-			if lasterr == nil {
-				this.ObjectData = modified
-				return mod, nil
-			}
-			if !errors.IsConflict(lasterr) {
-				return mod, lasterr
-			}
-			err = this.resource._get(data)
-		}
-		if err != nil {
-			return mod, err
-		}
-		cnt--
+func (this *AbstractObject) UpdateStatus() error {
+	rsc := this.self.I_resource()
+	if !rsc.Info().HasStatusSubResource() {
+		return fmt.Errorf("resource %q has no status sub resource", rsc.GroupVersionKind())
 	}
-	return true, lasterr
+	result, err := rsc.I_updateStatus(this.ObjectData)
+	if err == nil {
+		this.ObjectData = result
+	}
+	return err
 }
 
-func (this *_object) Delete() error {
-	return this.resource._delete(this)
+func (this *AbstractObject) Delete() error {
+	return this.self.I_resource().I_delete(this)
 }
 
-func (this *_object) UpdateFromCache() error {
-	obj, err := this.resource.GetCached(this.ObjectName())
+func (this *AbstractObject) UpdateFromCache() error {
+	obj, err := this.self.GetResource().GetCached(this.ObjectName())
 	if err == nil {
 		this.ObjectData = obj.Data()
 	}
