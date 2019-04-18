@@ -18,10 +18,11 @@ package resources
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"sync"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/gardener/controller-manager-library/pkg/informerfactories"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -133,9 +134,6 @@ func (this *_resource) Namespaced() bool {
 	return this.info.Namespaced()
 }
 
-func (this *_resource) getClient() restclient.Interface {
-	return this.client
-}
 func (this *_resource) ResourceContext() ResourceContext {
 	return this.context
 }
