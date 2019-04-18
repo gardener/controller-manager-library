@@ -17,7 +17,6 @@
 package resources
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/clientsets"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -61,7 +60,6 @@ type Cluster interface {
 
 	GetName() string
 	GetId() string
-	Clientsets() clientsets.Interface
 	Config() restclient.Config
 
 	GetAttr(key interface{}) interface{}

@@ -18,15 +18,19 @@ package apiextensions
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/clientsets"
+	"time"
 
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"time"
 )
+
+func init() {
+	resources.Register(v1beta1.SchemeBuilder)
+}
 
 func CreateCRDObjectWithStatus(groupName, version, rkind, rplural, shortName string, namespaces bool, columns ...v1beta1.CustomResourceColumnDefinition) *v1beta1.CustomResourceDefinition {
 	return _CreateCRDObject(true, groupName, version, rkind, rplural, shortName, namespaces, columns...)
@@ -72,26 +76,23 @@ func _CreateCRDObject(status bool, groupName, version, rkind, rplural, shortName
 	return crd
 }
 
-func CreateCRD(clientsets clientsets.Interface, groupName, version, rkind, rplural, shortName string, namespaces bool, columns ...v1beta1.CustomResourceColumnDefinition) error {
+func CreateCRD(cluster cluster.Interface, groupName, version, rkind, rplural, shortName string, namespaces bool, columns ...v1beta1.CustomResourceColumnDefinition) error {
 	crd := CreateCRDObject(groupName, version, rkind, rplural, shortName, namespaces, columns...)
-	return CreateCRDFromObject(clientsets, crd)
+	return CreateCRDFromObject(cluster, crd)
 }
 
-func CreateCRDFromObject(clientsets clientsets.Interface, crd *v1beta1.CustomResourceDefinition) error {
-	cs, err := Clientset(clientsets)
-	if err != nil {
-		return err
-	}
-	_, err = cs.Apiextensions().CustomResourceDefinitions().Create(crd)
+func CreateCRDFromObject(cluster cluster.Interface, crd *v1beta1.CustomResourceDefinition) error {
+	_, err := cluster.Resources().CreateObject(crd)
 	if err != nil && !errors.IsAlreadyExists(err) {
 		return fmt.Errorf("failed to create CRD %s: %s", crd.Name, err)
 	}
-	return WaitCRDReady(cs, crd.Name)
+	return WaitCRDReady(cluster, crd.Name)
 }
 
-func WaitCRDReady(clientset clientset.Interface, crdName string) error {
+func WaitCRDReady(cluster cluster.Interface, crdName string) error {
 	err := wait.PollImmediate(5*time.Second, 60*time.Second, func() (bool, error) {
-		crd, err := clientset.Apiextensions().CustomResourceDefinitions().Get(crdName, metav1.GetOptions{})
+		crd := &v1beta1.CustomResourceDefinition{}
+		_, err := cluster.Resources().GetObjectInto(resources.NewObjectName(crdName), crd)
 		if err != nil {
 			return false, err
 		}
