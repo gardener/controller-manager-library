@@ -19,13 +19,14 @@ package resources
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"sync"
+	"time"
+
 	"github.com/gardener/controller-manager-library/pkg/kutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/watch"
-	"reflect"
-	"sync"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -71,17 +72,6 @@ type sharedInformerFactory struct {
 	// startedInformers is used for tracking which informers have been started.
 	// This allows Start() to be called multiple times safely.
 	startedInformers map[reflect.Type]bool
-}
-
-// NewSharedInformerFactory constructs a new instance of sharedInformerFactory for all namespaces.
-func (c *resourceContext) SharedInformerFactory() SharedInformerFactory {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	if c.sharedInformerFactory == nil {
-		c.sharedInformerFactory = newSharedInformerFactory(c, c.defaultResync)
-	}
-	return c.sharedInformerFactory
 }
 
 func newSharedInformerFactory(rctx *resourceContext, defaultResync time.Duration) *sharedInformerFactory {

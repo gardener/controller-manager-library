@@ -188,7 +188,6 @@ type Namespaced interface {
 }
 
 type Resources interface {
-	ResourcesSource
 	record.EventRecorder
 
 	Get(interface{}) (Interface, error)
@@ -205,7 +204,4 @@ type Resources interface {
 
 	CreateObject(ObjectData) (Object, error)
 	CreateOrUpdateObject(obj ObjectData) (Object, error)
-	GetClient(spec interface{}) (restclient.Interface, error)
-
-	AddEventHandler(spec interface{}, funcs *ResourceEventHandlerFuncs) error
 }
