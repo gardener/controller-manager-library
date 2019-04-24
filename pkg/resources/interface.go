@@ -213,4 +213,6 @@ type Resources interface {
 
 	CreateObject(ObjectData) (Object, error)
 	CreateOrUpdateObject(obj ObjectData) (Object, error)
+
+	DeleteObject(obj ObjectData) error
 }
