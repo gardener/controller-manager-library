@@ -133,6 +133,10 @@ func (this *ResourceInfos) updateRestMapper() error {
 func (this *ResourceInfos) update() error {
 	cfg := this.cluster.Config()
 	dc, err := discovery.NewDiscoveryClientForConfig(&cfg)
+	if err != nil {
+		logger.Warnf("failed to get discovery client for cluster %s: %s", this.cluster.GetName(), err)
+		return err
+	}
 
 	//list, err := discovery.ServerResources(dc)
 	list, err := dc.ServerResources()
