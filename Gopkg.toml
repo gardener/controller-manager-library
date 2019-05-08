@@ -10,19 +10,19 @@ required = [
 
 [[override]]
   name = "k8s.io/api"
-  version = "kubernetes-1.12.0"
+  version = "kubernetes-1.12.7"
 
 [[override]]
   name = "k8s.io/apimachinery"
-  version = "kubernetes-1.12.0"
+  version = "kubernetes-1.12.7"
 
 [[override]]
   name = "k8s.io/client-go"
-  version = "kubernetes-1.12.0"
+  version = "kubernetes-1.12.7"
 
 [[override]]
   name = "k8s.io/code-generator"
-  version = "kubernetes-1.12.0"
+  version = "kubernetes-1.12.7"
 
 [[override]]
   name = "github.com/golang/glog"
