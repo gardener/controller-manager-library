@@ -9,7 +9,7 @@ helper:
       <<: (( &template ))
       branches: (( b ))
       inherit:  (( { .settings.pipeline = eval("*.helper.templates." n) } ))
-        
+
     jobs:
       head:
         <<: (( &template ))
@@ -32,7 +32,7 @@ helper:
               nextversion: 'bump_minor'
             component_descriptor: ~
 
-    standard: 
+    standard:
       <<: (( &template ))
       base_definition:
         repo: ~
@@ -48,4 +48,4 @@ helper:
           build:
             image: 'golang:1.10.4'
             output_dir: 'binary'
-      variants: (( sum[j|{}|s,e|-> s eval("*.helper.templates.jobs." e)] ))
+      jobs: (( sum[j|{}|s,e|-> s eval("*.helper.templates.jobs." e)] ))
