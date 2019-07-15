@@ -7,7 +7,6 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/match"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/gardenextcontroller"
 )
 
 var values = map[controller.ResourceKey]int{}
@@ -56,12 +55,9 @@ func main0() {
 func main1() {
 	k1 := controller.NewResourceKey("a", "b")
 	k2 := controller.NewResourceKey("a", "b")
-	k3 := gardenextcontroller.NewResourceKey("b", "c")
 	values[k1] = 1
-	values[k3] = 3
 	fmt.Printf("k1: %d\n", values[k1])
 	fmt.Printf("k2: %d\n", values[k2])
-	fmt.Printf("k3: %d\n", values[k3])
 
 	fmt.Printf("cluster mapping: %s", set)
 }

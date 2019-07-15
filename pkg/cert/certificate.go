@@ -25,6 +25,8 @@ import (
 	"time"
 
 	"k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
+	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
 )
 
 type info struct {
@@ -59,6 +61,27 @@ func NewCertInfo(cert []byte, key []byte, cacert []byte, cakey []byte) Certifica
 	}
 }
 
+func newPrivateKey() (*rsa.PrivateKey, error) {
+	signer, err := pkiutil.NewPrivateKey()
+	if err != nil {
+		return nil, err
+	}
+	key, ok := signer.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("not a private key: %t", key)
+	}
+	return key, nil
+}
+
+// EncodePrivateKeyPEM returns PEM-encoded private key data
+func encodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
+	block := pem.Block{
+		Type:  pkiutil.RSAPrivateKeyBlockType,
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	}
+	return pem.EncodeToMemory(&block)
+}
+
 func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration time.Duration) (CertificateInfo, error) {
 	new := &info{}
 	if old != nil {
@@ -82,7 +105,7 @@ func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration
 			ok = Valid(new.cakey, new.cacert, new.cacert, "", 5*time.Hour*24)
 			if ok {
 				fmt.Printf("cacert not valid\n")
-				k, err := cert.ParsePrivateKeyPEM(new.cakey)
+				k, err := keyutil.ParsePrivateKeyPEM(new.cakey)
 				if err != nil {
 					ok = false
 				} else {
@@ -99,27 +122,27 @@ func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration
 		if new.cacert == nil || !ok {
 			fmt.Printf("generate cacert\n")
 
-			caKey, err = cert.NewPrivateKey()
+			caKey, err = newPrivateKey()
 			if err != nil {
 				return nil, fmt.Errorf("failed to create the CA key pair: %s", err)
 			}
-			new.cakey = cert.EncodePrivateKeyPEM(caKey)
+			new.cakey = encodePrivateKeyPEM(caKey)
 			caCert, err = cert.NewSelfSignedCACert(cert.Config{CommonName: "webhook-cert-ca:" + commonname}, caKey)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create the CA cert: %s", err)
 			}
-			new.cacert = cert.EncodeCertPEM(caCert)
+			new.cacert = pkiutil.EncodeCertPEM(caCert)
 		}
 
 		fmt.Printf("generate key\n")
-		newKey, err = cert.NewPrivateKey()
+		newKey, err = newPrivateKey()
 		if err != nil {
 			return nil, fmt.Errorf("failed to create the server key pair: %s", err)
 		}
-		new.key = cert.EncodePrivateKeyPEM(newKey)
+		new.key = encodePrivateKeyPEM(newKey)
 		fmt.Printf("generate cert\n")
-		newCert, err = cert.NewSignedCert(
-			cert.Config{
+		newCert, err = pkiutil.NewSignedCert(
+			&cert.Config{
 				CommonName: "client:" + commonname,
 				AltNames: cert.AltNames{
 					DNSNames: []string{dnsname},
@@ -130,7 +153,7 @@ func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration
 		if err != nil {
 			return nil, fmt.Errorf("failed to create the server cert: %s", err)
 		}
-		new.cert = cert.EncodeCertPEM(newCert)
+		new.cert = pkiutil.EncodeCertPEM(newCert)
 		return new, nil
 	}
 	return old, nil
