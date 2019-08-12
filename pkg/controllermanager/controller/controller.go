@@ -189,7 +189,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 			this.Infof("   %s", crd.Name)
 			err := apiextensions.CreateCRDFromObject(cluster, crd)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("creating CRD for %s failed: %s", crd.Name, err)
 			}
 		}
 	}
@@ -197,7 +197,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		this.Infof("creating reconciler %q", n)
 		reconciler, err := t(this)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("creating reconciler %s failed: %s", n, err)
 		}
 		this.reconcilers[n] = reconciler
 	}
@@ -220,7 +220,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		for _, cmd := range cmds {
 			err := this.addReconciler("", cmd.Key(), cmd.PoolName(), cmd.Reconciler())
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("Add matcher for reconciler %s failed: %s", cmd.Reconciler(), err)
 			}
 		}
 	}
