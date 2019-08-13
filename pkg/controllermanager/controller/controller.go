@@ -184,6 +184,10 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		if cluster == nil {
 			return nil, fmt.Errorf("cluster %q not found for resource definitions", n)
 		}
+		if isDeployCRDsDisabled(cluster) {
+			this.Infof("deployment of required crds is disabled for cluster %q (used for %q)", cluster.GetName(), n)
+			continue
+		}
 		this.Infof("create required crds for cluster %q (used for %q)", cluster.GetName(), n)
 		for _, crd := range crds {
 			this.Infof("   %s", crd.Name)
@@ -226,6 +230,10 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 	}
 
 	return this, nil
+}
+
+func isDeployCRDsDisabled(cl cluster.Interface) bool {
+	return cl.GetAttr(cluster.SUBOPTION_DISABLE_DEPLOY_CRDS) == true
 }
 
 func (this *controller) whenReady() {
