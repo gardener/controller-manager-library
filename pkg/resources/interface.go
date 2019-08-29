@@ -233,7 +233,6 @@ type Resources interface {
 	DeleteObject(obj ObjectData) error
 }
 
-
 // TweakListOptionsFunc defines the signature of a helper function
 // that wants to provide more listing options to API
 type TweakListOptionsFunc func(*metav1.ListOptions)

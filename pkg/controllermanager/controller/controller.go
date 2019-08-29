@@ -189,11 +189,14 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 			continue
 		}
 		this.Infof("create required crds for cluster %q (used for %q)", cluster.GetName(), n)
-		for _, crd := range crds {
-			this.Infof("   %s", crd.Name)
-			err := apiextensions.CreateCRDFromObject(cluster, crd)
-			if err != nil {
-				return nil, fmt.Errorf("creating CRD for %s failed: %s", crd.Name, err)
+		for _, v := range crds {
+			crd := v.GetFor(cluster)
+			if crd != nil {
+				this.Infof("   %s", crd.Name)
+				err := apiextensions.CreateCRDFromObject(cluster, crd)
+				if err != nil {
+					return nil, fmt.Errorf("creating CRD for %s failed: %s", crd.Name, err)
+				}
 			}
 		}
 	}

@@ -121,7 +121,7 @@ type _Definition struct {
 	configs            map[string]OptionDefinition
 	finalizerName      string
 	finalizerDomain    string
-	crds               map[string][]*apiext.CustomResourceDefinition
+	crds               map[string][]*CustomResourceDefinition
 	activateExplicitly bool
 }
 
@@ -174,10 +174,10 @@ func (this *_Definition) FinalizerName() string {
 	return this.finalizerName
 }
 
-func (this *_Definition) CustomResourceDefinitions() map[string][]*apiext.CustomResourceDefinition {
-	crds := map[string][]*apiext.CustomResourceDefinition{}
+func (this *_Definition) CustomResourceDefinitions() map[string][]*CustomResourceDefinition {
+	crds := map[string][]*CustomResourceDefinition{}
 	for n, l := range this.crds {
-		crds[n] = append([]*apiext.CustomResourceDefinition{}, l...)
+		crds[n] = append([]*CustomResourceDefinition{}, l...)
 	}
 	return this.crds
 }
@@ -285,15 +285,34 @@ func (this Configuration) Cluster(name string) Configuration {
 }
 
 func (this Configuration) CustomResourceDefinitions(crds ...*apiext.CustomResourceDefinition) Configuration {
-	m := map[string][]*apiext.CustomResourceDefinition{}
+	m := map[string][]*CustomResourceDefinition{}
 	for k, v := range this.settings.crds {
 		m[k] = v
 	}
 	list := m[this.cluster]
 	if list == nil {
-		list = []*apiext.CustomResourceDefinition{}
+		list = []*CustomResourceDefinition{}
 	}
-	list = append([]*apiext.CustomResourceDefinition{}, list...)
+	list = append([]*CustomResourceDefinition{}, list...)
+	for _, crd := range crds {
+		vers := NewCustomResourceDefinition(crd)
+		m[this.cluster] = append(list, vers)
+	}
+	this.settings.crds = m
+	return this
+}
+
+func (this Configuration) VersionedCustomResourceDefinitions(crds ...*CustomResourceDefinition) Configuration {
+	m := map[string][]*CustomResourceDefinition{}
+	for k, v := range this.settings.crds {
+		m[k] = v
+	}
+	list := m[this.cluster]
+	if list == nil {
+		list = []*CustomResourceDefinition{}
+	}
+	list = append([]*CustomResourceDefinition{}, list...)
+
 	m[this.cluster] = append(list, crds...)
 	this.settings.crds = m
 	return this
