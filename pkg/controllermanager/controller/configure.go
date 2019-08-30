@@ -19,6 +19,7 @@ package controller
 import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 	"reflect"
 	"time"
 
@@ -26,6 +27,12 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
+
+func NamespaceSelection(namespace string) WatchSelectionFunction {
+	return func(c Interface) (string, resources.TweakListOptionsFunc) {
+		return namespace, nil
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -75,14 +82,23 @@ func (this *pooldef) Period() time.Duration {
 ///////////////////////////////////////////////////////////////////////////////
 
 type watchdef struct {
-	rtype      ResourceKey
+	rescdef
 	reconciler string
 	pool       string
 }
 
-func (this *watchdef) ResourceType() ResourceKey {
+type rescdef struct {
+	rtype      ResourceKey
+	selectFunc WatchSelectionFunction
+}
+
+func (this *rescdef) ResourceType() ResourceKey {
 	return this.rtype
 }
+func (this *rescdef) WatchSelectionFunction() WatchSelectionFunction {
+	return this.selectFunc
+}
+
 func (this *watchdef) Reconciler() string {
 	return this.reconciler
 }
@@ -110,7 +126,7 @@ func (this *cmddef) PoolName() string {
 
 type _Definition struct {
 	name               string
-	main               ResourceKey
+	main               rescdef
 	reconcilers        map[string]ReconcilerType
 	watches            Watches
 	commands           Commands
@@ -143,7 +159,10 @@ func (this *_Definition) GetName() string {
 	return this.name
 }
 func (this *_Definition) MainResource() ResourceKey {
-	return this.main
+	return this.main.ResourceType()
+}
+func (this *_Definition) MainWatchResource() WatchResource {
+	return &this.main
 }
 func (this *_Definition) Watches() Watches {
 	return this.watches
@@ -237,13 +256,15 @@ func (this Configuration) Name(name string) Configuration {
 	return this
 }
 
-func (this Configuration) MainResource(group, kind string) Configuration {
-	this.settings.main = NewResourceKey(group, kind)
-	return this
+func (this Configuration) MainResource(group, kind string, sel ...WatchSelectionFunction) Configuration {
+	return this.MainResourceByKey(NewResourceKey(group, kind), sel...)
 }
 
-func (this Configuration) MainResourceByKey(key ResourceKey) Configuration {
-	this.settings.main = key
+func (this Configuration) MainResourceByKey(key ResourceKey, sel ...WatchSelectionFunction) Configuration {
+	this.settings.main.rtype = key
+	if len(sel) > 0 {
+		this.settings.main.selectFunc = sel[0]
+	}
 	return this
 }
 
@@ -327,9 +348,15 @@ func (this *Configuration) assureWatches() {
 func (this Configuration) Watches(keys ...ResourceKey) Configuration {
 	return this.ReconcilerWatches(DEFAULT_RECONCILER, keys...)
 }
+func (this Configuration) SelectedWatches(sel WatchSelectionFunction, keys ...ResourceKey) Configuration {
+	return this.ReconcilerSelectedWatches(DEFAULT_RECONCILER, sel, keys...)
+}
 
 func (this Configuration) Watch(group, kind string) Configuration {
 	return this.ReconcilerWatches(DEFAULT_RECONCILER, NewResourceKey(group, kind))
+}
+func (this Configuration) SelectedWatch(sel WatchSelectionFunction, group, kind string) Configuration {
+	return this.ReconcilerSelectedWatches(DEFAULT_RECONCILER, sel, NewResourceKey(group, kind))
 }
 
 func (this Configuration) ReconcilerWatch(reconciler, group, kind string) Configuration {
@@ -340,7 +367,16 @@ func (this Configuration) ReconcilerWatches(reconciler string, keys ...ResourceK
 	this.assureWatches()
 	for _, key := range keys {
 		//logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{key, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil}, reconciler, this.pool})
+	}
+	return this
+}
+
+func (this Configuration) ReconcilerSelectedWatches(reconciler string, sel WatchSelectionFunction, keys ...ResourceKey) Configuration {
+	this.assureWatches()
+	for _, key := range keys {
+		//logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel}, reconciler, this.pool})
 	}
 	return this
 }

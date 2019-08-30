@@ -50,6 +50,7 @@ type Interface interface {
 	GetName() string
 	IsReady() bool
 	Owning() ResourceKey
+	GetMainWatchResource() WatchResource
 	GetContext() context.Context
 	GetEnvironment() Environment
 	GetPool(name string) Pool
@@ -87,8 +88,15 @@ type Interface interface {
 	GetCachedObject(key resources.ClusterObjectKey) (resources.Object, error)
 }
 
-type Watch interface {
+type WatchSelectionFunction func(c Interface) (string, resources.TweakListOptionsFunc)
+
+type WatchResource interface {
 	ResourceType() ResourceKey
+	WatchSelectionFunction() WatchSelectionFunction
+}
+
+type Watch interface {
+	WatchResource
 	Reconciler() string
 	PoolName() string
 }
@@ -154,6 +162,7 @@ type Definition interface {
 	//Create(Object) (Reconciler, error)
 	Reconcilers() map[string]ReconcilerType
 	MainResource() ResourceKey
+	MainWatchResource() WatchResource
 	Watches() Watches
 	Commands() Commands
 	Pools() map[string]PoolDefinition

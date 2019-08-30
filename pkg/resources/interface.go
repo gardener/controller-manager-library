@@ -171,6 +171,7 @@ type Interface interface {
 	GroupVersionKind() schema.GroupVersionKind
 	Info() *Info
 	ResourceContext() ResourceContext
+	AddSelectedEventHandler(eventHandlers ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error
 	AddEventHandler(eventHandlers ResourceEventHandlerFuncs) error
 	AddRawEventHandler(handlers cache.ResourceEventHandlerFuncs) error
 

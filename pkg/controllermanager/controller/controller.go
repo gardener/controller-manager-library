@@ -130,7 +130,7 @@ type controller struct {
 	cluster     cluster.Interface
 	clusters    cluster.Clusters
 	filters     []ResourceFilter
-	owning      ResourceKey
+	owning      WatchResource
 	reconcilers map[string]reconcile.Interface
 	mappings    map[_ReconcilerMapping]string
 	finalizer   Finalizer
@@ -161,7 +161,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		cluster:    cluster,
 		clusters:   clusters,
 
-		owning:  def.MainResource(),
+		owning:  def.MainWatchResource(),
 		filters: def.ResourceFilters(),
 
 		handlers:    map[string]*ClusterHandler{},
@@ -428,6 +428,10 @@ func (this *controller) EnqueueCommand(cmd string) error {
 }
 
 func (this *controller) Owning() ResourceKey {
+	return this.owning.ResourceType()
+}
+
+func (this *controller) GetMainWatchResource() WatchResource {
 	return this.owning
 }
 
@@ -526,6 +530,16 @@ func (this *controller) AddCluster(cluster cluster.Interface) error {
 	return nil
 }
 
+func (this *controller) registerWatch(h *ClusterHandler, r WatchResource, p string) error {
+	var optionsFunc resources.TweakListOptionsFunc
+	var ns = ""
+
+	if r.WatchSelectionFunction() != nil {
+		ns, optionsFunc = r.WatchSelectionFunction()(this)
+	}
+	return h.register(r.ResourceType(), ns, optionsFunc, this.getPool(p))
+}
+
 // Prepare finally prepares the controller to run
 // all error conditions MUST also be checked
 // in Check, so after a successful checkController
@@ -544,7 +558,7 @@ func (this *controller) Prepare() error {
 	this.Infof("setup watches....")
 	this.Infof("watching main resources %q at cluster %q", this.Owning(), h)
 
-	err = h.register(this.Owning(), this.getPool(DEFAULT_POOL))
+	err = this.registerWatch(h, this.owning, DEFAULT_POOL)
 	if err != nil {
 		return err
 	}
@@ -556,8 +570,7 @@ func (this *controller) Prepare() error {
 
 		for _, watch := range watches {
 			this.Infof("watching additional resources %q at cluster %q", watch.ResourceType(), h)
-			p := this.getPool(watch.PoolName())
-			h.register(watch.ResourceType(), p)
+			this.registerWatch(h, watch, watch.PoolName())
 		}
 	}
 	this.Infof("setup watches done")
@@ -586,7 +599,7 @@ func (this *controller) Run() {
 
 func (this *controller) mustHandle(r resources.Object) bool {
 	for _, f := range this.filters {
-		if !f(this.owning, r) {
+		if !f(this.owning.ResourceType(), r) {
 			this.Infof("%s rejected by filter %v", r.Description(), f)
 			return false
 		}

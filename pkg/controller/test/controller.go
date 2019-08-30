@@ -33,7 +33,7 @@ func init() {
 		DefaultWorkerPool(10, 0*time.Second).
 		Commands("poll").
 		StringOption("test", "Controller argument").
-		MainResource("core", "ConfigMap").
+		MainResource("core", "ConfigMap", controller.NamespaceSelection("default")).
 		MustRegister()
 }
 

@@ -48,6 +48,7 @@ type genericInformerFactory struct {
 
 	context     *resourceContext
 	optionsFunc TweakListOptionsFunc
+	namespace   string
 
 	defaultResync time.Duration
 	informers     map[schema.GroupVersionKind]GenericInformer
@@ -58,11 +59,12 @@ type genericInformerFactory struct {
 
 var _ internalInformerFactory = &genericInformerFactory{}
 
-func newGenericInformerFactory(rctx *resourceContext, defaultResync time.Duration, optionsFunc TweakListOptionsFunc) *genericInformerFactory {
+func newGenericInformerFactory(rctx *resourceContext, defaultResync time.Duration, namespace string, optionsFunc TweakListOptionsFunc) *genericInformerFactory {
 	return &genericInformerFactory{
 		context:       rctx,
 		defaultResync: defaultResync,
 		optionsFunc:   optionsFunc,
+		namespace:     namespace,
 
 		informers:        make(map[schema.GroupVersionKind]GenericInformer),
 		startedInformers: make(map[schema.GroupVersionKind]bool),
@@ -131,6 +133,17 @@ func (f *genericInformerFactory) informerFor(informerType reflect.Type, gvk sche
 	return informer, nil
 }
 
+func (f *genericInformerFactory) queryInformerFor(informerType reflect.Type, gvk schema.GroupVersionKind) GenericInformer {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	informer, exists := f.informers[gvk]
+	if exists {
+		return informer
+	}
+	return nil
+}
+
 func (f *genericInformerFactory) getClient(gv schema.GroupVersion) (restclient.Interface, error) {
 	return f.context.GetClient(gv)
 }
@@ -149,7 +162,7 @@ func (f *genericInformerFactory) newInformer(client restclient.Interface, res *I
 					Resource(res.Name()).
 					VersionedParams(&options, f.context.Clients.parametercodec)
 				if res.Namespaced() {
-					r = r.Namespace("")
+					r = r.Namespace(f.namespace)
 				}
 
 				return result, r.Do().Into(result)
@@ -163,7 +176,7 @@ func (f *genericInformerFactory) newInformer(client restclient.Interface, res *I
 					Resource(res.Name()).
 					VersionedParams(&options, f.context.Clients.parametercodec)
 				if res.Namespaced() {
-					r = r.Namespace("")
+					r = r.Namespace(f.namespace)
 				}
 
 				return r.Watch()

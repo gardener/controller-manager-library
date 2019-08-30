@@ -79,6 +79,7 @@ type GenericInformerFactory interface {
 type GenericFilteredInformerFactory interface {
 	GenericInformerFactory
 	FilteredInformerFor(gvk schema.GroupVersionKind, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error)
+	LookupInformerFor(gvk schema.GroupVersionKind, namespace string) (GenericInformer, error)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -136,6 +137,15 @@ func (f *sharedInformerFactory) FilteredInformerFor(gvk schema.GroupVersionKind,
 	}
 
 	return f.structured.informerFor(informerType, gvk, namespace, optionsFunc)
+}
+
+func (f *sharedInformerFactory) LookupInformerFor(gvk schema.GroupVersionKind, namespace string) (GenericInformer, error) {
+	informerType := f.context.KnownTypes(gvk.GroupVersion())[gvk.Kind]
+	if informerType == nil {
+		return nil, fmt.Errorf("%s unknown", gvk)
+	}
+
+	return f.structured.lookupInformerFor(informerType, gvk, namespace)
 }
 
 func (f *sharedInformerFactory) InformerForObject(obj runtime.Object) (GenericInformer, error) {
@@ -201,14 +211,43 @@ func (f *sharedFilteredInformerFactory) getFactory(namespace string, optionsFunc
 
 	factory, exists := f.filters[key]
 	if !exists {
-		factory = newGenericInformerFactory(f.context, f.defaultResync, optionsFunc)
+		factory = newGenericInformerFactory(f.context, f.defaultResync, namespace, optionsFunc)
 		f.filters[key] = factory
 	}
 	return factory
 }
 
+func (f *sharedFilteredInformerFactory) queryFactory(namespace string) *genericInformerFactory {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	factory, _ := f.filters[namespace]
+	return factory
+}
+
 func (f *sharedFilteredInformerFactory) informerFor(informerType reflect.Type, gvk schema.GroupVersionKind, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
 	return f.getFactory(namespace, optionsFunc).informerFor(informerType, gvk)
+}
+
+func (f *sharedFilteredInformerFactory) lookupInformerFor(informerType reflect.Type, gvk schema.GroupVersionKind, namespace string) (GenericInformer, error) {
+	fac := f.queryFactory("")
+	if fac != nil {
+		i := fac.queryInformerFor(informerType, gvk)
+		if i != nil {
+			return i, nil
+		}
+	}
+	if namespace != "" {
+		fac := f.queryFactory(namespace)
+		if fac != nil {
+			i := fac.queryInformerFor(informerType, gvk)
+			if i != nil {
+				return i, nil
+			}
+			return fac.informerFor(informerType, gvk)
+		}
+	}
+	return f.getFactory("", nil).informerFor(informerType, gvk)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -224,6 +263,10 @@ func (f *unstructuredSharedFilteredInformerFactory) InformerFor(gvk schema.Group
 
 func (f *unstructuredSharedFilteredInformerFactory) FilteredInformerFor(gvk schema.GroupVersionKind, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
 	return f.informerFor(unstructuredType, gvk, namespace, optionsFunc)
+}
+
+func (f *unstructuredSharedFilteredInformerFactory) LookupInformerFor(gvk schema.GroupVersionKind, namespace string) (GenericInformer, error) {
+	return f.lookupInformerFor(unstructuredType, gvk, namespace)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
