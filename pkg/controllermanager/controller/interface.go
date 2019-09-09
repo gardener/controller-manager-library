@@ -184,9 +184,12 @@ type CustomResourceDefinition struct {
 }
 
 func NewCustomResourceDefinition(crd ...*v1beta1.CustomResourceDefinition) *CustomResourceDefinition {
+	if len(crd) > 1 {
+		return nil
+	}
 	def := &CustomResourceDefinition{utils.NewVersioned(&v1beta1.CustomResourceDefinition{})}
 	if len(crd) > 0 {
-		def.versioned.SetDefault(crd)
+		def.versioned.SetDefault(crd[0])
 	}
 	return def
 }
