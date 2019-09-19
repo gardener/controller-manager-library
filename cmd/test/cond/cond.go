@@ -19,6 +19,7 @@ package cond
 import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile/conditions"
+	"github.com/gardener/controller-manager-library/pkg/fieldpath"
 	"time"
 )
 
@@ -38,7 +39,7 @@ type MyCondition struct {
 }
 
 func CondMain() {
-	cond := conditions.NewCondition("test")
+	cond := conditions.NewConditionType("test")
 	my := &My{}
 
 	my.Status.Conditions = append(my.Status.Conditions, MyCondition{Type: "test", Status: "done"})
@@ -67,11 +68,24 @@ func CondMain() {
 
 	fmt.Printf("Message: %s\n", cd.GetMessage())
 	fmt.Printf("Transition: %s\n", cd.GetTransitionTime())
-	t:=cd.GetLastUpdateTime()
+	t := cd.GetLastUpdateTime()
 	if t.IsZero() {
 		fmt.Printf("Update: not set\n")
 	} else {
 		fmt.Printf("Update: %s\n", t)
 	}
-	fmt.Printf("%#v\n", my2)
+	fmt.Printf("%t: %#v\n", cd.IsModified(), my2)
+
+	cd = cond.GetCondition(my2)
+	cd.SetStatus("done")
+	fmt.Printf("modified %t\n", cd.IsModified())
+
+	f, err := fieldpath.NewField(&My{}, ".Status.Conditions[.Type=\"test\"].Bla")
+	if err != nil {
+		fmt.Printf("err: %s\n", err)
+	} else {
+		my := &My{}
+		f.Set(my, "it works")
+		fmt.Printf("%#v\n", my)
+	}
 }

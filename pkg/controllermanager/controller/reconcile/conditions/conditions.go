@@ -27,14 +27,23 @@ import (
 // Condition reflects a dedicated condition for a dedicated object. It can
 // be retrieved for a dedicated object using a ConditionType object.
 type Condition struct {
-	otype reflect.Type
-	ctype *ConditionType
-	conds *reflect.Value
-	cond  *reflect.Value
+	otype    reflect.Type
+	ctype    *ConditionType
+	conds    *reflect.Value
+	cond     *reflect.Value
+	modified bool
 }
 
 func (this *Condition) Name() string {
 	return this.ctype.Name()
+}
+
+func (this *Condition) IsModified() bool {
+	return this.modified
+}
+
+func (this *Condition) ResetModified()  {
+	this.modified=false
 }
 
 func (this *Condition) Interface() interface{} {
@@ -67,6 +76,7 @@ func (this *Condition) Assure() error {
 
 	v = this.conds.Index(this.conds.Len() - 1)
 	this.cond = &v
+	this.modified = true
 	return nil
 }
 
@@ -86,51 +96,59 @@ func (this *Condition) Get(name string) interface{} {
 	return f.Interface()
 }
 
-func (this *Condition) set(name string, value interface{}) error {
+func (this *Condition) set(name string, value interface{}) (bool, error) {
 	if name == "" {
-		return fmt.Errorf("field not defined for conditions of %s", this.otype)
+		return false, fmt.Errorf("field not defined for conditions of %s", this.otype)
 	}
 	err := this.Assure()
 	if err != nil {
-		return err
+		return false, err
 	}
 	v := this.cond
 
 	f := v.FieldByName(name)
 	if f.Kind() == reflect.Invalid {
-		return fmt.Errorf("field %s not found in conditions of %s", name, this.otype)
+		return false, fmt.Errorf("field %s not found in conditions of %s", name, this.otype)
 	}
 	vv := reflect.ValueOf(value)
 	if f.Type() != vv.Type() {
-		return fmt.Errorf("invalid type (%s) for field %s in conditions of %s (expected %s)",
+		return false, fmt.Errorf("invalid type (%s) for field %s in conditions of %s (expected %s)",
 			vv.Type(), name, this.otype, f.Type())
 	}
 	if !f.CanSet() {
-		return fmt.Errorf("icannot set field %s in conditions of %s",
+		return false, fmt.Errorf("cannot set field %s in conditions of %s",
 			name, this.otype)
 	}
-	f.Set(vv)
-	return nil
+	old := f.Interface()
+	if !reflect.DeepEqual(old, value) {
+		fmt.Printf("modified: %#v -> %#v\n", old, value)
+		this.modified = true
+		f.Set(vv)
+		return true, nil
+	}
+	return false, nil
 }
 
 func (this *Condition) Set(name string, value interface{}) error {
 	if this == nil {
 		return fmt.Errorf("no conditions")
 	}
-	err := this.set(name, value)
+	mod, err := this.set(name, value)
 	if err != nil {
 		return err
 	}
-	var now time.Time
-	if name == this.ctype.cStatusField && this.ctype.cTransitionField != "" {
-		now = time.Now()
-		this.set(this.ctype.cTransitionField, now)
-	}
-	if name != this.ctype.cUpdateField && this.ctype.cUpdateField != "" {
-		if now.IsZero() {
+	if mod {
+		var now time.Time
+		if name == this.ctype.cStatusField && this.ctype.cTransitionField != "" {
 			now = time.Now()
+			this.set(this.ctype.cTransitionField, now)
 		}
-		this.set(this.ctype.cUpdateField, now)
+		if name != this.ctype.cUpdateField && this.ctype.cUpdateField != "" {
+			if now.IsZero() {
+				now = time.Now()
+			}
+			this.set(this.ctype.cUpdateField, now)
+		}
 	}
 	return nil
 }
@@ -240,7 +258,7 @@ type ConditionType struct {
 	cUpdateField     string
 }
 
-func NewCondition(name string, cfg ...TweakFunction) *ConditionType {
+func NewConditionType(name string, cfg ...TweakFunction) *ConditionType {
 	c := &ConditionType{
 		name:            name,
 		statusField:     "Status",
@@ -293,12 +311,12 @@ func (this *ConditionType) get(o interface{}) *Condition {
 			f := c.FieldByName(this.cTypeField)
 			if f.Kind() == reflect.String {
 				if f.String() == this.name {
-					return &Condition{reflect.TypeOf(o), this, v, &c}
+					return &Condition{reflect.TypeOf(o), this, v, &c, false}
 				}
 			}
 		}
 	}
-	return &Condition{reflect.TypeOf(o), this, v, nil}
+	return &Condition{reflect.TypeOf(o), this, v, nil, false}
 }
 
 func (this *ConditionType) Has(o interface{}) bool {
