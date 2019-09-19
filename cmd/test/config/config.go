@@ -25,26 +25,25 @@ type Mine struct {
 	Option string `config:"option,'dies ist ein test'"`
 }
 
-
 func ConfigMain() {
 	evaluate(&Mine{})
 }
 
 func evaluate(o interface{}) {
-	t:=reflect.TypeOf(o)
+	t := reflect.TypeOf(o)
 
-	if t.Kind()==reflect.Ptr {
-		t=t.Elem()
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
 	}
 
-	if t.Kind()!=reflect.Struct {
+	if t.Kind() != reflect.Struct {
 		fmt.Printf("No struct\n")
 		return
 	}
 
-	for i:= 0; i<t.NumField(); i++ {
-		f:=t.Field(i)
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
 		f.Tag.Lookup("config")
-		fmt.Printf("%s: %s:  %s\n", f.Name, f.Type, f.Tag.Get("config") )
+		fmt.Printf("%s: %s:  %s\n", f.Name, f.Type, f.Tag.Get("config"))
 	}
 }

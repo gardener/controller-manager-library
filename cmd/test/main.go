@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/cmd/test/certs"
+	"github.com/gardener/controller-manager-library/cmd/test/cond"
 	"github.com/gardener/controller-manager-library/cmd/test/config"
 	"github.com/gardener/controller-manager-library/cmd/test/field"
 	"github.com/gardener/controller-manager-library/cmd/test/match"
@@ -27,8 +28,11 @@ func main() {
 	if false {
 		certs.CertsMain()
 	}
-	if true {
+	if false {
 		config.ConfigMain()
+	}
+	if true {
+		cond.CondMain()
 	}
 
 }
