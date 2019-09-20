@@ -22,6 +22,10 @@ import (
 	"time"
 )
 
+type ModificationHandler interface {
+	Modified(interface{})
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // Condition reflects a dedicated condition for a dedicated object. It can
@@ -32,6 +36,11 @@ type Condition struct {
 	conds    *reflect.Value
 	cond     *reflect.Value
 	modified bool
+	handlers []ModificationHandler
+}
+
+func newCondition(o interface{}, ctype *ConditionType, conds *reflect.Value, cond *reflect.Value) *Condition {
+	return &Condition{reflect.TypeOf(o), ctype, conds, cond, false, []ModificationHandler{}}
 }
 
 func (this *Condition) Name() string {
@@ -44,6 +53,35 @@ func (this *Condition) IsModified() bool {
 
 func (this *Condition) ResetModified()  {
 	this.modified=false
+}
+
+func (this *Condition) Modify(m bool)  {
+	if m {
+		this.modify()
+	}
+}
+
+func (this *Condition) AddModificationHandler(h ModificationHandler)  {
+	this.handlers=append(this.handlers, h)
+	if this.modified {
+		h.Modified(this)
+	}
+}
+
+func (this *Condition) RemoveModificationHandler(h ModificationHandler)  {
+	for i, e:= range this.handlers {
+		if e==h {
+			this.handlers=append(this.handlers[:i], this.handlers[i+1:]...)
+			return
+		}
+	}
+}
+
+func (this *Condition) modify() {
+	this.modified=true
+	for _, h := range this.handlers {
+		h.Modified(this)
+	}
 }
 
 func (this *Condition) Interface() interface{} {
@@ -76,7 +114,7 @@ func (this *Condition) Assure() error {
 
 	v = this.conds.Index(this.conds.Len() - 1)
 	this.cond = &v
-	this.modified = true
+	this.modify()
 	return nil
 }
 
@@ -122,7 +160,7 @@ func (this *Condition) set(name string, value interface{}) (bool, error) {
 	old := f.Interface()
 	if !reflect.DeepEqual(old, value) {
 		fmt.Printf("modified: %#v -> %#v\n", old, value)
-		this.modified = true
+		this.modify()
 		f.Set(vv)
 		return true, nil
 	}
@@ -311,12 +349,12 @@ func (this *ConditionType) get(o interface{}) *Condition {
 			f := c.FieldByName(this.cTypeField)
 			if f.Kind() == reflect.String {
 				if f.String() == this.name {
-					return &Condition{reflect.TypeOf(o), this, v, &c, false}
+					return newCondition(o, this, v, &c)
 				}
 			}
 		}
 	}
-	return &Condition{reflect.TypeOf(o), this, v, nil, false}
+	return newCondition(o, this, v, nil)
 }
 
 func (this *ConditionType) Has(o interface{}) bool {

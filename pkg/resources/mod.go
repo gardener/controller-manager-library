@@ -17,6 +17,7 @@
 package resources
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile/conditions"
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 	"reflect"
@@ -25,6 +26,7 @@ import (
 type ModificationState struct {
 	utils.ModificationState
 	object Object
+	handler conditions.ModificationHandler
 }
 
 func NewModificationState(object Object, mod ...bool) *ModificationState {
@@ -32,7 +34,9 @@ func NewModificationState(object Object, mod ...bool) *ModificationState {
 	for _, m := range mod {
 		aggr = aggr || m
 	}
-	return &ModificationState{utils.ModificationState{aggr}, object}
+	s:= &ModificationState{utils.ModificationState{aggr}, object, nil}
+	s.handler=&modhandler{s}
+	return s
 }
 
 func (this *ModificationState) Object() Object {
@@ -41,6 +45,14 @@ func (this *ModificationState) Object() Object {
 
 func (this *ModificationState) Data() ObjectData {
 	return this.object.Data()
+}
+
+func (this *ModificationState) Condition(t *conditions.ConditionType) *conditions.Condition {
+	c:=t.GetCondition(this.Data())
+	if c!=nil {
+		c.AddModificationHandler(this.handler)
+	}
+	return c
 }
 
 func (this *ModificationState) Update() error {
@@ -131,3 +143,14 @@ func CreateOrModify(obj Object, f func(*ModificationState) error) (bool, error) 
 	}
 	return obj.CreateOrModify(m)
 }
+
+
+
+type modhandler struct {
+	state *ModificationState
+}
+
+func (this *modhandler) Modified(interface{}) {
+	this.state.Modify(true)
+}
+
