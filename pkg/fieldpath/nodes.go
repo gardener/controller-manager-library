@@ -67,6 +67,10 @@ func (this *node) Type(src interface{}) (reflect.Type, error) {
 	if ok {
 		return this._type(v)
 	}
+	t, ok := src.(reflect.Type)
+	if ok {
+		return this._type(reflect.New(t))
+	}
 	return this._type(reflect.ValueOf(src))
 }
 
@@ -328,4 +332,48 @@ func (this *SelectionNode) value(v reflect.Value, addMissing bool) (reflect.Valu
 		}
 	}
 	return v.Index(index), nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+type ProjectionNode struct {
+	node
+	path Node
+}
+
+var _ Node = &ProjectionNode{}
+
+func NewProjection(path Node, next Node) Node {
+	e := &ProjectionNode{path: path}
+	return e.new(e, next)
+}
+
+func (this *ProjectionNode) String() string {
+	return fmt.Sprintf("%s[]%s", this.node.String(), this.path)
+}
+
+func (this *ProjectionNode) value(v reflect.Value, addMissing bool) (reflect.Value, error) {
+	v = toValue(v, addMissing)
+	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
+		return reflect.Value{}, fmt.Errorf("%s is no slice or array(%s) ", this.node.String(), v.Type())
+	}
+	et, err := this.path.Type(v.Type().Elem())
+	if err != nil {
+		return reflect.Value{}, err
+	}
+	a := reflect.New(reflect.SliceOf(et)).Elem()
+	for i := 0; i < v.Len(); i++ {
+		e := toValue(v.Index(i), false)
+
+		if e.Kind() != reflect.Invalid {
+			fmt.Printf("### %s\n", e.Type())
+			sub, err := this.path._value(e, false)
+			if err != nil {
+				return reflect.Value{}, err
+			}
+			a = reflect.Append(a, sub)
+		}
+
+	}
+	return a, nil
 }

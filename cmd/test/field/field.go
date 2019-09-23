@@ -163,4 +163,19 @@ func FieldMain() {
 	} else {
 		fmt.Printf("field %s\n", f)
 	}
+
+	fmt.Printf("**********\n%#v\n", s1)
+
+	f, err = fieldpath.NewField(&S1{}, ".Field1.Field6[].FieldB")
+	if err != nil {
+		fmt.Printf("ERR: %s\n", err)
+	} else {
+		fmt.Printf("field %s\n", f)
+		v, err := f.Get(s1)
+		if err != nil {
+			fmt.Printf("ERR: %s\n", err)
+		} else {
+			fmt.Printf("value %#v\n", v)
+		}
+	}
 }

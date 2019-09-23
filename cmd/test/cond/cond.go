@@ -91,14 +91,14 @@ func CondMain() {
 		fmt.Printf("%#v\n", my)
 	}
 
-	podc:=conditions.NewConditionType("Test", conditions.TransitionTimeField("LastTransitionTime"))
-	pod :=&v1.Pod{}
-	mod:=resources.NewModificationState(resources.NewObject(pod,nil,nil))
-	cd=mod.Condition(podc)
+	podc := conditions.NewConditionType("Test", conditions.TransitionTimeField("LastTransitionTime"))
+	pod := &v1.Pod{}
+	mod := resources.NewModificationState(resources.NewObject(pod, nil, nil))
+	cd = mod.Condition(podc)
 	cd.SetMessage("test")
-	err=cd.SetTransitionTime(time.Now())
+	err = cd.SetTransitionTime(time.Now())
 	if err != nil {
-	    fmt.Printf("err: %s\n", err)
+		fmt.Printf("err: %s\n", err)
 	}
 	fmt.Printf("mod: %t: %#v\n", mod.IsModified(), pod)
 }

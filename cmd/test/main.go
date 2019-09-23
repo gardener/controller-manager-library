@@ -15,7 +15,7 @@ var values = map[controller.ResourceKey]int{}
 
 func main() {
 
-	if false {
+	if true {
 		field.FieldMain()
 	}
 
@@ -31,7 +31,7 @@ func main() {
 	if false {
 		config.ConfigMain()
 	}
-	if true {
+	if false {
 		cond.CondMain()
 	}
 
