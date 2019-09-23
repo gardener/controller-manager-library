@@ -18,8 +18,10 @@ package conditions
 
 import (
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 	"reflect"
 	"time"
+	"unsafe"
 )
 
 type ModificationHandler interface {
@@ -51,34 +53,34 @@ func (this *Condition) IsModified() bool {
 	return this.modified
 }
 
-func (this *Condition) ResetModified()  {
-	this.modified=false
+func (this *Condition) ResetModified() {
+	this.modified = false
 }
 
-func (this *Condition) Modify(m bool)  {
+func (this *Condition) Modify(m bool) {
 	if m {
 		this.modify()
 	}
 }
 
-func (this *Condition) AddModificationHandler(h ModificationHandler)  {
-	this.handlers=append(this.handlers, h)
+func (this *Condition) AddModificationHandler(h ModificationHandler) {
+	this.handlers = append(this.handlers, h)
 	if this.modified {
 		h.Modified(this)
 	}
 }
 
-func (this *Condition) RemoveModificationHandler(h ModificationHandler)  {
-	for i, e:= range this.handlers {
-		if e==h {
-			this.handlers=append(this.handlers[:i], this.handlers[i+1:]...)
+func (this *Condition) RemoveModificationHandler(h ModificationHandler) {
+	for i, e := range this.handlers {
+		if e == h {
+			this.handlers = append(this.handlers[:i], this.handlers[i+1:]...)
 			return
 		}
 	}
 }
 
 func (this *Condition) modify() {
-	this.modified=true
+	this.modified = true
 	for _, h := range this.handlers {
 		h.Modified(this)
 	}
@@ -97,7 +99,7 @@ func (this *Condition) Has() bool {
 
 func (this *Condition) Assure() error {
 	if this == nil || this.conds == nil {
-		return fmt.Errorf("no conditions fiels in %s", this.otype)
+		return fmt.Errorf("no conditions fields in %s", this.otype)
 	}
 	if this.cond != nil {
 		return nil
@@ -109,7 +111,11 @@ func (this *Condition) Assure() error {
 
 	v := reflect.New(this.conds.Type().Elem())
 	t := v.Elem().FieldByName(this.ctype.cTypeField)
-	t.Set(reflect.ValueOf(this.ctype.name))
+
+	err := utils.SetValue(t, this.ctype.name)
+	if err != nil {
+		return fmt.Errorf("cannot set type value for new condition %s in %s: s", this.ctype.name, this.otype, err)
+	}
 	this.conds.Set(reflect.Append(*this.conds, v.Elem()))
 
 	v = this.conds.Index(this.conds.Len() - 1)
@@ -150,16 +156,29 @@ func (this *Condition) set(name string, value interface{}) (bool, error) {
 	}
 	vv := reflect.ValueOf(value)
 	if f.Type() != vv.Type() {
-		return false, fmt.Errorf("invalid type (%s) for field %s in conditions of %s (expected %s)",
-			vv.Type(), name, this.otype, f.Type())
+		if vv.Type().ConvertibleTo(f.Type()) {
+			vv = vv.Convert(f.Type())
+		} else {
+			if f.Kind() == reflect.Struct && f.NumField() == 1 && f.Field(0).Type() == vv.Type() {
+				// handle simple wrapped fields like metav1.Time
+				tmp := reflect.New(f.Type()).Elem()
+				f := tmp.Field(0)
+				if !f.CanSet() {
+					f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
+				}
+				f.Set(vv)
+				vv = tmp
+			} else {
+				return false, fmt.Errorf("invalid type (%s) for field %s in conditions of %s (expected %s)",
+					vv.Type(), name, this.otype, f.Type())
+			}
+		}
 	}
 	if !f.CanSet() {
-		return false, fmt.Errorf("cannot set field %s in conditions of %s",
-			name, this.otype)
+		f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
 	}
 	old := f.Interface()
 	if !reflect.DeepEqual(old, value) {
-		fmt.Printf("modified: %#v -> %#v\n", old, value)
 		this.modify()
 		f.Set(vv)
 		return true, nil

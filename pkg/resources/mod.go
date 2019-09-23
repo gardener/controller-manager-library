@@ -25,7 +25,7 @@ import (
 
 type ModificationState struct {
 	utils.ModificationState
-	object Object
+	object  Object
 	handler conditions.ModificationHandler
 }
 
@@ -34,8 +34,8 @@ func NewModificationState(object Object, mod ...bool) *ModificationState {
 	for _, m := range mod {
 		aggr = aggr || m
 	}
-	s:= &ModificationState{utils.ModificationState{aggr}, object, nil}
-	s.handler=&modhandler{s}
+	s := &ModificationState{utils.ModificationState{aggr}, object, nil}
+	s.handler = &modhandler{s}
 	return s
 }
 
@@ -48,8 +48,8 @@ func (this *ModificationState) Data() ObjectData {
 }
 
 func (this *ModificationState) Condition(t *conditions.ConditionType) *conditions.Condition {
-	c:=t.GetCondition(this.Data())
-	if c!=nil {
+	c := t.GetCondition(this.Data())
+	if c != nil {
 		c.AddModificationHandler(this.handler)
 	}
 	return c
@@ -144,8 +144,6 @@ func CreateOrModify(obj Object, f func(*ModificationState) error) (bool, error) 
 	return obj.CreateOrModify(m)
 }
 
-
-
 type modhandler struct {
 	state *ModificationState
 }
@@ -153,4 +151,3 @@ type modhandler struct {
 func (this *modhandler) Modified(interface{}) {
 	this.state.Modify(true)
 }
-

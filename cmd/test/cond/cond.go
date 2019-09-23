@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile/conditions"
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
+	"github.com/gardener/controller-manager-library/pkg/resources"
+	"k8s.io/api/core/v1"
 	"time"
 )
 
@@ -88,4 +90,15 @@ func CondMain() {
 		f.Set(my, "it works")
 		fmt.Printf("%#v\n", my)
 	}
+
+	podc:=conditions.NewConditionType("Test", conditions.TransitionTimeField("LastTransitionTime"))
+	pod :=&v1.Pod{}
+	mod:=resources.NewModificationState(resources.NewObject(pod,nil,nil))
+	cd=mod.Condition(podc)
+	cd.SetMessage("test")
+	err=cd.SetTransitionTime(time.Now())
+	if err != nil {
+	    fmt.Printf("err: %s\n", err)
+	}
+	fmt.Printf("mod: %t: %#v\n", mod.IsModified(), pod)
 }
