@@ -144,6 +144,21 @@ func parseEntry(s *scanner, last Node) (Node, error) {
 		index = index + string(s.Current())
 	}
 	if index == "" {
+		if s.Current() == ':' {
+			for unicode.IsDigit(s.Next()) {
+				index = index + string(s.Current())
+			}
+			if s.Current() != ']' {
+				return unexpected(s, "expected ']'")
+			}
+			if index != "" {
+				v, _ := strconv.ParseInt(index, 10, 32)
+				return parseProjection(s, NewSlice(0, int(v), last))
+			} else {
+				return parseProjection(s, NewSlice(0, -1, last))
+			}
+		}
+
 		if s.Current() != ']' {
 			return parseSelect(s, last)
 		} else {
@@ -151,6 +166,25 @@ func parseEntry(s *scanner, last Node) (Node, error) {
 		}
 	}
 	if s.Current() != ']' {
+		if s.Current() == ':' {
+			end := ""
+			for unicode.IsDigit(s.Next()) {
+				end = end + string(s.Current())
+			}
+			if s.Current() != ']' {
+				return unexpected(s, "expected ']'")
+			}
+			start, _ := strconv.ParseInt(index, 10, 32)
+			if end != "" {
+				v, _ := strconv.ParseInt(end, 10, 32)
+				if start > v {
+					return nil, fmt.Errorf("start index (%d) larger than end index (%d)", start, v)
+				}
+				return parseProjection(s, NewSlice(int(start), int(v), last))
+			} else {
+				return parseProjection(s, NewSlice(int(start), -1, last))
+			}
+		}
 		return unexpected(s, "expected ']'")
 	}
 	s.Next()
@@ -186,7 +220,9 @@ func parseProjection(s *scanner, last Node) (Node, error) {
 	if s.Current() != ']' {
 		return unexpected(s, "expected ']'")
 	}
-	s.Next()
+	if s.Next() == EOI {
+		return last, nil
+	}
 	n, err := parseSequence(s)
 	if err != nil {
 		return nil, err
