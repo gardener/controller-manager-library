@@ -38,7 +38,7 @@ import (
 
 type ControllerManager struct {
 	lock sync.Mutex
-	logger.LogContext
+	controller.SharedAttributes
 
 	name       string
 	definition *Definition
@@ -49,7 +49,6 @@ type ControllerManager struct {
 	registrations controller.Registrations
 	plain_groups  map[string]StartupGroup
 	lease_groups  map[string]StartupGroup
-	shared        map[interface{}]interface{}
 	//shared_options map[string]*config.ArbitraryOption
 }
 
@@ -145,8 +144,10 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	}
 
 	cm := &ControllerManager{
-		LogContext: lgr,
-		clusters:   clusters,
+		SharedAttributes: controller.SharedAttributes{
+			LogContext: lgr,
+		},
+		clusters: clusters,
 
 		name:          name,
 		definition:    def,
@@ -155,7 +156,6 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 
 		plain_groups: map[string]StartupGroup{},
 		lease_groups: map[string]StartupGroup{},
-		shared:       map[interface{}]interface{}{},
 	}
 
 	ctx = logger.Set(ctxutil.SyncContext(ctx), lgr)
@@ -182,21 +182,6 @@ func (c *ControllerManager) GetCluster(name string) cluster.Interface {
 
 func (c *ControllerManager) GetClusters() cluster.Clusters {
 	return c.clusters
-}
-
-func (c *ControllerManager) GetSharedValue(key interface{}) interface{} {
-	return c.shared[key]
-}
-
-func (c *ControllerManager) GetOrCreateSharedValue(key interface{}, create func(*ControllerManager) interface{}) interface{} {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	v, ok := c.shared[key]
-	if !ok {
-		v = create(c)
-		c.shared[key] = v
-	}
-	return v
 }
 
 func (c *ControllerManager) Run() error {
