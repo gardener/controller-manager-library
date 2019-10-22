@@ -41,12 +41,13 @@ type MyCondition struct {
 }
 
 func CondMain() {
-	cond := conditions.NewConditionType("test")
+	stype := conditions.NewConditionLayout()
+	ctype := conditions.NewConditionType("test", stype)
 	my := &My{}
 
 	my.Status.Conditions = append(my.Status.Conditions, MyCondition{Type: "test", Status: "done"})
 
-	c := cond.GetInterface(my)
+	c := ctype.GetInterface(my)
 	if c == nil {
 		fmt.Println("condition test not found")
 	} else {
@@ -55,15 +56,15 @@ func CondMain() {
 
 	my2 := &My{}
 
-	cond.AssureInterface(my2).(*MyCondition).Message = "It works"
+	ctype.AssureInterface(my2).(*MyCondition).Message = "It works"
 
-	cond.SetStatus(my2, "done")
+	ctype.SetStatus(my2, "done")
 
 	fmt.Printf("%#v\n", my2)
 
 	my2 = &My{}
 
-	cd := cond.GetCondition(my2)
+	cd := ctype.GetCondition(my2)
 	cd.AssureInterface().(*MyCondition).Message = "It works"
 
 	cd.SetStatus("done")
@@ -78,7 +79,7 @@ func CondMain() {
 	}
 	fmt.Printf("%t: %#v\n", cd.IsModified(), my2)
 
-	cd = cond.GetCondition(my2)
+	cd = ctype.GetCondition(my2)
 	cd.SetStatus("done")
 	fmt.Printf("modified %t\n", cd.IsModified())
 
@@ -91,7 +92,8 @@ func CondMain() {
 		fmt.Printf("%#v\n", my)
 	}
 
-	podc := conditions.NewConditionType("Test", conditions.TransitionTimeField("LastTransitionTime"))
+	podt := conditions.NewConditionLayout(conditions.TransitionTimeField("LastTransitionTime"))
+    podc := conditions.NewConditionType("Test", podt)
 	pod := &v1.Pod{}
 	mod := resources.NewModificationState(resources.NewObject(pod, nil, nil))
 	cd = mod.Condition(podc)
