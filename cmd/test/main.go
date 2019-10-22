@@ -8,33 +8,35 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/field"
 	"github.com/gardener/controller-manager-library/cmd/test/match"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
+	"github.com/gardener/controller-manager-library/cmd/test/errors"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
+	"os"
 )
 
 var values = map[controller.ResourceKey]int{}
 
 func main() {
 
-	if true {
-		field.FieldMain()
-	}
+	for i := 1; i < len(os.Args); i++ {
+		fmt.Printf("*** %s ***\n", os.Args[i])
+		switch os.Args[i] {
+		case "field":
+			field.FieldMain()
 
-	if false {
-		scheme.SchemeMain()
+		case "scheme":
+			scheme.SchemeMain()
+		case "match":
+			match.MatchMain()
+		case "certs":
+			certs.CertsMain()
+		case "config":
+			config.ConfigMain()
+		case "errors":
+			errors.ErrorsMain()
+		case "cond":
+			cond.CondMain()
+		}
 	}
-	if false {
-		match.MatchMain()
-	}
-	if false {
-		certs.CertsMain()
-	}
-	if false {
-		config.ConfigMain()
-	}
-	if false {
-		cond.CondMain()
-	}
-
 }
 
 type Interface interface {

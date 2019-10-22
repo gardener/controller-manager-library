@@ -71,7 +71,7 @@ func SchemeMain() {
 			fmt.Printf("***************************** %s\n", gv)
 			for _, i := range r.APIResources {
 				fmt.Printf("%#v\n", i)
-				//fmt.Printf("%s (%s) %s %s %t\n", i.Group, i.Version, i.Name, i.Kind, i.Namespaced)
+				//fmt.Printf("%s (%s) %s %s %t\n", i.Group, i.Version, i.Name, i.GroupKind, i.Namespaced)
 			}
 		}
 	*/
