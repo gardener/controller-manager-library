@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/access"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 	"io/ioutil"
 	"log"
 	"os"
@@ -68,6 +69,14 @@ type Controller interface {
 func NewControllerManager(ctx context.Context, def *Definition) (*ControllerManager, error) {
 	config := config.Get(ctx)
 	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName())
+
+	for n := range def.controller_defs.Names() {
+		for _, r := range def.controller_defs.Get(n).RequiredControllers() {
+			if def.controller_defs.Get(r)==nil {
+				return nil, fmt.Errorf("controller %q requires controller %q, which is not declared", n, r)
+			}
+		}
+	}
 
 	if config.NamespaceRestriction && config.DisableNamespaceRestriction {
 		log.Fatalf("contradiction options given for namespace restriction")
@@ -122,6 +131,20 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	active, err := groups.Activate(strings.Split(config.Controllers, ","))
 	if err != nil {
 		return nil, err
+	}
+
+	added:=utils.StringSet{}
+	for c := range active {
+		req, err :=def.controller_defs.GetRequiredControllers(c)
+		if err!=nil {
+			return nil, err
+		}
+		added.AddSet(req)
+	}
+	added,_ = active.DiffFrom(added)
+	if len(added)>0 {
+		logger.Infof("controllers implied by activated controllers: %s", added)
+		active.AddSet(added)
 	}
 
 	registrations, err := def.Registrations(active.AsArray()...)
