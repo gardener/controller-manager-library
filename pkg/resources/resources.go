@@ -17,7 +17,7 @@
 package resources
 
 import (
-	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"reflect"
 
 	"github.com/gardener/controller-manager-library/pkg/kutil"
@@ -98,7 +98,7 @@ func (this *_resources) Get(spec interface{}) (Interface, error) {
 		return this.GetByGK(o.GroupKind())
 
 	default:
-		return nil, fmt.Errorf("invalid spec type %T", spec)
+		return nil, errors.ErrUnexpectedType.New("object identifier", spec)
 	}
 }
 
@@ -202,7 +202,7 @@ func (this *_resources) getResource(info *Info) (Interface, error) {
 	gvk := info.GroupVersionKind()
 	informerType := this.ctx.KnownTypes(gvk.GroupVersion())[gvk.Kind]
 	if informerType == nil {
-		return nil, fmt.Errorf("%s unknown", gvk)
+		return nil, errors.ErrUnknown.New(gvk)
 	}
 
 	return this.newResource(gvk, informerType, info)
@@ -308,7 +308,7 @@ func (r *_resources) newResource(gvk schema.GroupVersionKind, otype reflect.Type
 	}
 	ltype := kutil.DetermineListType(r.ctx.scheme, gvk.GroupVersion(), otype)
 	if ltype == nil {
-		return nil, fmt.Errorf("cannot determine list type for %s", otype)
+		return nil, errors.New(errors.ERR_NO_LIST_TYPE, "cannot determine list type for %s", otype)
 	}
 
 	handler := newResource(r.ctx, otype, ltype, info, client)

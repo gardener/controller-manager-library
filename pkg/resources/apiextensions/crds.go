@@ -17,12 +17,12 @@
 package apiextensions
 
 import (
-	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -82,8 +82,8 @@ func CreateCRD(cluster resources.Cluster, groupName, version, rkind, rplural, sh
 
 func CreateCRDFromObject(cluster resources.Cluster, crd *v1beta1.CustomResourceDefinition) error {
 	_, err := cluster.Resources().CreateObject(crd)
-	if err != nil && !errors.IsAlreadyExists(err) {
-		return fmt.Errorf("failed to create CRD %s: %s", crd.Name, err)
+	if err != nil && !k8serr.IsAlreadyExists(err) {
+		return errors.ErrFailed.Wrap(err, "create CRD", crd.Name)
 	}
 	return WaitCRDReady(cluster, crd.Name)
 }
@@ -103,14 +103,15 @@ func WaitCRDReady(cluster resources.Cluster, crdName string) error {
 				}
 			case v1beta1.NamesAccepted:
 				if cond.Status == v1beta1.ConditionFalse {
-					return false, fmt.Errorf("Name conflict: %v", cond.Reason)
+					return false, errors.New(errors.ERR_CONFLICT,
+						"CRD Name conflict for '%s': %v", crdName, cond.Reason)
 				}
 			}
 		}
 		return false, nil
 	})
 	if err != nil {
-		return fmt.Errorf("wait CRD created failed: %v", err)
+		return errors.ErrFailed.Wrap(err, "wait for CRD creation", crdName)
 	}
 	return nil
 }

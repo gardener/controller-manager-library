@@ -18,7 +18,7 @@ package resources
 
 import (
 	"context"
-	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"reflect"
 	"sync"
 	"time"
@@ -133,7 +133,7 @@ func (f *sharedInformerFactory) InformerFor(gvk schema.GroupVersionKind) (Generi
 func (f *sharedInformerFactory) FilteredInformerFor(gvk schema.GroupVersionKind, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
 	informerType := f.context.KnownTypes(gvk.GroupVersion())[gvk.Kind]
 	if informerType == nil {
-		return nil, fmt.Errorf("%s unknown", gvk)
+		return nil, errors.ErrUnknown.New(gvk)
 	}
 
 	return f.structured.informerFor(informerType, gvk, namespace, optionsFunc)
@@ -142,7 +142,7 @@ func (f *sharedInformerFactory) FilteredInformerFor(gvk schema.GroupVersionKind,
 func (f *sharedInformerFactory) LookupInformerFor(gvk schema.GroupVersionKind, namespace string) (GenericInformer, error) {
 	informerType := f.context.KnownTypes(gvk.GroupVersion())[gvk.Kind]
 	if informerType == nil {
-		return nil, fmt.Errorf("%s unknown", gvk)
+		return nil, errors.ErrUnknown.New(gvk)
 	}
 
 	return f.structured.lookupInformerFor(informerType, gvk, namespace)

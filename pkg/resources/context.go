@@ -18,8 +18,9 @@ package resources
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/semver"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
+	"reflect"
 	"sync"
 	"time"
 
@@ -88,7 +89,7 @@ func (c *resourceContext) GetGVK(obj runtime.Object) (schema.GroupVersionKind, e
 	}
 	switch len(gvks) {
 	case 0:
-		return empty, fmt.Errorf("%T unknown info type", obj)
+		return empty, errors.ErrUnknown.New(reflect.TypeOf(obj))
 	case 1:
 		return gvks[0], nil
 	default:
@@ -102,7 +103,7 @@ func (c *resourceContext) GetGVK(obj runtime.Object) (schema.GroupVersionKind, e
 			}
 		}
 	}
-	return empty, fmt.Errorf("non.unique mapping for %T", obj)
+	return empty, errors.New(errors.ERR_NON_UNIQUE_MAPPING, "non unique mapping for %T", obj)
 }
 
 // NewSharedInformerFactory constructs a new instance of sharedInformerFactory for all namespaces.

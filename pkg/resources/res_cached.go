@@ -17,7 +17,7 @@
 package resources
 
 import (
-	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"runtime/debug"
 )
@@ -30,12 +30,12 @@ func (this *_resource) getCached(namespace, name string) (Object, error) {
 	}
 	if this.info.Namespaced() {
 		if namespace == "" {
-			return nil, fmt.Errorf("resourcename %s (%s) is namespaced", this.Name(), this.GroupVersionKind())
+			return nil, errors.ErrNamespaced.New(this.GroupVersionKind())
 		}
 		obj, err = informer.Lister().Namespace(namespace).Get(name)
 	} else {
 		if namespace != "" {
-			return nil, fmt.Errorf("resourcename %s (%s) is not namespaced", this.Name(), this.GroupVersionKind())
+			return nil, errors.ErrNotNamespaced.New(this.GroupVersionKind())
 		}
 		obj, err = informer.Lister().Get(name)
 	}
@@ -56,29 +56,29 @@ func (this *_resource) GetCached(obj interface{}) (Object, error) {
 		return this.helper.ObjectAsResource(o), nil
 	case ObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", this.gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(this.gvk, o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
 	case *ObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", this.gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(this.gvk, o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
 	case ClusterObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", this.gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(this.gvk, o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
 	case *ClusterObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", this.gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(this.gvk, o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
 	case ObjectName:
 		return this.getCached(o.Namespace(), o.Name())
 	default:
 		debug.PrintStack()
-		return nil, fmt.Errorf("unsupported type '%T' for source object", obj)
+		return nil, errors.ErrUnexpectedType.New("object identifier", obj)
 	}
 }
 

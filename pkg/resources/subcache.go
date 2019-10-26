@@ -17,7 +17,7 @@
 package resources
 
 import (
-	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -231,7 +231,7 @@ func (this *SubObjectCache) GetByOwnerKey(key ClusterObjectKey) []Object {
 
 func (this *SubObjectCache) CreateSubObject(sub Object) error {
 	if !this.filterSubObject(sub) {
-		return fmt.Errorf("sub object %s is rejected from sub object cache", sub.ClusterKey())
+		return errors.New(errors.ERR_OBJECT_REJECTED, "sub object %s is rejected from sub object cache", sub.ClusterKey())
 	}
 	this.lock.Lock()
 	defer this.lock.Unlock()

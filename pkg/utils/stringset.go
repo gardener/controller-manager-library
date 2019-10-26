@@ -66,8 +66,10 @@ func (this StringSet) Contains(n string) bool {
 	return ok
 }
 
-func (this StringSet) Remove(n string) StringSet {
-	delete(this, n)
+func (this StringSet) Remove(n ...string) StringSet {
+	for _, p := range n {
+		delete(this, p)
+	}
 	return this
 }
 
@@ -86,6 +88,15 @@ func (this StringSet) AddSet(sets ...StringSet) StringSet {
 	for _, s := range sets {
 		for e := range s {
 			this.Add(e)
+		}
+	}
+	return this
+}
+
+func (this StringSet) RemoveSet(sets ...StringSet) StringSet {
+	for _, s := range sets {
+		for e := range s {
+			this.Remove(e)
 		}
 	}
 	return this
@@ -132,6 +143,16 @@ func (this StringSet) Copy() StringSet {
 	set := NewStringSet()
 	for n := range this {
 		set[n] = struct{}{}
+	}
+	return set
+}
+
+func (this StringSet) Intersect(o StringSet) StringSet {
+	set := NewStringSet()
+	for n := range this {
+		if o.Contains(n) {
+			set[n] = struct{}{}
+		}
 	}
 	return set
 }

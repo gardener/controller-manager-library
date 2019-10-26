@@ -18,6 +18,7 @@ package resources
 
 import (
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"strings"
 )
@@ -81,7 +82,7 @@ func ParseObjectName(name string) (ObjectName, error) {
 	case 1, 2:
 		return NewObjectName(comps...), nil
 	default:
-		return nil, fmt.Errorf("illegal object anme %q", name)
+		return nil, errors.NewInvalid("illegal object name %q", name)
 	}
 }
 

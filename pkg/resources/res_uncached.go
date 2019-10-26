@@ -17,12 +17,13 @@
 package resources
 
 import (
-	"fmt"
 	"reflect"
 
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 )
 
 func (this *AbstractResource) Create(obj ObjectData) (Object, error) {
@@ -47,7 +48,7 @@ func (this *AbstractResource) CreateOrUpdate(obj ObjectData) (Object, error) {
 		return nil, err
 	}
 	if obj.GetResourceVersion() == "" {
-		result, err := this.helper.Internal.I_create(obj)
+		result, err := this.self.I_create(obj)
 		if err == nil {
 			return this.helper.ObjectAsResource(result), err
 
@@ -63,7 +64,7 @@ func (this *AbstractResource) CreateOrUpdate(obj ObjectData) (Object, error) {
 		}
 		obj.SetResourceVersion(result.GetResourceVersion())
 	}
-	result, err := this.helper.Internal.I_update(obj)
+	result, err := this.self.I_update(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +136,7 @@ func (this *AbstractResource) handleList(result runtime.Object) (ret []Object, e
 	v := reflect.ValueOf(result)
 	iv := v.Elem().FieldByName("Items")
 	if iv.Kind() != reflect.Slice {
-		return nil, fmt.Errorf("unknown list format %s", iv.Type())
+		return nil, errors.NewInvalid("invalid Items field for %T", result)
 	}
 	for i := 0; i < iv.Len(); i++ {
 		ret = append(ret, this.helper.ObjectAsResource(iv.Index(i).Addr().Interface().(ObjectData)))
@@ -158,7 +159,7 @@ func (this *AbstractResource) Get_(obj interface{}) (Object, error) {
 	switch o := obj.(type) {
 	case string:
 		if this.Namespaced() {
-			return nil, fmt.Errorf("info %s is namespaced", gvk)
+			return nil, errors.ErrNamespaced.New(gvk)
 		}
 		return this.helper.Get("", o, nil)
 	case ObjectData:
@@ -168,28 +169,28 @@ func (this *AbstractResource) Get_(obj interface{}) (Object, error) {
 		return this.helper.Get(o.GetNamespace(), o.GetName(), o)
 	case ObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(gvk, o.GroupKind())
 		}
 		return this.helper.Get(o.Namespace(), o.Name(), nil)
 	case *ObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(gvk, o.GroupKind())
 		}
 		return this.helper.Get(o.Namespace(), o.Name(), nil)
 	case ClusterObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(gvk, o.GroupKind())
 		}
 		return this.helper.Get(o.Namespace(), o.Name(), nil)
 	case *ClusterObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, fmt.Errorf("%s cannot handle group/kind '%s'", gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(gvk, o.GroupKind())
 		}
 		return this.helper.Get(o.Namespace(), o.Name(), nil)
 	case ObjectName:
 		return this.helper.Get(o.Namespace(), o.Name(), nil)
 	default:
-		return nil, fmt.Errorf("unsupported type '%T' for source _object", obj)
+		return nil, errors.ErrUnexpectedType.New("object identity", obj)
 	}
 }
 
@@ -215,7 +216,7 @@ func (this *namespacedResource) Get(name string) (ret Object, err error) {
 
 func (this *namespacedResource) List(opts metav1.ListOptions) (ret []Object, err error) {
 	if !this.resource.Namespaced() {
-		return nil, fmt.Errorf("resourcename %s (%s) is not namespaced", this.resource.Name(), this.resource.GroupVersionKind())
+		return nil, errors.ErrNotNamespaced.New(this.resource.GroupVersionKind())
 	}
 	return this.resource.self.I_list(this.namespace, opts)
 }

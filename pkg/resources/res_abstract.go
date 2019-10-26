@@ -17,7 +17,7 @@
 package resources
 
 import (
-	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
@@ -113,15 +113,15 @@ func (this *ResourceHelper) CheckOType(obj ObjectData, unstructured ...bool) err
 			}
 		}
 	}
-	return fmt.Errorf("wrong data type %T (expected %s)", obj, reflect.PtrTo(this.I_objectType()))
+	return errors.ErrTypeMismatch.New(obj, reflect.PtrTo(this.I_objectType()))
 }
 
 func (this *ResourceHelper) Get(namespace, name string, result ObjectData) (Object, error) {
 	if !this.Namespaced() && namespace != "" {
-		return nil, fmt.Errorf("%s is not namespaced", this.GroupKind())
+		return nil, errors.ErrNotNamespaced.New(this.GroupKind())
 	}
 	if this.Namespaced() && namespace == "" {
-		return nil, fmt.Errorf("%s is namespaced", this.GroupKind())
+		return nil, errors.ErrNamespaced.New(this.GroupKind())
 	}
 
 	if result == nil {

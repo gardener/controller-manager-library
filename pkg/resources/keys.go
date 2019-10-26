@@ -18,6 +18,7 @@ package resources
 
 import (
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"strings"
 )
@@ -118,7 +119,7 @@ func ParseClusterObjectKey(clusterid string, key string) (ClusterObjectKey, erro
 	case 4:
 		return NewClusterKey(id, NewGroupKind(comps[0], comps[1]), comps[2], comps[3]), nil
 	default:
-		return ClusterObjectKey{}, fmt.Errorf("invalid cluster object key format")
+		return ClusterObjectKey{}, errors.NewInvalid("invalid cluster object key format: %s", key)
 	}
 }
 

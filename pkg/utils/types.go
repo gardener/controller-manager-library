@@ -77,3 +77,16 @@ func Int64Equal(a, b *int64) bool {
 func Strings(s ...string) string {
 	return "[" + strings.Join(s, ", ") + "]"
 }
+
+func StringArrayAddUnique(array *[]string, values ...string) []string {
+values:
+	for _, v := range values {
+		for _, o := range *array {
+			if v == o {
+				continue values
+			}
+		}
+		*array = append(*array, v)
+	}
+	return *array
+}

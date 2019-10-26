@@ -157,17 +157,14 @@ func (this *fundamental) Cause() error {
 func (this *fundamental) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
+		io.WriteString(s, this.Error())
 		if s.Flag('+') {
-			io.WriteString(s, this.Error())
 			fmt.Fprintf(s, "%+v", this.StackTrace())
-			return
+		} else {
+			if s.Flag('-') {
+				fmt.Fprintf(s, "\n%+v", this.StackTrace()[0])
+			}
 		}
-		if s.Flag('-') {
-			io.WriteString(s, this.Error())
-			fmt.Fprintf(s, "\n%+v", this.StackTrace()[0])
-			return
-		}
-		fallthrough
 	case 's':
 		io.WriteString(s, this.Error())
 	case 'q':
@@ -266,10 +263,24 @@ func (this *withCause) Cause() error {
 	return this.cause
 }
 
+func (this *withCause) Error() string {
+	if this.cause != nil {
+		return this.fundamental.Error()+": "+Cause(this.cause).Error()
+	}
+	return this.fundamental.Error()
+}
+
 func (this *withCause) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
-		this.fundamental.Format(s, verb)
+		io.WriteString(s, this.Error())
+		if s.Flag('+') {
+			fmt.Fprintf(s, "%+v", this.StackTrace())
+		} else {
+			if s.Flag('-') {
+				fmt.Fprintf(s, "\n%+v", this.StackTrace()[0])
+			}
+		}
 		if this.cause != nil {
 			io.WriteString(s, "\ncaused by: ")
 			if c, ok := this.cause.(fmt.Formatter); ok {
@@ -279,9 +290,37 @@ func (this *withCause) Format(s fmt.State, verb rune) {
 			}
 		}
 	case 's':
-		io.WriteString(s, fmt.Sprintf("%s/%s: ", this.Group(), this.Kind()))
-		io.WriteString(s, this.error.Error())
+		io.WriteString(s, this.Error())
 	case 'q':
-		fmt.Fprintf(s, "%q", this.error.Error())
+		fmt.Fprintf(s, "%q", this.Error())
 	}
+}
+
+
+// Cause returns the underlying cause of the error, if possible.
+// An error value has a cause if it implements the following
+// interface:
+//
+//     type causer interface {
+//            Cause() error
+//     }
+//
+// If the error does not implement Cause, the original error will
+// be returned. If the error is nil, nil will be returned without further
+// investigation.
+func Cause(err error) error {
+	type causer interface {
+		Cause() error
+	}
+
+	var last error
+	for err != nil {
+		last=err
+		cause, ok := err.(causer)
+		if !ok {
+			break
+		}
+		err = cause.Cause()
+	}
+	return last
 }

@@ -19,6 +19,7 @@ package resources
 import (
 	"fmt"
 	"github.com/Masterminds/semver"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"strings"
 	"sync"
 
@@ -234,7 +235,7 @@ func (this *ResourceInfos) GetPreferred(gk schema.GroupKind) (*Info, error) {
 		i = this.getPreferred(gk)
 	}
 	if i == nil {
-		return nil, fmt.Errorf("%s not known", gk)
+		return nil, errors.ErrUnknown.New(gk)
 	}
 	return i, nil
 }
@@ -263,7 +264,7 @@ func (this *ResourceInfos) Get(gvk schema.GroupVersionKind) (*Info, error) {
 		i = this.get(gvk)
 	}
 	if i == nil {
-		return nil, fmt.Errorf("%s not known", gvk)
+		return nil, errors.ErrUnknown.New(gvk)
 	}
 	return i, nil
 }

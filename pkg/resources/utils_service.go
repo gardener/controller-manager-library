@@ -17,7 +17,7 @@
 package resources
 
 import (
-	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	api "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -58,7 +58,7 @@ func GetService(src ResourcesSource, namespace, name string) (*ServiceObject, er
 
 	s := Service(o)
 	if s == nil {
-		return nil, fmt.Errorf("oops, unexpected typo for secret: %T", o.Data())
+		return nil, errors.ErrUnexpectedType.New("service", o.Data())
 	}
 	return s, nil
 }
@@ -75,7 +75,7 @@ func GetCachedService(src ResourcesSource, namespace, name string) (*ServiceObje
 
 	s := Service(o)
 	if s == nil {
-		return nil, fmt.Errorf("oops, unexpected typo for service: %T", o.Data())
+		return nil, errors.ErrUnexpectedType.New("service", o.Data())
 	}
 	return s, nil
 }
