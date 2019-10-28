@@ -131,6 +131,7 @@ type _Definition struct {
 	watches              Watches
 	commands             Commands
 	resource_filters     []ResourceFilter
+	after                []string
 	required_clusters    []string
 	required_controllers []string
 	require_lease        bool
@@ -149,6 +150,7 @@ func (this *_Definition) String() string {
 	s += fmt.Sprintf("  main rsc:    %s\n", this.main)
 	s += fmt.Sprintf("  clusters:    %s\n", utils.Strings(this.RequiredClusters()...))
 	s += fmt.Sprintf("  required:    %s\n", utils.Strings(this.RequiredControllers()...))
+	s += fmt.Sprintf("  after:       %s\n", utils.Strings(this.After()...))
 	s += fmt.Sprintf("  reconcilers: %s\n", toString(this.reconcilers))
 	s += fmt.Sprintf("  watches:     %s\n", toString(this.watches))
 	s += fmt.Sprintf("  commands:    %s\n", toString(this.commands))
@@ -174,6 +176,9 @@ func (this *_Definition) Commands() Commands {
 }
 func (this *_Definition) ResourceFilters() []ResourceFilter {
 	return this.resource_filters
+}
+func (this *_Definition) After() []string {
+	return this.after
 }
 func (this *_Definition) RequiredClusters() []string {
 	if len(this.required_clusters) > 0 {
@@ -260,16 +265,13 @@ func (this Configuration) Name(name string) Configuration {
 	return this
 }
 
+func (this Configuration) After(names ...string) Configuration {
+	utils.StringArrayAddUnique(&this.settings.after, names...)
+	return this
+}
+
 func (this Configuration) Require(names ...string) Configuration {
-names:
-	for _, n := range names {
-		for _, o := range this.settings.required_controllers {
-			if n == o {
-				continue names
-			}
-		}
-		this.settings.required_controllers = append(this.settings.required_controllers, n)
-	}
+	utils.StringArrayAddUnique(&this.settings.required_controllers, names...)
 	return this
 }
 

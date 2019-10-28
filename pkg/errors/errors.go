@@ -265,7 +265,7 @@ func (this *withCause) Cause() error {
 
 func (this *withCause) Error() string {
 	if this.cause != nil {
-		return this.fundamental.Error()+": "+Cause(this.cause).Error()
+		return this.fundamental.Error() + ": " + Cause(this.cause).Error()
 	}
 	return this.fundamental.Error()
 }
@@ -296,7 +296,6 @@ func (this *withCause) Format(s fmt.State, verb rune) {
 	}
 }
 
-
 // Cause returns the underlying cause of the error, if possible.
 // An error value has a cause if it implements the following
 // interface:
@@ -315,7 +314,7 @@ func Cause(err error) error {
 
 	var last error
 	for err != nil {
-		last=err
+		last = err
 		cause, ok := err.(causer)
 		if !ok {
 			break

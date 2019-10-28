@@ -35,13 +35,6 @@ type leasestartupgroup struct {
 }
 
 func (g *leasestartupgroup) Startup() error {
-	for _, c := range g.controllers {
-		err := g.manager.checkController(c)
-		if err != nil {
-			return err
-		}
-	}
-
 	if len(g.controllers) == 0 {
 		return nil
 	}

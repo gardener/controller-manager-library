@@ -50,12 +50,16 @@ type ControllerManager struct {
 	registrations controller.Registrations
 	plain_groups  map[string]StartupGroup
 	lease_groups  map[string]StartupGroup
+	controllers   Controllers
+	prepared      map[string]*SyncPoint
 	//shared_options map[string]*config.ArbitraryOption
 }
 
 var _ controller.Environment = &ControllerManager{}
 
 type Controller interface {
+	logger.LogContext
+
 	GetName() string
 	Owning() controller.ResourceKey
 	GetDefinition() controller.Definition
@@ -176,6 +180,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 		definition:    def,
 		config:        config,
 		registrations: registrations,
+		prepared:      map[string]*SyncPoint{},
 
 		plain_groups: map[string]StartupGroup{},
 		lease_groups: map[string]StartupGroup{},
@@ -187,70 +192,85 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	return cm, nil
 }
 
-func (c *ControllerManager) GetName() string {
-	return c.name
+func (this *ControllerManager) GetName() string {
+	return this.name
 }
 
-func (c *ControllerManager) GetContext() context.Context {
-	return c.ctx
+func (this *ControllerManager) GetContext() context.Context {
+	return this.ctx
 }
 
-func (c *ControllerManager) GetConfig() *config.Config {
-	return c.config
+func (this *ControllerManager) GetConfig() *config.Config {
+	return this.config
 }
 
-func (c *ControllerManager) GetCluster(name string) cluster.Interface {
-	return c.clusters.GetCluster(name)
+func (this *ControllerManager) GetCluster(name string) cluster.Interface {
+	return this.clusters.GetCluster(name)
 }
 
-func (c *ControllerManager) GetClusters() cluster.Clusters {
-	return c.clusters
+func (this *ControllerManager) GetClusters() cluster.Clusters {
+	return this.clusters
 }
 
-func (c *ControllerManager) Run() error {
-	c.Infof("run %s\n", c.name)
+func (this *ControllerManager) Run() error {
+	var err error
+	this.Infof("run %s\n", this.name)
 
-	if c.config.ServerPortHTTP > 0 {
-		server.Serve(c.ctx, "", c.config.ServerPortHTTP)
+	if this.config.ServerPortHTTP > 0 {
+		server.Serve(this.ctx, "", this.config.ServerPortHTTP)
 	}
 
-	for _, def := range c.registrations {
+	for _, def := range this.registrations {
 		lines := strings.Split(def.String(), "\n")
-		c.Infof("creating %s", lines[0])
+		this.Infof("creating %s", lines[0])
 		for _, l := range lines[1:] {
-			c.Info(l)
+			this.Info(l)
 		}
-		cmp, err := c.definition.GetMappingsFor(def.GetName())
+		cmp, err := this.definition.GetMappingsFor(def.GetName())
 		if err != nil {
 			return err
 		}
-		cntr, err := controller.NewController(c, def, cmp)
+		cntr, err := controller.NewController(this, def, cmp)
 		if err != nil {
 			return err
 		}
 
 		if def.RequireLease() {
-			c.getLeaseStartupGroup(cntr.GetMainCluster()).Add(cntr)
+			this.getLeaseStartupGroup(cntr.GetMainCluster()).Add(cntr)
 		} else {
-			c.getPlainStartupGroup(cntr.GetMainCluster()).Add(cntr)
+			this.getPlainStartupGroup(cntr.GetMainCluster()).Add(cntr)
 		}
+		this.controllers = append(this.controllers, cntr)
+		this.prepared[cntr.GetName()] = &SyncPoint{}
 	}
 
-	err := c.startGroups(c.plain_groups, c.lease_groups)
+	this.controllers, err = this.controllers.getOrder(this)
 	if err != nil {
 		return err
 	}
 
-	<-c.ctx.Done()
-	c.Info("waiting for controllers to shutdown")
-	ctxutil.SyncPointWait(c.ctx, 120*time.Second)
-	c.Info("exit controller manager")
+	for _, cntr := range this.controllers {
+		err := this.checkController(cntr)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = this.startGroups(this.plain_groups, this.lease_groups)
+	if err != nil {
+		return err
+	}
+
+	<-this.ctx.Done()
+	this.Info("waiting for controllers to shutdown")
+	ctxutil.SyncPointWait(this.ctx, 120*time.Second)
+	this.Info("exit controller manager")
 	return nil
 }
 
 // checkController does all the checks that might cause startController to fail
 // after the check startController can execute without error
-func (c *ControllerManager) checkController(cntr Controller) error {
+func (this *ControllerManager) checkController(cntr Controller) error {
 	return cntr.Check()
 }
 
@@ -258,12 +278,33 @@ func (c *ControllerManager) checkController(cntr Controller) error {
 // all error conditions MUST also be checked
 // in checkController, so after a successful checkController
 // startController MUST not return an error.
-func (c *ControllerManager) startController(cntr Controller) error {
+func (this *ControllerManager) startController(cntr Controller) error {
+	for i, a := range cntr.GetDefinition().After() {
+		if i == 0 {
+			cntr.Infof("observing initialization requirements: %s", utils.Strings(cntr.GetDefinition().After()...))
+		}
+		after := this.prepared[a]
+		if after != nil {
+			if !after.IsReached() {
+				cntr.Infof("  startup of %q waiting for %q", cntr.GetName(), a)
+				if !after.Sync(this.ctx) {
+					return fmt.Errorf("setup aborted")
+				}
+				cntr.Infof("  controller %q is initialized now", a)
+			} else {
+				cntr.Infof("  controller %q is already initialized", a)
+			}
+		} else {
+			cntr.Infof("  omittimg unused controller %q", a)
+		}
+	}
+
 	err := cntr.Prepare()
 	if err != nil {
 		return err
 	}
+	this.prepared[cntr.GetName()].Reach()
 
-	ctxutil.SyncPointRunAndCancelOnExit(c.ctx, cntr.Run)
+	ctxutil.SyncPointRunAndCancelOnExit(this.ctx, cntr.Run)
 	return nil
 }

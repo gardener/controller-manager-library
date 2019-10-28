@@ -17,18 +17,94 @@
 package controllermanager
 
 import (
+	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
+
+////////////////////////////////////////////////////////////////////////////////
+
+type Controllers []Controller
+
+func (this Controllers) Contains(cntr Controller) bool {
+	for _, c := range this {
+		if c == cntr {
+			return true
+		}
+	}
+	return false
+}
+
+func (this Controllers) Get(name string) Controller {
+	for _, c := range this {
+		if c.GetName() == name {
+			return c
+		}
+	}
+	return nil
+}
+
+func (this Controllers) getOrder(logger logger.LogContext) (Controllers, error) {
+	order := Controllers{}
+	stack := Controllers{}
+	for _, c := range this {
+		err := this._orderAdd(logger, &order, stack, c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return order, nil
+}
+
+func (this Controllers) _orderAdd(logger logger.LogContext, order *Controllers, stack Controllers, c Controller) error {
+	if stack.Contains(c) {
+		cycle := ""
+		for _, s := range stack {
+			if cycle != "" || s == c {
+				if cycle != "" {
+					cycle += " -> "
+				}
+				cycle += c.GetName()
+			}
+		}
+		return fmt.Errorf("controller startup cycle detected: %s -> %s", cycle, c.GetName())
+	}
+	if !(*order).Contains(c) {
+		stack = append(stack, c)
+		after := c.GetDefinition().After()
+		if len(after) > 0 {
+			preferred := []string{}
+			for _, a := range after {
+				if dep := this.Get(a); dep != nil {
+					preferred = append(preferred, a)
+					err := this._orderAdd(logger, order, stack, dep)
+					if err != nil {
+						return err
+					}
+				}
+			}
+			if len(preferred) > 0 {
+				logger.Infof("  %s needs to be started after %s", utils.Strings(preferred...))
+			}
+		}
+		*order = append(*order, c)
+	}
+	return nil
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 type StartupGroup interface {
 	Startup() error
 	Add(c Controller)
+	Controllers() Controllers
 }
 
 type startupgroup struct {
 	manager     *ControllerManager
 	cluster     cluster.Interface
-	controllers []Controller
+	controllers Controllers
 }
 
 func (this *startupgroup) Add(c Controller) {
@@ -45,27 +121,31 @@ func (this *startupgroup) Startup() error {
 	return nil
 }
 
+func (this *startupgroup) Controllers() Controllers {
+	return this.controllers
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
-func (c *ControllerManager) getPlainStartupGroup(cluster cluster.Interface) StartupGroup {
-	g := c.plain_groups[cluster.GetName()]
+func (this *ControllerManager) getPlainStartupGroup(cluster cluster.Interface) StartupGroup {
+	g := this.plain_groups[cluster.GetName()]
 	if g == nil {
-		g = &startupgroup{c, cluster, nil}
-		c.plain_groups[cluster.GetName()] = g
+		g = &startupgroup{this, cluster, nil}
+		this.plain_groups[cluster.GetName()] = g
 	}
 	return g
 }
 
-func (c *ControllerManager) getLeaseStartupGroup(cluster cluster.Interface) StartupGroup {
-	g := c.lease_groups[cluster.GetName()]
+func (this *ControllerManager) getLeaseStartupGroup(cluster cluster.Interface) StartupGroup {
+	g := this.lease_groups[cluster.GetName()]
 	if g == nil {
-		g = &leasestartupgroup{startupgroup{c, cluster, nil}}
-		c.lease_groups[cluster.GetName()] = g
+		g = &leasestartupgroup{startupgroup{this, cluster, nil}}
+		this.lease_groups[cluster.GetName()] = g
 	}
 	return g
 }
 
-func (c *ControllerManager) startGroups(grps ...map[string]StartupGroup) error {
+func (this *ControllerManager) startGroups(grps ...map[string]StartupGroup) error {
 	for _, grp := range grps {
 		for _, g := range grp {
 			err := g.Startup()

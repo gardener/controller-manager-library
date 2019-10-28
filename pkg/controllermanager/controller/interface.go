@@ -167,6 +167,7 @@ type Definition interface {
 	Commands() Commands
 	Pools() map[string]PoolDefinition
 	ResourceFilters() []ResourceFilter
+	After() []string
 	RequiredClusters() []string
 	RequiredControllers() []string
 	CustomResourceDefinitions() map[string][]*CustomResourceDefinition

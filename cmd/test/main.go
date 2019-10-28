@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gardener/controller-manager-library/cmd/test/certs"
 	"github.com/gardener/controller-manager-library/cmd/test/cond"
@@ -9,14 +10,18 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/field"
 	"github.com/gardener/controller-manager-library/cmd/test/match"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
+	"github.com/gardener/controller-manager-library/cmd/test/errors"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"os"
+	"time"
 )
 
 var values = map[controller.ResourceKey]int{}
 
 func main() {
 
+	//doit()
 	for i := 1; i < len(os.Args); i++ {
 		fmt.Printf("*** %s ***\n", os.Args[i])
 		switch os.Args[i] {
@@ -88,4 +93,30 @@ func (c *C) String() string {
 }
 func (c *S) String() string {
 	return fmt.Sprintf("%v", c.m)[3:]
+}
+
+func doit() {
+	fmt.Println("sync test *******************")
+	s1 := &controllermanager.SyncPoint{}
+
+	ctx, cancel :=context.WithCancel(context.TODO())
+	go func() {
+		time.Sleep(10 * time.Second)
+		fmt.Println("reaching sync point")
+		s1.Reach()
+	}()
+	for i:= time.Duration(0); i< 5; i++ {
+		go func(i time.Duration) {
+			time.Sleep(i * 3 * time.Second)
+			fmt.Println("check")
+			if s1.Sync(ctx) {
+				fmt.Println("sync point reached")
+			} else {
+				fmt.Println("aborted")
+			}
+		}(i)
+	}
+
+	cancel()
+	time.Sleep(15 * time.Second)
 }
