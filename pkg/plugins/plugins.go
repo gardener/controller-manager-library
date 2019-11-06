@@ -76,7 +76,7 @@ func addPlugin(name string, p *plugin.Plugin, path string) error {
 func LoadPlugins(dir string) error {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return fmt.Errorf("cannot read plugin dir '%s': %s", dir, err)
+		return fmt.Errorf("cannot read plugin file '%s': %s", dir, err)
 	}
 	logger.Infof("scanning %s for plugins", dir)
 	for _, f := range files {

@@ -87,7 +87,7 @@ func (this Configuration) Start(use, short string) {
 		os.Exit(0)
 	}()
 
-	//	if err := plugins.HandleCommandLine("--plugin-dir", os.Args); err != nil {
+	//	if err := plugins.HandleCommandLine("--plugin-file", os.Args); err != nil {
 	//		panic(err)
 	//	}
 

@@ -1,5 +1,7 @@
 /*
- * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+ * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved.
+ * This file is licensed under the Apache Software License, v. 2 except as noted
+ * otherwise in the LICENSE file
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +16,10 @@
  *
  */
 
-package certmgmt
+package certs
 
-import (
-	"github.com/gardener/controller-manager-library/pkg/cert"
-	"github.com/gardener/controller-manager-library/pkg/logger"
-)
+import "crypto/tls"
 
-type CertificateAccess interface {
-	Get(logger.LogContext) (cert.CertificateInfo, error)
-	Set(logger.LogContext, cert.CertificateInfo) error
+type CertificateSource interface {
+	GetCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
 }

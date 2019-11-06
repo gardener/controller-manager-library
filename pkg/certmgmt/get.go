@@ -1,5 +1,7 @@
 /*
- * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+ * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved.
+ * This file is licensed under the Apache Software License, v. 2 except as noted
+ * otherwise in the LICENSE file
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,19 +20,17 @@ package certmgmt
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/cert"
 	"github.com/gardener/controller-manager-library/pkg/logger"
-	"time"
 )
 
-func GetCertificateInfo(logger logger.LogContext, access CertificateAccess, commonName, dnsName string) (cert.CertificateInfo, error) {
+func GetCertificateInfo(logger logger.LogContext, access CertificateAccess, cfg *Config) (CertificateInfo, error) {
 	r, err := access.Get(logger)
 	if err != nil {
 		return nil, fmt.Errorf("error reading from certificate access: %s", err)
 	}
-	r, err = cert.UpdateCertificate(r, commonName, dnsName, 7*24*time.Hour)
+	r, err = UpdateCertificate(r, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("cert update failed: %s", err)
+		return nil, fmt.Errorf("certmgmt update failed: %s", err)
 	}
 
 	err = access.Set(logger, r)

@@ -14,11 +14,29 @@
  *
  */
 
-package cert
+package certmgmt
+
+import (
+	"time"
+
+	"github.com/gardener/controller-manager-library/pkg/logger"
+)
+
+type Config struct {
+	CommonName string
+	DnsNames   []string
+	Validity   time.Duration
+	Rest       time.Duration
+}
 
 type CertificateInfo interface {
 	Cert() []byte
 	Key() []byte
 	CACert() []byte
 	CAKey() []byte
+}
+
+type CertificateAccess interface {
+	Get(logger.LogContext) (CertificateInfo, error)
+	Set(logger.LogContext, CertificateInfo) error
 }

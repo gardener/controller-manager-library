@@ -14,15 +14,22 @@
  *
  */
 
-package cert
+package certmgmt
 
 import (
+	"crypto"
+	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"math"
+	"math/big"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
@@ -82,7 +89,7 @@ func encodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
 	return pem.EncodeToMemory(&block)
 }
 
-func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration time.Duration) (CertificateInfo, error) {
+func UpdateCertificate(old CertificateInfo, cfg *Config) (CertificateInfo, error) {
 	new := &info{}
 	if old != nil {
 		new.cert = old.Cert()
@@ -98,13 +105,13 @@ func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration
 	var err error
 	var ok bool
 
-	if !IsValid(new, dnsname, duration) {
+	if !IsValid(new, cfg.DnsNames[0], cfg.Rest) {
 		fmt.Printf("not valid\n")
 		if new.cacert != nil {
 			fmt.Printf("cacert found\n")
 			ok = Valid(new.cakey, new.cacert, new.cacert, "", 5*time.Hour*24)
 			if ok {
-				fmt.Printf("cacert not valid\n")
+				fmt.Printf("cacert valid\n")
 				k, err := keyutil.ParsePrivateKeyPEM(new.cakey)
 				if err != nil {
 					ok = false
@@ -127,9 +134,9 @@ func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration
 				return nil, fmt.Errorf("failed to create the CA key pair: %s", err)
 			}
 			new.cakey = encodePrivateKeyPEM(caKey)
-			caCert, err = cert.NewSelfSignedCACert(cert.Config{CommonName: "webhook-cert-ca:" + commonname}, caKey)
+			caCert, err = cert.NewSelfSignedCACert(cert.Config{CommonName: "webhook-certmgmt-ca:" + cfg.CommonName}, caKey)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create the CA cert: %s", err)
+				return nil, fmt.Errorf("failed to create the CA certmgmt: %s", err)
 			}
 			new.cacert = pkiutil.EncodeCertPEM(caCert)
 		}
@@ -140,18 +147,18 @@ func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration
 			return nil, fmt.Errorf("failed to create the server key pair: %s", err)
 		}
 		new.key = encodePrivateKeyPEM(newKey)
-		fmt.Printf("generate cert\n")
-		newCert, err = pkiutil.NewSignedCert(
+		fmt.Printf("generate certmgmt\n")
+		newCert, err = NewSignedCert(
 			&cert.Config{
-				CommonName: "client:" + commonname,
+				CommonName: cfg.CommonName,
 				AltNames: cert.AltNames{
-					DNSNames: []string{dnsname},
+					DNSNames: cfg.DnsNames,
 				},
 				Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 			},
-			newKey, caCert, caKey)
+			newKey, caCert, caKey, cfg.Validity)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create the server cert: %s", err)
+			return nil, fmt.Errorf("failed to create the server certmgmt: %s", err)
 		}
 		new.cert = pkiutil.EncodeCertPEM(newCert)
 		return new, nil
@@ -161,7 +168,7 @@ func UpdateCertificate(old CertificateInfo, commonname, dnsname string, duration
 
 func IsValid(info CertificateInfo, dnsname string, duration time.Duration) bool {
 	if info.Cert() == nil || info.Key() == nil {
-		fmt.Printf("cert or key not set\n")
+		fmt.Printf("certmgmt or key not set\n")
 		return false
 	}
 	if info.CACert() == nil {
@@ -180,7 +187,7 @@ func Valid(key []byte, cert []byte, cacert []byte, dnsname string, duration time
 
 	_, err := tls.X509KeyPair(cert, key)
 	if err != nil {
-		fmt.Printf("key does not match cert\n")
+		fmt.Printf("key does not match certmgmt\n")
 		return false
 	}
 
@@ -191,12 +198,12 @@ func Valid(key []byte, cert []byte, cacert []byte, dnsname string, duration time
 	}
 	block, _ := pem.Decode([]byte(cert))
 	if block == nil {
-		fmt.Printf("cannot decode cert\n")
+		fmt.Printf("cannot decode certmgmt\n")
 		return false
 	}
 	c, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		fmt.Printf("cannot parse cert\n")
+		fmt.Printf("cannot parse certmgmt\n")
 		return false
 	}
 	ops := x509.VerifyOptions{
@@ -207,4 +214,37 @@ func Valid(key []byte, cert []byte, cacert []byte, dnsname string, duration time
 	_, err = c.Verify(ops)
 	fmt.Printf("val: %s\n", err)
 	return err == nil
+}
+
+// NewSignedCert creates a signed certificate using the given CA certificate and key with the given validity duration
+func NewSignedCert(cfg *cert.Config, key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer, duration time.Duration) (*x509.Certificate, error) {
+	serial, err := cryptorand.Int(cryptorand.Reader, new(big.Int).SetInt64(math.MaxInt64))
+	if err != nil {
+		return nil, err
+	}
+	if len(cfg.CommonName) == 0 {
+		return nil, errors.New("must specify a CommonName")
+	}
+	if len(cfg.Usages) == 0 {
+		return nil, errors.New("must specify at least one ExtKeyUsage")
+	}
+
+	certTmpl := x509.Certificate{
+		Subject: pkix.Name{
+			CommonName:   cfg.CommonName,
+			Organization: cfg.Organization,
+		},
+		DNSNames:     cfg.AltNames.DNSNames,
+		IPAddresses:  cfg.AltNames.IPs,
+		SerialNumber: serial,
+		NotBefore:    caCert.NotBefore,
+		NotAfter:     time.Now().Add(duration).UTC(),
+		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  cfg.Usages,
+	}
+	certDERBytes, err := x509.CreateCertificate(cryptorand.Reader, &certTmpl, caCert, key.Public(), caKey)
+	if err != nil {
+		return nil, err
+	}
+	return x509.ParseCertificate(certDERBytes)
 }

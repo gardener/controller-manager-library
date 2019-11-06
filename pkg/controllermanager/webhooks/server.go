@@ -14,10 +14,11 @@
  *
  */
 
-package server
+package webhooks
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"net/http"
@@ -26,28 +27,42 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/logger"
 )
 
-var servMux = http.NewServeMux()
+type HTTPServer struct {
+	servMux *http.ServeMux
+	ctx     context.Context
 
-func Register(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	logger.Infof("adding %s endpoint", pattern)
-	servMux.HandleFunc(pattern, handler)
+	logger.LogContext
 }
 
-func RegisterHandler(pattern string, handler http.Handler) {
-	logger.Infof("adding %s endpoint", pattern)
-	servMux.Handle(pattern, handler)
+func NewHTTPServer(ctx context.Context, logger logger.LogContext) *HTTPServer {
+	this := &HTTPServer{ctx: ctx, LogContext: logger, servMux: http.NewServeMux()}
+	return this
 }
 
-// Serve starts a HTTP server.
-func Serve(ctx context.Context, bindAddress string, port int) {
-	logger.Info("starting http server")
+func (this *HTTPServer) Register(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	this.Infof("adding webhook %s endpoint", pattern)
+	this.servMux.HandleFunc(pattern, handler)
+}
+
+func (this *HTTPServer) RegisterHandler(pattern string, handler http.Handler) {
+	this.Infof("adding webhook %s endpoint", pattern)
+	this.servMux.Handle(pattern, handler)
+}
+
+// Start starts an HTTPS server.
+func (this *HTTPServer) Start(source certmgmt.CertificateSource, bindAddress string, port int) {
+	logger.Info("starting webhook https server")
 
 	listenAddress := fmt.Sprintf("%s:%d", bindAddress, port)
-	server := &http.Server{Addr: listenAddress, Handler: servMux}
+	tlscfg := &tls.Config{
+		NextProtos:     []string{"h2"},
+		GetCertificate: source.GetCertificate,
+	}
+	server := &http.Server{Addr: listenAddress, Handler: this.servMux, TLSConfig: tlscfg}
 
 	go func() {
-		<-ctx.Done()
-		logger.Infof("shutting down server with timeout")
+		<-this.ctx.Done()
+		logger.Infof("shutting down webhook server with timeout")
 		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 		server.Shutdown(ctx)
 	}()
@@ -59,6 +74,6 @@ func Serve(ctx context.Context, bindAddress string, port int) {
 			logger.Errorf("cannot start http server: %s", err)
 		}
 		logger.Infof("HTTP server stopped")
-		ctxutil.Cancel(ctx)
+		ctxutil.Cancel(this.ctx)
 	}()
 }

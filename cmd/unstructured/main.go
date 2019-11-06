@@ -51,7 +51,7 @@ func main() {
 	}
 	rri := client.Resource(info.GroupVersionResource())
 	ri := rri.Namespace("default")
-	s, err := ri.Get("secret", metav1.GetOptions{})
+	s, err := ri.Get("access", metav1.GetOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = st.GetInto(resources.NewObjectName("default", "secret"), u)
+	_, err = st.GetInto(resources.NewObjectName("default", "access"), u)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = r.GetInto(resources.NewObjectName("default", "secret"), u)
+	_, err = r.GetInto(resources.NewObjectName("default", "access"), u)
 	if err != nil {
 		log.Fatal(err)
 	}

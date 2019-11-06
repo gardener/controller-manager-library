@@ -53,7 +53,7 @@ func GetSecret(src ResourcesSource, namespace, name string) (*SecretObject, erro
 
 	s := Secret(o)
 	if s == nil {
-		return nil, errors.ErrUnexpectedType.New("secret", o.Data())
+		return nil, errors.ErrUnexpectedType.New("access", o.Data())
 	}
 	return s, nil
 }
@@ -70,7 +70,7 @@ func GetCachedSecret(src ResourcesSource, namespace, name string) (*SecretObject
 
 	s := Secret(o)
 	if s == nil {
-		return nil, errors.ErrUnexpectedType.New("secret", o.Data())
+		return nil, errors.ErrUnexpectedType.New("access", o.Data())
 	}
 	return s, nil
 }

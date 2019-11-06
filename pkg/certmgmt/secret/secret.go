@@ -1,5 +1,7 @@
 /*
- * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+ * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved.
+ * This file is licensed under the Apache Software License, v. 2 except as noted
+ * otherwise in the LICENSE file
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +16,10 @@
  *
  */
 
-package certmgmt
+package secret
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/cert"
+	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -32,11 +34,11 @@ const (
 	// CAKeyName is the name of the CA private key
 	CAKeyName = "ca-key.pem"
 	// CACertName is the name of the CA certificate
-	CACertName = "ca-cert.pem"
+	CACertName = "ca-certmgmt.pem"
 	// KeyName is the name of the server private key
 	KeyName = "key.pem"
 	// CertName is the name of the serving certificate
-	CertName = "cert.pem"
+	CertName = "certmgmt.pem"
 )
 
 var dataField = fieldpath.RequiredField(&corev1.Secret{}, ".Data")
@@ -46,16 +48,16 @@ type secretCertificateAccess struct {
 	name    resources.ObjectName
 }
 
-var _ CertificateAccess = &secretCertificateAccess{}
+var _ certmgmt.CertificateAccess = &secretCertificateAccess{}
 
-func NewSecret(cluster cluster.Interface, name resources.ObjectName) CertificateAccess {
+func NewSecret(cluster cluster.Interface, name resources.ObjectName) certmgmt.CertificateAccess {
 	return &secretCertificateAccess{
 		cluster: cluster,
 		name:    name,
 	}
 }
 
-func (this *secretCertificateAccess) Get(logger logger.LogContext) (cert.CertificateInfo, error) {
+func (this *secretCertificateAccess) Get(logger logger.LogContext) (certmgmt.CertificateInfo, error) {
 
 	secret, err := resources.GetSecret(this.cluster, this.name.Namespace(), this.name.Name())
 	if err != nil {
@@ -67,7 +69,7 @@ func (this *secretCertificateAccess) Get(logger logger.LogContext) (cert.Certifi
 	return dataToCertInfo(secret.GetData()), nil
 }
 
-func (this *secretCertificateAccess) Set(logger logger.LogContext, cert cert.CertificateInfo) error {
+func (this *secretCertificateAccess) Set(logger logger.LogContext, cert certmgmt.CertificateInfo) error {
 
 	r, _ := this.cluster.GetResource(schema.GroupKind{corev1.GroupName, "Secret"})
 	o := r.New(this.name)
@@ -77,12 +79,12 @@ func (this *secretCertificateAccess) Set(logger logger.LogContext, cert cert.Cer
 		return nil
 	})
 	if mod {
-		logger.Infof("certs in secret %q are updated", this.name)
+		logger.Infof("certs in access %q are updated", this.name)
 	}
 	return err
 }
 
-func dataToCertInfo(data map[string][]byte) cert.CertificateInfo {
+func dataToCertInfo(data map[string][]byte) certmgmt.CertificateInfo {
 	if data == nil {
 		return nil
 	}
@@ -91,10 +93,10 @@ func dataToCertInfo(data map[string][]byte) cert.CertificateInfo {
 	_cacert := data[CACertName]
 	_cakey := data[CAKeyName]
 
-	return cert.NewCertInfo(_cert, _key, _cacert, _cakey)
+	return certmgmt.NewCertInfo(_cert, _key, _cacert, _cakey)
 }
 
-func certInfoToData(cert cert.CertificateInfo) map[string][]byte {
+func certInfoToData(cert certmgmt.CertificateInfo) map[string][]byte {
 	return map[string][]byte{
 		CAKeyName:  cert.CAKey(),
 		CACertName: cert.CACert(),
