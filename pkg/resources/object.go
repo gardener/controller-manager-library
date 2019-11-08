@@ -58,7 +58,7 @@ func (this *_object) GetCluster() Cluster {
 }
 
 func (this *_object) GetResource() Interface {
-	return this.resource
+	return this.resource.Resource()
 }
 
 func (this *_object) IsA(spec interface{}) bool {

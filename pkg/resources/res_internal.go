@@ -30,6 +30,7 @@ import (
 
 type Internal interface {
 	Interface
+	Resource() Interface
 
 	I_objectType() reflect.Type
 	I_listType() reflect.Type
@@ -63,6 +64,10 @@ type _i_resource struct {
 }
 
 var _ Internal = &_i_resource{}
+
+func (this *_i_resource) Resource() Interface {
+	return this._resource
+}
 
 func (this *_i_resource) I_objectType() reflect.Type {
 	return this.otype

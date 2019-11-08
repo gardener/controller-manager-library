@@ -19,6 +19,7 @@ package resources
 import (
 	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"reflect"
+	"sync"
 
 	"github.com/gardener/controller-manager-library/pkg/kutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -33,6 +34,7 @@ import (
 const ATTR_EVENTSOURCE = "event-source"
 
 type _resources struct {
+	lock                       sync.Mutex
 	ctx                        *resourceContext
 	informers                  *sharedInformerFactory
 	handlersByObjType          map[reflect.Type]Interface
@@ -132,8 +134,8 @@ func (this *_resources) GetByExample(obj runtime.Object) (Interface, error) {
 		t = t.Elem()
 	}
 
-	lock.Lock()
-	defer lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 	if handler, ok := this.handlersByObjType[t]; ok {
 		return handler, nil
 	}
@@ -152,8 +154,8 @@ func (this *_resources) GetByExample(obj runtime.Object) (Interface, error) {
 }
 
 func (this *_resources) GetByGK(gk schema.GroupKind) (Interface, error) {
-	lock.Lock()
-	defer lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
 	if handler, ok := this.handlersByGroupKind[gk]; ok {
 		return handler, nil
@@ -178,8 +180,8 @@ func (this *_resources) GetByGK(gk schema.GroupKind) (Interface, error) {
 }
 
 func (this *_resources) GetByGVK(gvk schema.GroupVersionKind) (Interface, error) {
-	lock.Lock()
-	defer lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
 	if handler, ok := this.handlersByGroupVersionKind[gvk]; ok {
 		return handler, nil
@@ -209,8 +211,8 @@ func (this *_resources) getResource(info *Info) (Interface, error) {
 }
 
 func (this *_resources) GetUnstructuredByGK(gk schema.GroupKind) (Interface, error) {
-	lock.Lock()
-	defer lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
 	if handler, ok := this.unstructuredHandlersByGroupKind[gk]; ok {
 		return handler, nil
@@ -235,8 +237,8 @@ func (this *_resources) GetUnstructuredByGK(gk schema.GroupKind) (Interface, err
 }
 
 func (this *_resources) GetUnstructuredByGVK(gvk schema.GroupVersionKind) (Interface, error) {
-	lock.Lock()
-	defer lock.Unlock()
+	this.lock.Lock()
+	defer this.lock.Unlock()
 
 	if handler, ok := this.unstructuredHandlersByGroupVersionKind[gvk]; ok {
 		return handler, nil

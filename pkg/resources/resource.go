@@ -108,7 +108,7 @@ func (this *_resource) AddRawEventHandler(handlers cache.ResourceEventHandlerFun
 
 func (this *_resource) AddRawSelectedEventHandler(handlers cache.ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error {
 	logger.Infof("adding watch for %s", this.gvk)
-	informer, err := this.self.I_getInformer(namespace, optionsFunc)
+	informer, err := this.helper.Internal.I_getInformer(namespace, optionsFunc)
 	if err != nil {
 		return err
 	}

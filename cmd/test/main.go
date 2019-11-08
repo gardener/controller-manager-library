@@ -9,8 +9,8 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/errors"
 	"github.com/gardener/controller-manager-library/cmd/test/field"
 	"github.com/gardener/controller-manager-library/cmd/test/match"
+	"github.com/gardener/controller-manager-library/cmd/test/plain"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
-	"github.com/gardener/controller-manager-library/cmd/test/errors"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"os"
@@ -40,6 +40,8 @@ func main() {
 			errors.ErrorsMain()
 		case "cond":
 			cond.CondMain()
+		case "plain":
+			plain.PlainMain()
 		}
 	}
 }
@@ -99,13 +101,13 @@ func doit() {
 	fmt.Println("sync test *******************")
 	s1 := &controllermanager.SyncPoint{}
 
-	ctx, cancel :=context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(context.TODO())
 	go func() {
 		time.Sleep(10 * time.Second)
 		fmt.Println("reaching sync point")
 		s1.Reach()
 	}()
-	for i:= time.Duration(0); i< 5; i++ {
+	for i := time.Duration(0); i < 5; i++ {
 		go func(i time.Duration) {
 			time.Sleep(i * 3 * time.Second)
 			fmt.Println("check")

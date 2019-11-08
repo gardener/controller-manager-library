@@ -28,7 +28,6 @@ import (
 )
 
 type AbstractResource struct {
-	self   Internal
 	helper *ResourceHelper
 }
 
@@ -38,23 +37,23 @@ type ResourceHelper struct {
 
 func NewAbstractResource(self Internal) (AbstractResource, *ResourceHelper) {
 	helper := &ResourceHelper{self}
-	return AbstractResource{self, helper}, helper
+	return AbstractResource{helper}, helper
 }
 
 func (this *AbstractResource) Name() string {
-	return this.self.Info().Name()
+	return this.helper.Internal.Info().Name()
 }
 
 func (this *AbstractResource) GroupVersionKind() schema.GroupVersionKind {
-	return this.self.Info().GroupVersionKind()
+	return this.helper.Internal.Info().GroupVersionKind()
 }
 
 func (this *AbstractResource) GroupKind() schema.GroupKind {
-	return this.self.Info().GroupKind()
+	return this.helper.Internal.Info().GroupKind()
 }
 
 func (this *AbstractResource) Namespaced() bool {
-	return this.self.Info().Namespaced()
+	return this.helper.Internal.Info().Namespaced()
 }
 
 func (this *AbstractResource) Wrap(obj ObjectData) (Object, error) {

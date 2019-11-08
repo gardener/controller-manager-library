@@ -17,6 +17,7 @@
 package resources
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,26 +29,18 @@ import (
 
 type KeyFilter func(key ClusterObjectKey) bool
 type ObjectFilter func(obj Object) bool
+type GroupKindProvider = abstract.GroupKindProvider
+type ClusterObjectKey = abstract.ClusterObjectKey
+type ObjectKey = abstract.ObjectKey
+type ObjectMatcher func(Object) bool
+type ObjectNameProvider = abstract.ObjectNameProvider
+type ObjectName = abstract.ObjectName
+type ObjectDataName = abstract.ObjectDataName
+type ObjectData = abstract.ObjectData
 
-type GroupKindProvider interface {
-	GroupKind() schema.GroupKind
-}
-
-// objectKey is just used to allow a method ObjectKey for ClusterObjectKey
-type objectKey struct {
-	ObjectKey
-}
-
-type ClusterObjectKey struct {
-	cluster string
-	objectKey
-}
-
-// ObjectKey used for worker queues.
-type ObjectKey struct {
-	groupKind schema.GroupKind
-	name      ObjectName
-}
+// TweakListOptionsFunc defines the signature of a helper function
+// that wants to provide more listing options to API
+type TweakListOptionsFunc func(*metav1.ListOptions)
 
 type ResourcesSource interface {
 	Resources() Resources
@@ -136,31 +129,6 @@ type Object interface {
 	RemoveOwner(Object) bool
 }
 
-type ObjectMatcher func(Object) bool
-
-type ObjectNameProvider interface {
-	Namespace() string
-	Name() string
-}
-
-type ObjectName interface {
-	Name() string
-	Namespace() string
-	String() string
-
-	ForGroupKind(gk schema.GroupKind) ObjectKey
-}
-
-type ObjectDataName interface {
-	GetName() string
-	GetNamespace() string
-}
-
-type ObjectData interface {
-	metav1.Object
-	runtime.Object
-}
-
 type Interface interface {
 	GroupKindProvider
 	ClusterSource
@@ -233,7 +201,3 @@ type Resources interface {
 
 	DeleteObject(obj ObjectData) error
 }
-
-// TweakListOptionsFunc defines the signature of a helper function
-// that wants to provide more listing options to API
-type TweakListOptionsFunc func(*metav1.ListOptions)
