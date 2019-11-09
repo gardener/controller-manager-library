@@ -19,6 +19,7 @@
 package plain
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -46,6 +47,15 @@ type Object interface {
 
 	DeepCopy() Object
 	GetResource() Interface
+
+	ForCluster(cluster resources.Cluster) (resources.Object, error)
+
+	CreateIn(cluster resources.Cluster) error
+	CreateOrUpdateIn(cluster resources.Cluster) error
+	UpdateIn(cluster resources.Cluster) error
+	ModifiyIn(cluster resources.Cluster, modifier resources.Modifier) (bool, error)
+	DeleteIn(cluster resources.Cluster) error
+	SetFinalizerIn(cluster resources.Cluster, key string) error
 }
 
 type Interface interface {

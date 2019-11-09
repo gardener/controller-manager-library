@@ -50,28 +50,28 @@ func (this *_resource) GetCached(obj interface{}) (Object, error) {
 	case string:
 		return this.getCached("", o)
 	case ObjectData:
-		if err := this.helper.CheckOType(o); err != nil {
+		if err := this.CheckOType(o); err != nil {
 			return nil, err
 		}
 		return this.helper.ObjectAsResource(o), nil
 	case ObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, errors.ErrResourceMismatch.New(this.gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(this.GroupVersionKind(), o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
 	case *ObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, errors.ErrResourceMismatch.New(this.gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(this.GroupVersionKind(), o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
 	case ClusterObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, errors.ErrResourceMismatch.New(this.gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(this.GroupVersionKind(), o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
 	case *ClusterObjectKey:
 		if o.GroupKind() != this.GroupKind() {
-			return nil, errors.ErrResourceMismatch.New(this.gvk, o.GroupKind())
+			return nil, errors.ErrResourceMismatch.New(this.GroupVersionKind(), o.GroupKind())
 		}
 		return this.getCached(o.Namespace(), o.Name())
 	case ObjectName:

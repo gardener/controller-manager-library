@@ -86,24 +86,18 @@ type ResourceEventHandlerFuncs struct {
 type Modifier func(ObjectData) (bool, error)
 
 type Object interface {
-	metav1.Object
-	GroupKindProvider
+	abstract.Object
 	//runtime.ObjectData
 	EventRecorder
 	ResourcesSource
 	ClusterSource
 
-	GroupVersionKind() schema.GroupVersionKind
-	ObjectName() ObjectName
-	Data() ObjectData
 	DeepCopy() Object
-	Key() ObjectKey
 	ClusterKey() ClusterObjectKey
 	IsCoLocatedTo(o Object) bool
 
 	GetResource() Interface
 
-	IsA(spec interface{}) bool
 	Create() error
 	CreateOrUpdate() error
 	Delete() error
@@ -114,29 +108,18 @@ type Object interface {
 	CreateOrModify(modifier Modifier) (bool, error)
 	UpdateFromCache() error
 
-	Description() string
-	HasFinalizer(key string) bool
-	SetFinalizer(key string) error
-	RemoveFinalizer(key string) error
-
-	GetLabel(name string) string
-
-	IsDeleting() bool
-
-	GetOwnerReference() *metav1.OwnerReference
 	GetOwners(kinds ...schema.GroupKind) ClusterObjectKeySet
 	AddOwner(Object) bool
 	RemoveOwner(Object) bool
 }
 
 type Interface interface {
-	GroupKindProvider
+	abstract.Resource
 	ClusterSource
 	ResourcesSource
 
 	Name() string
 	Namespaced() bool
-	GroupVersionKind() schema.GroupVersionKind
 	Info() *Info
 	ResourceContext() ResourceContext
 	AddSelectedEventHandler(eventHandlers ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error
@@ -178,6 +161,7 @@ type Namespaced interface {
 }
 
 type Resources interface {
+	abstract.Resources
 	ResourcesSource
 	record.EventRecorder
 

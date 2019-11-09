@@ -22,17 +22,11 @@ import (
 	"context"
 	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type ResourceContext interface {
+	abstract.ResourceContext
 	Resources() Resources
-
-	Scheme() *runtime.Scheme
-	Decoder() *Decoder
-
-	GetGVK(obj runtime.Object) (schema.GroupVersionKind, error)
-	GetGVKForGK(gk schema.GroupKind) (schema.GroupVersionKind, error)
 }
 
 type resourceContext struct {

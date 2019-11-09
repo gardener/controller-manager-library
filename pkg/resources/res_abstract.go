@@ -17,17 +17,16 @@
 package resources
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
-
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	"reflect"
 
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type AbstractResource struct {
+	*abstract.AbstractResource
 	helper *ResourceHelper
 }
 
@@ -35,21 +34,14 @@ type ResourceHelper struct {
 	Internal
 }
 
-func NewAbstractResource(self Internal) (AbstractResource, *ResourceHelper) {
+func NewAbstractResource(ctx ResourceContext, self Internal, otype, ltype reflect.Type, gvk schema.GroupVersionKind) (AbstractResource, *ResourceHelper) {
+	abs := abstract.NewAbstractResource(ctx, otype, ltype, gvk)
 	helper := &ResourceHelper{self}
-	return AbstractResource{helper}, helper
+	return AbstractResource{abs, helper}, helper
 }
 
 func (this *AbstractResource) Name() string {
 	return this.helper.Internal.Info().Name()
-}
-
-func (this *AbstractResource) GroupVersionKind() schema.GroupVersionKind {
-	return this.helper.Internal.Info().GroupVersionKind()
-}
-
-func (this *AbstractResource) GroupKind() schema.GroupKind {
-	return this.helper.Internal.Info().GroupKind()
 }
 
 func (this *AbstractResource) Namespaced() bool {
@@ -57,14 +49,14 @@ func (this *AbstractResource) Namespaced() bool {
 }
 
 func (this *AbstractResource) Wrap(obj ObjectData) (Object, error) {
-	if err := this.helper.CheckOType(obj); err != nil {
+	if err := this.CheckOType(obj); err != nil {
 		return nil, err
 	}
 	return this.helper.ObjectAsResource(obj), nil
 }
 
 func (this *AbstractResource) New(name ObjectName) Object {
-	data := this.helper.CreateData()
+	data := this.CreateData()
 	data.GetObjectKind().SetGroupVersionKind(this.GroupVersionKind())
 	if name != nil {
 		data.SetName(name.Name())
@@ -81,38 +73,7 @@ func (this *AbstractResource) Namespace(namespace string) Namespaced {
 // Resource Helper
 
 func (this *ResourceHelper) ObjectAsResource(obj ObjectData) Object {
-	return NewObject(obj, this.GetCluster(), this.Internal)
-}
-
-func (this *ResourceHelper) CreateData(name ...ObjectDataName) ObjectData {
-	data := reflect.New(this.I_objectType()).Interface().(ObjectData)
-	if u, ok := data.(*unstructured.Unstructured); ok {
-		u.SetGroupVersionKind(this.GroupVersionKind())
-	}
-	if len(name) > 0 {
-		data.SetName(name[0].GetName())
-		data.SetNamespace(name[0].GetNamespace())
-	}
-	return data
-}
-
-func (this *ResourceHelper) CreateListData() runtime.Object {
-	return reflect.New(this.I_listType()).Interface().(runtime.Object)
-}
-
-func (this *ResourceHelper) CheckOType(obj ObjectData, unstructured ...bool) error {
-	t := reflect.TypeOf(obj)
-	if t.Kind() == reflect.Ptr {
-		if t.Elem() == this.I_objectType() {
-			return nil
-		}
-		if len(unstructured) > 0 && unstructured[0] {
-			if t.Elem() == unstructuredType {
-				return nil
-			}
-		}
-	}
-	return errors.ErrTypeMismatch.New(obj, reflect.PtrTo(this.I_objectType()))
+	return NewObject(obj, this.Internal)
 }
 
 func (this *ResourceHelper) Get(namespace, name string, result ObjectData) (Object, error) {
@@ -124,7 +85,7 @@ func (this *ResourceHelper) Get(namespace, name string, result ObjectData) (Obje
 	}
 
 	if result == nil {
-		result = this.CreateData()
+		result = this.I_CreateData()
 	}
 	result.SetNamespace(namespace)
 	result.SetName(name)

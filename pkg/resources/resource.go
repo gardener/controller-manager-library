@@ -19,25 +19,21 @@ package resources
 import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
 type _resource struct {
 	AbstractResource
-	context *resourceContext
-	gvk     schema.GroupVersionKind
-	otype   reflect.Type
-	ltype   reflect.Type
-	info    *Info
-	client  restclient.Interface
+	info   *Info
+	client restclient.Interface
 }
 
 var _ Interface = &_resource{}
@@ -48,34 +44,40 @@ type namespacedResource struct {
 	lister    NamespacedLister
 }
 
-func newResource(
-	context *resourceContext,
-	otype reflect.Type,
-	ltype reflect.Type,
-	info *Info,
-	client restclient.Interface) Interface {
-
-	r := &_resource{
-		AbstractResource: AbstractResource{},
-		context:          context,
-		gvk:              info.GroupVersionKind(),
-		otype:            otype,
-		ltype:            ltype,
-		info:             info,
-		client:           client,
-	}
-	r.AbstractResource, _ = NewAbstractResource(&_i_resource{_resource: r})
-	return r
-}
-
 /////////////////////////////////////////////////////////////////////////////////
 
+func newResource(ctx ResourceContext, otype, ltype reflect.Type, gvk schema.GroupVersionKind) (*_resource, error) {
+	info, err := ctx.Get(gvk)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := ctx.GetClient(gvk.GroupVersion())
+	if err != nil {
+		return nil, err
+	}
+
+	if otype == nil {
+		otype = unstructuredType
+	}
+	r := &_resource{
+		info:   info,
+		client: client,
+	}
+	r.AbstractResource, _ = NewAbstractResource(ctx, &_i_resource{_resource: r}, otype, ltype, gvk)
+	return r, nil
+}
+
 func (this *_resource) GetCluster() Cluster {
-	return this.context.cluster
+	return this.ResourceContext().GetCluster()
+}
+
+func (this *_resource) ResourceContext() ResourceContext {
+	return this.AbstractResource.ResourceContext().(ResourceContext)
 }
 
 func (this *_resource) Resources() Resources {
-	return this.context.Resources()
+	return this.ResourceContext().Resources()
 }
 
 var unstructuredType = reflect.TypeOf(unstructured.Unstructured{})
@@ -83,7 +85,7 @@ var unstructuredType = reflect.TypeOf(unstructured.Unstructured{})
 var unstructuredListType = reflect.TypeOf(unstructured.UnstructuredList{})
 
 func (this *_resource) IsUnstructured() bool {
-	return this.otype == unstructuredType
+	return this.ObjectType() == unstructuredType
 }
 
 func (this *_resource) Info() *Info {
@@ -95,11 +97,7 @@ func (this *_resource) Client() restclient.Interface {
 }
 
 func (this *_resource) GetParameterCodec() runtime.ParameterCodec {
-	return this.context.parametercodec
-}
-
-func (this *_resource) ResourceContext() ResourceContext {
-	return this.context
+	return this.ResourceContext().GetParameterCodec()
 }
 
 func (this *_resource) AddRawEventHandler(handlers cache.ResourceEventHandlerFuncs) error {
@@ -107,7 +105,7 @@ func (this *_resource) AddRawEventHandler(handlers cache.ResourceEventHandlerFun
 }
 
 func (this *_resource) AddRawSelectedEventHandler(handlers cache.ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error {
-	logger.Infof("adding watch for %s", this.gvk)
+	logger.Infof("adding watch for %s", this.GroupVersionKind())
 	informer, err := this.helper.Internal.I_getInformer(namespace, optionsFunc)
 	if err != nil {
 		return err
@@ -125,11 +123,11 @@ func (this *_resource) AddSelectedEventHandler(handlers ResourceEventHandlerFunc
 }
 
 func (this *_resource) NormalEventf(name ObjectDataName, reason, msgfmt string, args ...interface{}) {
-	this.Resources().Eventf(this.helper.CreateData(name), v1.EventTypeNormal, reason, msgfmt, args...)
+	this.Resources().Eventf(this.CreateData(name), v1.EventTypeNormal, reason, msgfmt, args...)
 }
 
 func (this *_resource) WarningEventf(name ObjectDataName, reason, msgfmt string, args ...interface{}) {
-	this.Resources().Eventf(this.helper.CreateData(name), v1.EventTypeWarning, reason, msgfmt, args...)
+	this.Resources().Eventf(this.CreateData(name), v1.EventTypeWarning, reason, msgfmt, args...)
 }
 
 func (this *_resource) namespacedRequest(req *restclient.Request, namespace string) *restclient.Request {
