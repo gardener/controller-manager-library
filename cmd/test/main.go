@@ -5,10 +5,10 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/certs"
 	"github.com/gardener/controller-manager-library/cmd/test/cond"
 	"github.com/gardener/controller-manager-library/cmd/test/config"
+	"github.com/gardener/controller-manager-library/cmd/test/errors"
 	"github.com/gardener/controller-manager-library/cmd/test/field"
 	"github.com/gardener/controller-manager-library/cmd/test/match"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
-	"github.com/gardener/controller-manager-library/cmd/test/errors"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"os"
 )
