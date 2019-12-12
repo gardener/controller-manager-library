@@ -159,12 +159,12 @@ func (this *fundamental) Format(s fmt.State, verb rune) {
 	case 'v':
 		if s.Flag('+') {
 			io.WriteString(s, this.Error())
-			fmt.Fprintf(s,"%+v", this.StackTrace())
+			fmt.Fprintf(s, "%+v", this.StackTrace())
 			return
 		}
 		if s.Flag('-') {
 			io.WriteString(s, this.Error())
-			fmt.Fprintf(s,"\n%+v", this.StackTrace()[0])
+			fmt.Fprintf(s, "\n%+v", this.StackTrace()[0])
 			return
 		}
 		fallthrough

@@ -58,7 +58,7 @@ func (this *_Definitions) GetRequiredControllers(name string) (utils.StringSet, 
 	required := utils.StringSet{}
 	missing := utils.StringSet{}
 	this.getRequiredControllers(name, &required, &missing)
-	if len(missing)> 0 {
+	if len(missing) > 0 {
 		return nil, fmt.Errorf("controller %q required controllers %s, which are missing", missing)
 	}
 	return required, nil
@@ -68,9 +68,9 @@ func (this *_Definitions) getRequiredControllers(name string, required, missing 
 	if !required.Contains(name) {
 		required.Add(name)
 		def := this.Get(name)
-		if def!=nil {
-			for _,d := range def.RequiredControllers() {
-				this.getRequiredControllers(d,required,missing)
+		if def != nil {
+			for _, d := range def.RequiredControllers() {
+				this.getRequiredControllers(d, required, missing)
 			}
 		} else {
 			missing.Add(name)

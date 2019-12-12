@@ -72,7 +72,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 
 	for n := range def.controller_defs.Names() {
 		for _, r := range def.controller_defs.Get(n).RequiredControllers() {
-			if def.controller_defs.Get(r)==nil {
+			if def.controller_defs.Get(r) == nil {
 				return nil, fmt.Errorf("controller %q requires controller %q, which is not declared", n, r)
 			}
 		}
@@ -133,16 +133,16 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 		return nil, err
 	}
 
-	added:=utils.StringSet{}
+	added := utils.StringSet{}
 	for c := range active {
-		req, err :=def.controller_defs.GetRequiredControllers(c)
-		if err!=nil {
+		req, err := def.controller_defs.GetRequiredControllers(c)
+		if err != nil {
 			return nil, err
 		}
 		added.AddSet(req)
 	}
-	added,_ = active.DiffFrom(added)
-	if len(added)>0 {
+	added, _ = active.DiffFrom(added)
+	if len(added) > 0 {
 		logger.Infof("controllers implied by activated controllers: %s", added)
 		active.AddSet(added)
 	}

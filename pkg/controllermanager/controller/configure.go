@@ -260,7 +260,7 @@ func (this Configuration) Name(name string) Configuration {
 	return this
 }
 
-func (this Configuration) Require(names ... string) Configuration {
+func (this Configuration) Require(names ...string) Configuration {
 names:
 	for _, n := range names {
 		for _, o := range this.settings.required_controllers {
