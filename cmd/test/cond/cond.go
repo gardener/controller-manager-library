@@ -95,7 +95,7 @@ func CondMain() {
 	podt := conditions.NewConditionLayout(conditions.TransitionTimeField("LastTransitionTime"))
 	podc := conditions.NewConditionType("Test", podt)
 	pod := &v1.Pod{}
-	mod := resources.NewModificationState(resources.NewObject(pod, nil, nil))
+	mod := resources.NewModificationState(resources.NewObject(pod, nil))
 	cd = mod.Condition(podc)
 	cd.SetMessage("test")
 	err = cd.SetTransitionTime(time.Now())

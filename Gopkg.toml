@@ -1,9 +1,5 @@
 
 [[override]]
-  name = "gopkg.in/fsnotify.v1"
-  source = "https://github.com/fsnotify/fsnotify.git"
-
-[[override]]
   name = "k8s.io/api"
   version = "kubernetes-1.16.0"
 
