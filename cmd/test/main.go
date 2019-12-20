@@ -34,7 +34,7 @@ func main() {
 			match.MatchMain()
 		case "certs":
 			certs.CertsMain()
-		case "config":
+		case "configmain":
 			config.ConfigMain()
 		case "errors":
 			errors.ErrorsMain()
@@ -122,3 +122,35 @@ func doit() {
 	cancel()
 	time.Sleep(15 * time.Second)
 }
+
+/*
+////////////////////////////////////////////////////////////////////////////////
+
+type R interface {
+	Name() string
+}
+
+type Getter interface {
+	Get(interface{}) R
+}
+
+
+type MyR interface {
+	R
+	Other()
+}
+
+type MyGetter interface {
+	Get(interface{}) MyR
+}
+
+func X(g Getter) {
+
+}
+
+func DO() {
+	var G MyGetter
+
+	X(G)
+}
+*/

@@ -24,7 +24,7 @@ There are two basic usage modes for the controller manager:
 
 ## Quick and Easy
 
-Building a controller manager consists of 4(6) steps:
+Building a controller manager consists of 4(7) steps:
 
 - Define and register a controller
 - Implement at least one reconciler (which does the real work)

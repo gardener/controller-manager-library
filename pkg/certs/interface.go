@@ -18,8 +18,20 @@
 
 package certs
 
-import "crypto/tls"
+import (
+	"crypto/tls"
+	"github.com/gardener/controller-manager-library/pkg/certmgmt"
+)
 
 type CertificateSource interface {
 	GetCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error)
+	GetCertificateInfo() certmgmt.CertificateInfo
+}
+
+type CertificateConsumerUpdater interface {
+	UpdateCertificate(info certmgmt.CertificateInfo)
+}
+
+type CertificateWatch interface {
+	RegisterConsumer(h CertificateConsumerUpdater)
 }

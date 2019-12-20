@@ -18,8 +18,9 @@ package controller
 
 import (
 	"fmt"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/groups"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -35,7 +36,7 @@ type Definitions interface {
 	GetMappingsFor(name string) (mappings.Definition, error)
 	DetermineRequestedClusters(clusters cluster.Definitions, sets ...utils.StringSet) (utils.StringSet, error)
 	Registrations(names ...string) (Registrations, error)
-	ExtendConfig(cfg *config.Config)
+	ExtendConfig(cfg *areacfg.Config)
 }
 
 func (this *_Definitions) Size() int {

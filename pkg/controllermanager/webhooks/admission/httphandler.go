@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"io"
 	"io/ioutil"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -60,6 +61,10 @@ func New(logger logger.LogContext, scheme *runtime.Scheme, webhook Interface) *H
 		d = NewDecoder(scheme)
 	}
 	return &HTTPHandler{webhook: webhook, decoder: d, LogContext: logger}
+}
+
+func (this *HTTPHandler) Webhook() Interface {
+	return this.webhook
 }
 
 // handle processes AdmissionRequest.

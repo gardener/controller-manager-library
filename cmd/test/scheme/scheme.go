@@ -56,7 +56,7 @@ func SchemeMain() {
 	cluster.Configure("main", "", "").Definition()
 	c, err := cluster.CreateCluster(ctx, logger.New(), cluster.Configure("main", "", "").Definition(), "", os.Args[1])
 	if err != nil {
-		fmt.Errorf("failed to create kube config %p: %s", os.Args[1], err)
+		fmt.Errorf("failed to create kube configmain %p: %s", os.Args[1], err)
 		os.Exit(2)
 	}
 

@@ -19,6 +19,7 @@
 package certmgmt
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 )
@@ -38,4 +39,8 @@ func GetCertificateInfo(logger logger.LogContext, access CertificateAccess, cfg 
 		return r, fmt.Errorf("certificate update failed: %s", err)
 	}
 	return r, nil
+}
+
+func GetCertificate(info CertificateInfo) (tls.Certificate, error) {
+	return tls.X509KeyPair(info.Cert(), info.Key())
 }

@@ -54,15 +54,15 @@ func (g *leasestartupgroup) Startup() error {
 		}
 	}
 
-	if g.manager.GetConfig().OmitLease {
+	if g.manager.config.OmitLease {
 		g.manager.Infof("omitting lease %q for cluster %s in namespace %q",
-			g.manager.GetName(), msg, g.manager.GetConfig().Namespace)
+			g.manager.GetName(), msg, g.manager.namespace)
 		ctxutil.SyncPointRun(g.manager.ctx, runit)
 	} else {
 		g.manager.Infof("requesting lease %q for cluster %s in namespace %q",
-			g.manager.GetName(), msg, g.manager.GetConfig().Namespace)
+			g.manager.GetName(), msg, g.manager.namespace)
 		leaderElectionConfig, err := makeLeaderElectionConfig(g.cluster,
-			g.manager.GetConfig().Namespace, g.manager.GetName())
+			g.manager.namespace, g.manager.GetName())
 		if err != nil {
 			return err
 		}

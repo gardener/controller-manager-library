@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"net/http"
 	"time"
@@ -36,6 +37,13 @@ func Register(pattern string, handler func(http.ResponseWriter, *http.Request)) 
 func RegisterHandler(pattern string, handler http.Handler) {
 	logger.Infof("adding %s endpoint", pattern)
 	servMux.Handle(pattern, handler)
+}
+
+func ServeFromConfig(ctx context.Context) {
+	cfg := Get(configmain.Get(ctx))
+	if cfg.ServerPortHTTP > 0 {
+		Serve(ctx, cfg.BindAddress, cfg.ServerPortHTTP)
+	}
 }
 
 // Serve starts a HTTP server.

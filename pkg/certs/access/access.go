@@ -22,19 +22,22 @@ import (
 	"context"
 	"crypto/tls"
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
+	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/logger"
-	"sync"
 	"time"
 )
 
 type AccessSource struct {
-	lock        sync.Mutex
-	currentCert *tls.Certificate
+	base certs.WatchableSource
 
-	config *certmgmt.Config
-	access certmgmt.CertificateAccess
-	logger logger.LogContext
+	currentCert *tls.Certificate
+	info        certmgmt.CertificateInfo
+	config      *certmgmt.Config
+	access      certmgmt.CertificateAccess
+	logger      logger.LogContext
 }
+
+var _ certs.CertificateSource = &AccessSource{}
 
 func New(ctx context.Context, logger logger.LogContext, access certmgmt.CertificateAccess, cfg *certmgmt.Config) (*AccessSource, error) {
 	this := &AccessSource{
@@ -51,6 +54,10 @@ func New(ctx context.Context, logger logger.LogContext, access certmgmt.Certific
 	return this, nil
 }
 
+func (this *AccessSource) RegisterConsumer(h certs.CertificateConsumerUpdater) {
+	this.base.RegisterConsumer(h)
+}
+
 func (this *AccessSource) ReadCertificate() error {
 	info, err := this.access.Get(this.logger)
 	if err != nil {
@@ -60,31 +67,38 @@ func (this *AccessSource) ReadCertificate() error {
 	if err != nil {
 		return err
 	}
-	if info != new || this.currentCert == nil {
-		err = this.access.Set(this.logger, new)
-		if err != nil {
-			return err
-		}
-		info = new
-	} else {
+	if info == new && this.currentCert != nil {
 		return nil
 	}
-
-	cert, err := tls.X509KeyPair(info.Cert(), info.Key())
+	err = this.access.Set(this.logger, new)
 	if err != nil {
 		return err
 	}
-	this.lock.Lock()
-	defer this.lock.Unlock()
+	this.info = new
+
+	cert, err := tls.X509KeyPair(new.Cert(), new.Key())
+	if err != nil {
+		return err
+	}
+
+	this.base.Lock()
 	this.currentCert = &cert
+	this.base.Unlock()
+	this.base.NotifyUpdate(new)
 	return nil
 }
 
 // GetCertificate fetches the currently loaded certificate, which may be nil.
 func (this *AccessSource) GetCertificate(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
+	this.base.Lock()
+	defer this.base.Unlock()
 	return this.currentCert, nil
+}
+
+func (this *AccessSource) GetCertificateInfo() certmgmt.CertificateInfo {
+	this.base.Lock()
+	defer this.base.Unlock()
+	return this.info
 }
 
 func (this *AccessSource) start(stop <-chan struct{}) {

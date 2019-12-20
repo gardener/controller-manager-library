@@ -21,9 +21,9 @@ package file
 import (
 	"context"
 	"crypto/tls"
+	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/logger"
-	"sync"
 
 	"gopkg.in/fsnotify.v1"
 )
@@ -32,26 +32,31 @@ import (
 // changes, it reads and parses both and calls an optional callback with the new
 // certificate.
 type CertWatcher struct {
-	sync.Mutex
+	base   certs.WatchableSource
 	logger logger.LogContext
 
+	info        certmgmt.CertificateInfo
 	currentCert *tls.Certificate
 	watcher     *fsnotify.Watcher
 
-	certPath string
-	keyPath  string
+	certPath   string
+	keyPath    string
+	cacertPath string
+	cakeyPath  string
 }
 
 var _ certs.CertificateSource = &CertWatcher{}
 
 // New returns a new CertWatcher watching the given certificate and key.
-func New(ctx context.Context, logger logger.LogContext, certPath, keyPath string) (*CertWatcher, error) {
+func New(ctx context.Context, logger logger.LogContext, certPath, keyPath, cacertPath, cakeyPath string) (*CertWatcher, error) {
 	var err error
 
 	cw := &CertWatcher{
-		logger:   logger,
-		certPath: certPath,
-		keyPath:  keyPath,
+		logger:     logger,
+		certPath:   certPath,
+		keyPath:    keyPath,
+		cacertPath: cacertPath,
+		cakeyPath:  cakeyPath,
 	}
 
 	// Initial read of certificate and key.
@@ -71,18 +76,26 @@ func New(ctx context.Context, logger logger.LogContext, certPath, keyPath string
 
 // GetCertificate fetches the currently loaded certificate, which may be nil.
 func (this *CertWatcher) GetCertificate(_ *tls.ClientHelloInfo) (*tls.Certificate, error) {
-	this.Lock()
-	defer this.Unlock()
+	this.base.Lock()
+	defer this.base.Unlock()
 	return this.currentCert, nil
+}
+
+func (this *CertWatcher) GetCertificateInfo() certmgmt.CertificateInfo {
+	this.base.Lock()
+	defer this.base.Unlock()
+	return this.info
 }
 
 // Start starts the watch on the certificate and key files.
 func (this *CertWatcher) start(stopCh <-chan struct{}) error {
-	files := []string{this.certPath, this.keyPath}
+	files := []string{this.certPath, this.keyPath, this.cacertPath, this.cakeyPath}
 
 	for _, f := range files {
-		if err := this.watcher.Add(f); err != nil {
-			return err
+		if f != "" {
+			if err := this.watcher.Add(f); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -123,15 +136,22 @@ func (this *CertWatcher) watch() {
 // and updates the current certificate on the watcher.  If a callback is set, it
 // is invoked with the new certificate.
 func (this *CertWatcher) ReadCertificate() error {
-	cert, err := tls.LoadX509KeyPair(this.certPath, this.keyPath)
+	info, err := certmgmt.LoadCertInfo(this.certPath, this.keyPath, this.cacertPath, this.cakeyPath)
 	if err != nil {
 		return err
 	}
 
-	this.Lock()
-	this.currentCert = &cert
-	this.Unlock()
-
+	if !certmgmt.Equal(info, this.info) {
+		cert, err := certmgmt.GetCertificate(info)
+		if err != nil {
+			return err
+		}
+		this.base.Lock()
+		this.currentCert = &cert
+		this.info = info
+		this.base.Unlock()
+		this.base.NotifyUpdate(this.info)
+	}
 	this.logger.Info("Updated current TLS certiface")
 
 	return nil

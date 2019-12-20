@@ -19,8 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
-
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
@@ -31,8 +30,8 @@ const CLUSTERID_GROUP = "gardener.cloud"
 
 type Definitions interface {
 	Get(name string) Definition
-	CreateClusters(ctx context.Context, logger logger.LogContext, cfg *config.Config, names utils.StringSet) (Clusters, error)
-	ExtendConfig(cfg *config.Config)
+	CreateClusters(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, names utils.StringSet) (Clusters, error)
+	ExtendConfig(cfg *areacfg.Config)
 	GetScheme() *runtime.Scheme
 }
 
@@ -71,20 +70,19 @@ func (this *_Definition) Fallback() string {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, cfg *config.Config, req Definition, option string) (Interface, error) {
-	idopt := cfg.GetOption(req.ConfigOptionName() + SUBOPTION_ID)
-	id := ""
-	if idopt != nil && idopt.Changed() {
-		id = idopt.StringValue()
+func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, cfg *Config, req Definition) (Interface, error) {
+
+	id := cfg.ClusterId
+	if id != "" {
 		logger.Infof("found id %q for cluster %q", id, req.Name())
 	}
-	cluster, err := CreateCluster(ctx, logger, req, id, option)
+	cluster, err := CreateCluster(ctx, logger, req, id, cfg.KubeConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	crdsOpt := cfg.GetOption(req.ConfigOptionName() + SUBOPTION_DISABLE_DEPLOY_CRDS)
-	if crdsOpt != nil && crdsOpt.Changed() {
+	crds := cfg.OmitCRDs
+	if crds {
 		cluster.SetAttr(SUBOPTION_DISABLE_DEPLOY_CRDS, true)
 	}
 
@@ -96,7 +94,7 @@ func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, 
 	return cluster, nil
 }
 
-func (this *_Definitions) CreateClusters(ctx context.Context, logger logger.LogContext, cfg *config.Config, names utils.StringSet) (Clusters, error) {
+func (this *_Definitions) CreateClusters(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, names utils.StringSet) (Clusters, error) {
 	clusters := NewClusters()
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -125,26 +123,21 @@ func (this *_Definitions) CreateClusters(ctx context.Context, logger logger.LogC
 	return clusters, nil
 }
 
-func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogContext, cfg *config.Config, found *_Clusters, missing utils.StringSet, name string) error {
+func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, found *_Clusters, missing utils.StringSet, name string) error {
 	var err error
 	var c Interface
 	fallback := ""
 	defaultRequest := this.definitions[DEFAULT]
+	defaultOptions := cfg.GetSource(configTargetKey(defaultRequest)).(*Config)
+
 	req := this.definitions[name]
 	if req == nil {
 		return fmt.Errorf("no definition for cluster %s", name)
 	}
+	ccfg := cfg.GetSource(configTargetKey(req)).(*Config)
 
-	opt := cfg.GetOption(req.ConfigOptionName())
-	//if opt != nil && opt.StringValue() != "" {
-	//	logger.Infof("  handle cluster %s (%s=%s", name, opt.Name, opt.StringValue() )
-	//
-	//} else {
-	//	logger.Infof("  handle cluster %s (no config) fallback=%s", name, req.Fallback())
-	//}
-
-	if name != DEFAULT && opt != nil && opt.Changed() {
-		c, err = this.create(ctx, logger, cfg, req, opt.StringValue())
+	if name != DEFAULT && ccfg.KubeConfig != "" {
+		c, err = this.create(ctx, logger, ccfg, req)
 		if err != nil {
 			return err
 		}
@@ -152,12 +145,7 @@ func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogCo
 		if req.Fallback() == "" || req.Fallback() == DEFAULT {
 			c = found.effective[DEFAULT]
 			if c == nil {
-				opt := cfg.GetOption(defaultRequest.ConfigOptionName())
-				configname := ""
-				if opt != nil {
-					configname = opt.StringValue()
-				}
-				c, err = this.create(ctx, logger, cfg, defaultRequest, configname)
+				c, err = this.create(ctx, logger, defaultOptions, defaultRequest)
 				if err != nil {
 					return err
 				}
@@ -181,21 +169,13 @@ func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogCo
 	return nil
 }
 
-func (this *_Definitions) ExtendConfig(cfg *config.Config) {
+func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
 	for _, req := range this.definitions {
-		if req.ConfigOptionName() != "" {
-			opt, _ := cfg.AddStringOption(req.ConfigOptionName())
-			opt.Description = req.Description()
-
-			opt, _ = cfg.AddStringOption(req.ConfigOptionName() + SUBOPTION_ID)
-			opt.Description = fmt.Sprintf("id for cluster %s", req.Name())
-
-			opt, _ = cfg.AddBoolOption(req.ConfigOptionName() + SUBOPTION_DISABLE_DEPLOY_CRDS)
-			opt.Description = fmt.Sprintf("disable deployment of required crds for cluster %s", req.Name())
-		}
-		callExtensions(func(e Extension) error { e.ExtendConfig(req, cfg); return nil })
+		clusterCfg := NewConfig(req)
+		callExtensions(func(e Extension) error { e.ExtendConfig(req, clusterCfg); return nil })
+		cfg.AddSource(configTargetKey(req), clusterCfg)
 	}
 }

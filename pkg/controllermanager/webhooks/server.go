@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"net/http"
 	"time"
@@ -50,7 +51,7 @@ func (this *HTTPServer) RegisterHandler(pattern string, handler http.Handler) {
 }
 
 // Start starts an HTTPS server.
-func (this *HTTPServer) Start(source certmgmt.CertificateSource, bindAddress string, port int) {
+func (this *HTTPServer) Start(source certs.CertificateSource, bindAddress string, port int) {
 	logger.Info("starting webhook https server")
 
 	listenAddress := fmt.Sprintf("%s:%d", bindAddress, port)

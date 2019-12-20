@@ -27,6 +27,7 @@ import (
 type Configuration struct {
 	name           string
 	description    string
+	extension_reg  ExtensionRegistry
 	cluster_reg    cluster.Registry
 	controller_reg controller.Registry
 }
@@ -40,17 +41,30 @@ func Configure(name, desc string, scheme *runtime.Scheme) Configuration {
 	return Configuration{
 		name:           name,
 		description:    desc,
+		extension_reg:  NewExtensionRegistry(),
 		cluster_reg:    cluster.NewRegistry(scheme),
 		controller_reg: controller.NewRegistry(),
 	}
 }
 
 func (this Configuration) ByDefault() Configuration {
+	this.extension_reg = DefaultRegistry()
 	this.cluster_reg = cluster.DefaultRegistry()
 	this.controller_reg = controller.DefaultRegistry()
 	return this
 }
 
+func (this Configuration) RegisterExtension(reg ExtensionType) {
+	this.extension_reg.RegisterExtension(reg)
+}
+func (this Configuration) Extension(name string) ExtensionType {
+	for _, e := range this.extension_reg.GetExtensionTypes() {
+		if e.Name() == name {
+			return e
+		}
+	}
+	return nil
+}
 func (this Configuration) RegisterCluster(reg cluster.Registerable) error {
 	return this.cluster_reg.RegisterCluster(reg)
 }
@@ -83,6 +97,7 @@ func (this Configuration) Definition() *Definition {
 	return &Definition{
 		name:            this.name,
 		description:     this.description,
+		extensions:      this.extension_reg.GetDefinitions(),
 		cluster_defs:    this.cluster_reg.GetDefinitions(),
 		controller_defs: this.controller_reg.GetDefinitions(),
 	}

@@ -23,8 +23,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
@@ -55,10 +56,10 @@ type Environment interface {
 	GetContext() context.Context
 	GetClusters() cluster.Clusters
 	GetCluster(name string) cluster.Interface
-	GetConfig() *config.Config
+	GetConfig() *areacfg.Config
 	GetSharedValue(key interface{}) interface{}
 	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
-	//GetSharedOption(name string) *config.ArbitraryOption
+	//GetSharedOption(name string) *configmain.ArbitraryOption
 }
 
 type _ReconcilerMapping struct {
@@ -106,6 +107,7 @@ type controller struct {
 	mappings    map[_ReconcilerMapping]string
 	finalizer   Finalizer
 
+	options  *Config
 	handlers map[string]*ClusterHandler
 
 	pools map[string]*pool
@@ -116,6 +118,7 @@ func Filter(owning ResourceKey, resc resources.Object) bool {
 }
 
 func NewController(env Environment, def Definition, cmp mappings.Definition) (*controller, error) {
+	options := env.GetConfig().GetSource(def.GetName()).(*Config)
 
 	required := cluster.Canonical(def.RequiredClusters())
 	clusters, err := mappings.MapClusters(env.GetClusters(), cmp, required...)
@@ -131,6 +134,8 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		env:        env,
 		cluster:    cluster,
 		clusters:   clusters,
+
+		options: options,
 
 		owning:  def.MainWatchResource(),
 		filters: def.ResourceFilters(),
@@ -260,37 +265,17 @@ func (this *controller) getPool(name string) *pool {
 	pool := this.pools[name]
 	if pool == nil {
 		def := this.definition.Pools()[name]
+
 		if def == nil {
-			def = &pooldef{name: name, size: 5, period: 30 * time.Second}
+			panic(fmt.Sprintf("unknown pool %q for controller %q", name, this.GetName()))
 		}
-		size := def.Size()
-		{
-			opt := this.env.GetConfig().GetOption(PoolSizeOptionName(this.GetName(), name))
-
-			if shared := this.env.GetConfig().GetOption(POOL_SIZE_OPTION); shared != nil && shared.Changed() && (opt == nil || !opt.Changed()) {
-				if shared != nil && shared.Changed() {
-					opt = shared
-				}
-			}
-			if opt != nil {
-				size = opt.IntValue()
-			}
-		}
-
+		this.Infof("get pool config %q", def.GetName())
+		options := this.options.PrefixedShared().GetSource(def.GetName()).(config.OptionSet)
+		size := options.GetOption(POOL_SIZE_OPTION).IntValue()
 		period := def.Period()
-		{
-			opt := this.env.GetConfig().GetOption(PoolResyncPeriodOptionName(this.GetName(), name))
-
-			if shared := this.env.GetConfig().GetOption(POOL_RESYNC_PERIOD_OPTION); shared != nil && shared.Changed() && (opt == nil || !opt.Changed()) {
-				if shared != nil && shared.Changed() {
-					opt = shared
-				}
-			}
-			if opt != nil {
-				period = opt.DurationValue()
-			}
+		if period != 0 {
+			period = options.GetOption(POOL_RESYNC_PERIOD_OPTION).DurationValue()
 		}
-
 		pool = NewPool(this, name, size, period)
 		this.pools[name] = pool
 	}
@@ -411,20 +396,9 @@ func (this *controller) GetContext() context.Context {
 }
 
 func (this *controller) GetOption(name string) (*config.ArbitraryOption, error) {
-	n := ControllerOption(this.GetName(), name)
-	opt := this.env.GetConfig().GetOption(n)
+	opt := this.options.GetOption(name)
 	if opt == nil {
 		return nil, fmt.Errorf("unknown option %q for controller %q", name, this.GetName())
-	}
-	shared := this.env.GetConfig().GetOption(name)
-	/*
-		this.Infof("getting option %q(%q) for controller %q [changed %t]", name, n, this.GetName(), opt.Changed())
-		if shared != nil {
-			this.Infof("   shared option %q [changed %t]", shared.Name, shared.Changed())
-		}
-	*/
-	if !opt.Changed() && shared != nil && shared.Changed() {
-		opt = shared
 	}
 	return opt, nil
 }

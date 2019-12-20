@@ -23,10 +23,11 @@ import (
 )
 
 type Config struct {
-	CommonName string
-	DnsNames   []string
-	Validity   time.Duration
-	Rest       time.Duration
+	CommonName   string
+	Organization []string
+	Hosts        CertificateHosts
+	Validity     time.Duration
+	Rest         time.Duration
 }
 
 type CertificateInfo interface {

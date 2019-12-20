@@ -24,7 +24,6 @@ import (
 
 	"github.com/Masterminds/semver"
 
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/utils"
@@ -35,9 +34,6 @@ import (
 )
 
 const DEFAULT = "default"
-
-const SUBOPTION_ID = ".id"
-const SUBOPTION_DISABLE_DEPLOY_CRDS = ".disable-deploy-crds"
 
 func Canonical(names []string) []string {
 	if names == nil {
@@ -78,8 +74,8 @@ type Interface interface {
 }
 
 type Extension interface {
-	ExtendConfig(def Definition, cfg *config.Config)
-	Extend(cluster Interface, config *config.Config) error
+	ExtendConfig(def Definition, cfg *Config)
+	Extend(cluster Interface, config *Config) error
 }
 
 type _Cluster struct {

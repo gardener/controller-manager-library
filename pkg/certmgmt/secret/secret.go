@@ -97,10 +97,16 @@ func dataToCertInfo(data map[string][]byte) certmgmt.CertificateInfo {
 }
 
 func certInfoToData(cert certmgmt.CertificateInfo) map[string][]byte {
-	return map[string][]byte{
-		CAKeyName:  cert.CAKey(),
-		CACertName: cert.CACert(),
-		KeyName:    cert.Key(),
-		CertName:   cert.Cert(),
+	m := map[string][]byte{}
+	add(m, CACertName, cert.CACert())
+	add(m, CAKeyName, cert.CAKey())
+	add(m, CertName, cert.Cert())
+	add(m, KeyName, cert.Key())
+	return m
+}
+
+func add(m map[string][]byte, key string, data []byte) {
+	if len(data) > 0 {
+		m[key] = data
 	}
 }

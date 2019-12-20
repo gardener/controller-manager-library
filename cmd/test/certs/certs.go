@@ -10,18 +10,24 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"net"
 	"net/http"
 	"time"
 )
+
+var server = false
 
 func CertsMain() {
 
 	cfg := &certmgmt.Config{
 		CommonName: "test",
-		DnsNames:   []string{"test.mandelsoft.org"},
-		Rest:       24 * time.Hour,
-		Validity:   7 * 24 * time.Hour,
+		Hosts: certmgmt.NewCompoundHosts(
+			certmgmt.NewDNSName("test.mandelsoft.org"),
+			certmgmt.NewIP(net.ParseIP("1.2.3.4"))),
+		Rest:     24 * time.Hour,
+		Validity: 7 * 24 * time.Hour,
 	}
+	fmt.Printf("dnsnames: %v, ips: %v\n", cfg.Hosts.GetDNSNames(), cfg.Hosts.GetIPs())
 	i := certmgmt.NewCertInfo(nil, nil, nil, nil)
 	n, err := certmgmt.UpdateCertificate(i, cfg)
 	if err != nil {
@@ -30,7 +36,12 @@ func CertsMain() {
 	}
 
 	if !certmgmt.IsValid(n, "test.mandelsoft.org", 24*time.Hour) {
-		fmt.Printf("not valid for 24h")
+		fmt.Printf("dns not valid for 24h")
+		return
+	}
+
+	if !certmgmt.IsValid(n, "[1.2.3.4]", 24*time.Hour) {
+		fmt.Printf("ip not valid for 24h")
 		return
 	}
 
@@ -44,6 +55,11 @@ func CertsMain() {
 		return
 	}
 
+	if certmgmt.IsValid(n, "", cfg.Validity) {
+		fmt.Printf("valid for more than initial validity")
+		return
+	}
+
 	r, err := certmgmt.UpdateCertificate(n, cfg)
 	if err != nil {
 		fmt.Printf("update failed: %s", err)
@@ -54,16 +70,20 @@ func CertsMain() {
 		return
 	}
 
+	fmt.Printf("********************\n")
+	if !server {
+		return
+	}
+
 	c, err := cluster.CreateCluster(context.Background(), logger.New(), cluster.Configure("dummy", "", "").Definition(), "", "")
 	if err != nil {
 		fmt.Printf("no cluster: %s\n", err)
 		return
 	}
 
-	fmt.Printf("********************\n")
 	secret := secret.NewSecret(c, resources.NewObjectName("default", "access"))
 
-	cfg.DnsNames = []string{"localhost"}
+	cfg.Hosts = certmgmt.NewDNSName("localhost")
 
 	fmt.Printf("setting up certificate watch\n")
 	cert, err := access.New(context.TODO(), logger.New(), secret, cfg)

@@ -18,67 +18,48 @@ package controller
 
 import (
 	"fmt"
-	"reflect"
 
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	"github.com/gardener/controller-manager-library/pkg/config"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 )
 
-func ControllerOption(controller, name string) string {
-	return fmt.Sprintf("%s.%s", controller, name)
-}
-func PoolSizeOptionName(controller, pool string) string {
-	return fmt.Sprintf("%s.%s.%s", controller, pool, POOL_SIZE_OPTION)
+type Config struct {
+	*config.GenericOptionSource
 }
 
-func PoolResyncPeriodOptionName(controller, pool string) string {
-	return fmt.Sprintf("%s.%s.%s", controller, pool, POOL_RESYNC_PERIOD_OPTION)
+func NewConfig(controller string) *Config {
+	return &Config{
+		GenericOptionSource: config.NewGenericOptionSource(controller, controller, func(desc string) string {
+			return fmt.Sprintf("%s of controller %s", desc, controller)
+		}),
+	}
 }
 
 const POOL_SIZE_OPTION = "pool.size"
 const POOL_RESYNC_PERIOD_OPTION = "pool.resync-period"
 
-func (this *_Definitions) ExtendConfig(cfg *config.Config) {
-	shared := map[string]reflect.Type{}
-
-	updateSharedOption := func(name string, opt *config.ArbitraryOption) {
-		old, ok := shared[name]
-		if !ok || old == opt.Type {
-			shared[name] = opt.Type
-		} else {
-			shared[name] = nil
-		}
-	}
+func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 
 	for name, def := range this.definitions {
+		ccfg := NewConfig(name)
+		cfg.AddSource(name, ccfg)
+
+		set := ccfg.PrefixedShared()
+
 		for pname, p := range def.Pools() {
-			opt, _ := cfg.AddIntOption(PoolSizeOptionName(name, pname))
-			opt.Description = fmt.Sprintf("Worker pool size for pool %s of controller %s (default: %d)", pname, name, p.Size())
-			opt.Default = p.Size()
-			updateSharedOption(POOL_SIZE_OPTION, opt)
+			pcfg := config.NewSharedOptionSet(pname, pname, func(s string) string {
+				return s + " for pool " + pname
+			})
+			set.AddSource(pname, pcfg)
+			pcfg.AddIntOption(nil, POOL_SIZE_OPTION, "", p.Size(), "Worker pool size")
 
 			if p.Period() != 0 {
-				opt, _ := cfg.AddDurationOption(PoolResyncPeriodOptionName(name, pname))
-				opt.Description = fmt.Sprintf("Period for resynchronization of pool %s of controller %s (default: %s)",
-					pname, name, p.Period().String())
-				opt.Default = p.Period()
-				updateSharedOption(POOL_RESYNC_PERIOD_OPTION, opt)
+				pcfg.AddDurationOption(nil, POOL_RESYNC_PERIOD_OPTION, "", p.Period(), "Period for resynchronization")
 			}
 		}
 
 		for oname, o := range def.ConfigOptions() {
-			opt, _ := cfg.AddOption(ControllerOption(name, oname), o.Type())
-			opt.Description = o.Description()
-			opt.Default = o.Default()
-			updateSharedOption(oname, opt)
-		}
-	}
-
-	this.shared = map[string]*config.ArbitraryOption{}
-	for o, t := range shared {
-		if t != nil {
-			opt, _ := cfg.AddOption(o, t)
-			opt.Description = fmt.Sprintf("default for all controller %q options", o)
-			this.shared[o] = opt
+			set.AddOption(o.Type(), nil, oname, "", o.Default(), o.Description())
 		}
 	}
 }

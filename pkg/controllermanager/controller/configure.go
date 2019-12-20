@@ -18,9 +18,9 @@ package controller
 
 import (
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-	"reflect"
 	"time"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -38,7 +38,7 @@ func NamespaceSelection(namespace string) WatchSelectionFunction {
 
 type configdef struct {
 	name         string
-	gotype       reflect.Type
+	gotype       config.OptionType
 	defaultValue interface{}
 	desc         string
 }
@@ -47,7 +47,7 @@ func (this *configdef) GetName() string {
 	return this.name
 }
 
-func (this *configdef) Type() reflect.Type {
+func (this *configdef) Type() config.OptionType {
 	return this.gotype
 }
 
@@ -461,37 +461,41 @@ func (this Configuration) RequireLease() Configuration {
 }
 
 func (this Configuration) StringOption(name string, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf((*string)(nil)).Elem(), nil, desc)
-}
-func (this Configuration) StringArrayOption(name string, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf(([]string)(nil)), nil, desc)
+	return this.addOption(name, config.StringOption, "", desc)
 }
 func (this Configuration) DefaultedStringOption(name, def string, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf((*string)(nil)).Elem(), &def, desc)
+	return this.addOption(name, config.StringOption, def, desc)
+}
+
+func (this Configuration) StringArrayOption(name string, desc string) Configuration {
+	return this.addOption(name, config.StringArrayOption, nil, desc)
+}
+func (this Configuration) DefaultedStringArrayOption(name string, def []string, desc string) Configuration {
+	return this.addOption(name, config.StringArrayOption, def, desc)
 }
 
 func (this Configuration) IntOption(name string, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf((*int)(nil)).Elem(), nil, desc)
+	return this.addOption(name, config.IntOption, 0, desc)
 }
 func (this Configuration) DefaultedIntOption(name string, def int, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf((*int)(nil)).Elem(), &def, desc)
+	return this.addOption(name, config.IntOption, def, desc)
 }
 
 func (this Configuration) BoolOption(name string, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf((*bool)(nil)).Elem(), nil, desc)
+	return this.addOption(name, config.BoolOption, false, desc)
 }
 func (this Configuration) DefaultedBoolOption(name string, def bool, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf((*bool)(nil)).Elem(), &def, desc)
+	return this.addOption(name, config.BoolOption, def, desc)
 }
 
 func (this Configuration) DurationOption(name string, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf((*time.Duration)(nil)).Elem(), nil, desc)
+	return this.addOption(name, config.DurationOption, time.Duration(0), desc)
 }
 func (this Configuration) DefaultedDurationOption(name string, def time.Duration, desc string) Configuration {
-	return this.addOption(name, reflect.TypeOf((*time.Duration)(nil)).Elem(), &def, desc)
+	return this.addOption(name, config.DurationOption, def, desc)
 }
 
-func (this Configuration) addOption(name string, t reflect.Type, def interface{}, desc string) Configuration {
+func (this Configuration) addOption(name string, t config.OptionType, def interface{}, desc string) Configuration {
 	if this.settings.configs[name] != nil {
 		panic(fmt.Sprintf("option %q already defined", name))
 	}

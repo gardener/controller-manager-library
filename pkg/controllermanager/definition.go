@@ -17,8 +17,9 @@
 package controllermanager
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/groups"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
@@ -27,6 +28,7 @@ import (
 type Definition struct {
 	name            string
 	description     string
+	extensions      []ExtensionDefinition
 	cluster_defs    cluster.Definitions
 	controller_defs controller.Definitions
 }
@@ -37,6 +39,10 @@ func (this *Definition) GetName() string {
 
 func (this *Definition) GetDescription() string {
 	return this.description
+}
+
+func (this *Definition) GetExtensions() []ExtensionDefinition {
+	return append(this.extensions[:0:0], this.extensions...)
 }
 
 func (this *Definition) ClusterDefinitions() cluster.Definitions {
@@ -59,9 +65,16 @@ func (this *Definition) GetMappingsFor(name string) (mappings.Definition, error)
 	return this.controller_defs.GetMappingsFor(name)
 }
 
-func (this *Definition) ExtendConfig(cfg *config.Config) {
-	this.cluster_defs.ExtendConfig(cfg)
-	this.controller_defs.ExtendConfig(cfg)
+func (this *Definition) ExtendConfig(cfg *configmain.Config) {
+	ccfg := areacfg.NewConfig()
+	ccfg.AddSource(OPTION_SOURCE, &Config{})
+	cfg.AddSource(ccfg.Name(), ccfg)
+
+	for _, e := range this.extensions {
+		e.ExtendConfig(ccfg)
+	}
+	this.cluster_defs.ExtendConfig(ccfg)
+	this.controller_defs.ExtendConfig(ccfg)
 }
 
 func DefaultDefinition(name, desc string) *Definition {

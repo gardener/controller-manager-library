@@ -18,15 +18,84 @@ package config
 
 import (
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/config"
+	"github.com/spf13/pflag"
 	"reflect"
 )
 
 type Mine struct {
-	Option string `config:"option,'dies ist ein test'"`
+	Option string `configmain:"option,'dies ist ein test'"`
+}
+
+func Print(gap string, grp config.OptionSourceGroup) {
+	fmt.Printf("%s* %s\n", gap, grp.Name())
+	if set, ok := grp.(config.OptionSet); ok {
+		set.VisitAll(func(o *config.ArbitraryOption) bool {
+			fmt.Printf("%s  %s: %t: %v (%s)\n", gap, o.Name, o.Changed(), o.Value(), o.Description)
+			return true
+		})
+	}
+	grp.VisitSources(func(key string, t config.OptionSource) bool {
+		if sub, ok := t.(config.OptionSourceGroup); ok {
+			Print(gap+"  ", sub)
+		}
+		return true
+	})
+}
+
+type Targets struct {
+	data string
+	test string
+}
+
+var _ config.OptionSource = &Targets{}
+
+func (t *Targets) AddOptionsToSet(set config.OptionSet) {
+	set.AddStringOption(&t.data, "data", "d", "none", "test data")
+	set.AddStringOption(&t.test, "test", "", "none", "test name")
 }
 
 func ConfigMain() {
-	evaluate(&Mine{})
+	main := config.NewDefaultOptionSet("configmain", "")
+	main.AddStringOption(nil, "main", "m", "main", "main name")
+
+	shared := config.NewSharedOptionSet("", "controller.test", nil)
+	shared.AddIntOption(nil, "size", "s", 3, "pool size")
+	shared.AddIntOption(nil, "cnt", "c", 1, "worker count")
+	main.AddSource(shared.Name(), shared)
+
+	targets := &Targets{}
+	main.AddSource("targets", targets)
+
+	generic := config.NewGenericOptionSource("generic", "generic", func(s string) string { return s + " for generic" })
+	main.AddSource("generic", generic)
+
+	generic.AddStringOption(config.Flat, nil, "generic", "", "yes", "generic option")
+	generic.AddStringOption(config.Prefixed, nil, "prefixed", "", "yes", "prefixed")
+	generic.AddStringOption(config.PrefixedShared, nil, "shared", "", "shared", "shared name")
+	generic.AddStringOption(config.Shared, nil, "main", "m", "main", "main name")
+
+	prefixed := config.NewDefaultOptionSet("pool", "pool")
+	generic.PrefixedShared().AddSource("pool", prefixed)
+	prefixed.AddUintOption(nil, "size", "", 1, "pool size")
+
+	fmt.Printf("adding args to command line\n")
+
+	flags := pflag.NewFlagSet("test", pflag.ExitOnError)
+	main.AddToFlags(flags)
+
+	fmt.Printf("setting args\n")
+	flags.Set("main", "changed")
+	flags.Set("size", "5")
+	flags.Set("controller.test.cnt", "4")
+	flags.Set("test", "4")
+	flags.Set("shared", "globallychanged")
+
+	fmt.Printf("evaluate args\n")
+	main.Evaluate()
+	fmt.Printf("print args\n")
+	Print("", main)
+	fmt.Printf("targets: %#v\n", targets)
 }
 
 func evaluate(o interface{}) {
@@ -43,7 +112,7 @@ func evaluate(o interface{}) {
 
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		f.Tag.Lookup("config")
-		fmt.Printf("%s: %s:  %s\n", f.Name, f.Type, f.Tag.Get("config"))
+		f.Tag.Lookup("configmain")
+		fmt.Printf("%s: %s:  %s\n", f.Name, f.Type, f.Tag.Get("configmain"))
 	}
 }

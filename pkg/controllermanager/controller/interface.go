@@ -21,10 +21,9 @@ import (
 	"fmt"
 	"github.com/Masterminds/semver"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
-	"reflect"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	corev1 "k8s.io/api/core/v1"
@@ -152,7 +151,7 @@ type PoolDefinition interface {
 
 type OptionDefinition interface {
 	GetName() string
-	Type() reflect.Type
+	Type() config.OptionType
 	Default() interface{}
 	Description() string
 }

@@ -17,6 +17,7 @@
 package certmgmt
 
 import (
+	"bytes"
 	"crypto"
 	cryptorand "crypto/rand"
 	"crypto/rsa"
@@ -25,6 +26,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 	"math"
 	"math/big"
 	"time"
@@ -57,6 +59,20 @@ func (this *info) Key() []byte {
 
 func (this *info) CAKey() []byte {
 	return this.cakey
+}
+
+func Equal(a CertificateInfo, b CertificateInfo) bool {
+	if a == b {
+		return true
+	}
+	if utils.IsNil(a) {
+		return utils.IsNil(b)
+	}
+	if utils.IsNil(b) {
+		return false
+	}
+	return bytes.Equal(a.Cert(), b.Cert()) && bytes.Equal(a.Key(), b.Key()) &&
+		bytes.Equal(a.CACert(), b.CACert()) && bytes.Equal(a.CAKey(), b.CAKey())
 }
 
 func NewCertInfo(cert []byte, key []byte, cacert []byte, cakey []byte) CertificateInfo {
@@ -105,7 +121,18 @@ func UpdateCertificate(old CertificateInfo, cfg *Config) (CertificateInfo, error
 	var err error
 	var ok bool
 
-	if !IsValid(new, cfg.DnsNames[0], cfg.Rest) {
+	//var test string
+	//names:=cfg.Hosts.GetDNSNames()
+	//if len(names)>0 {
+	//	test=names[0]
+	//} else {
+	//	ips:=cfg.Hosts.GetIPs()
+	//	if len(ips)>0 {
+	//		test="["+ips[0].String()+"]"
+	//	}
+	//}
+
+	if !IsValid(new, "", cfg.Rest) {
 		fmt.Printf("not valid\n")
 		if new.cacert != nil {
 			fmt.Printf("cacert found\n")
@@ -150,9 +177,11 @@ func UpdateCertificate(old CertificateInfo, cfg *Config) (CertificateInfo, error
 		fmt.Printf("generate certmgmt\n")
 		newCert, err = NewSignedCert(
 			&cert.Config{
-				CommonName: cfg.CommonName,
+				CommonName:   cfg.CommonName,
+				Organization: cfg.Organization,
 				AltNames: cert.AltNames{
-					DNSNames: cfg.DnsNames,
+					DNSNames: cfg.Hosts.GetDNSNames(),
+					IPs:      cfg.Hosts.GetIPs(),
 				},
 				Usages: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 			},
@@ -168,7 +197,7 @@ func UpdateCertificate(old CertificateInfo, cfg *Config) (CertificateInfo, error
 
 func IsValid(info CertificateInfo, dnsname string, duration time.Duration) bool {
 	if info.Cert() == nil || info.Key() == nil {
-		fmt.Printf("certmgmt or key not set\n")
+		fmt.Printf("cert or key not set\n")
 		return false
 	}
 	if info.CACert() == nil {
@@ -185,6 +214,7 @@ func Valid(key []byte, cert []byte, cacert []byte, dnsname string, duration time
 		return false
 	}
 
+	fmt.Printf("val for: %s\n", dnsname)
 	_, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		fmt.Printf("key does not match certmgmt\n")
@@ -212,7 +242,9 @@ func Valid(key []byte, cert []byte, cacert []byte, dnsname string, duration time
 		CurrentTime: time.Now().Add(duration),
 	}
 	_, err = c.Verify(ops)
-	fmt.Printf("val: %s\n", err)
+	if err != nil {
+		fmt.Printf("val: %s\n", err)
+	}
 	return err == nil
 }
 
