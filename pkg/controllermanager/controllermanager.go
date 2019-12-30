@@ -19,16 +19,13 @@ package controllermanager
 import (
 	"context"
 	"fmt"
-	"log"
-	"strings"
+	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"sync"
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
-	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/access"
@@ -38,64 +35,34 @@ import (
 )
 
 type ControllerManager struct {
-	lock sync.Mutex
-	controller.SharedAttributes
+	logger.LogContext
+	lock       sync.Mutex
 	extensions map[string]Extension
 
 	name       string
 	namespace  string
 	definition *Definition
 
-	ctx           context.Context
-	areaconfig    *areacfg.Config
-	config        *Config
-	clusters      cluster.Clusters
-	registrations controller.Registrations
-	plain_groups  map[string]StartupGroup
-	lease_groups  map[string]StartupGroup
-	controllers   Controllers
-	prepared      map[string]*SyncPoint
-	//shared_options map[string]*configmain.ArbitraryOption
-}
-
-var _ controller.Environment = &ControllerManager{}
-
-type Controller interface {
-	logger.LogContext
-
-	GetName() string
-	Owning() controller.ResourceKey
-	GetDefinition() controller.Definition
-	GetClusterHandler(name string) (*controller.ClusterHandler, error)
-
-	Check() error
-	Prepare() error
-	Run()
+	ctx      context.Context
+	config   *areacfg.Config
+	clusters cluster.Clusters
 }
 
 func NewControllerManager(ctx context.Context, def *Definition) (*ControllerManager, error) {
 	maincfg := configmain.Get(ctx)
-	cfg := areacfg.Get(maincfg)
-	cmcfg := cfg.GetSource(OPTION_SOURCE).(*Config)
+	cfg := areacfg.GetConfig(maincfg)
+	lgr := logger.New()
+	ctx = logger.Set(ctxutil.SyncContext(ctx), lgr)
 	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName())
 
-	for n := range def.controller_defs.Names() {
-		for _, r := range def.controller_defs.Get(n).RequiredControllers() {
-			if def.controller_defs.Get(r) == nil {
-				return nil, fmt.Errorf("controller %q requires controller %q, which is not declared", n, r)
-			}
+	for _, e := range def.extensions {
+		err := e.Validate()
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	if cmcfg.NamespaceRestriction && cmcfg.DisableNamespaceRestriction {
-		log.Fatalf("contradiction options given for namespace restriction")
-	}
-	if !cmcfg.DisableNamespaceRestriction {
-		cmcfg.NamespaceRestriction = true
-	}
-	cmcfg.DisableNamespaceRestriction = false
-
-	if cmcfg.NamespaceRestriction {
+	if cfg.NamespaceRestriction {
 		logger.Infof("enable namespace restriction for access control")
 		access.RegisterNamespaceOnlyAccess()
 	} else {
@@ -103,83 +70,42 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	}
 
 	name := def.GetName()
-	if cmcfg.Name != "" {
-		name = cmcfg.Name
+	if cfg.Name != "" {
+		name = cfg.Name
 	}
 
-	namespace := run.Get(maincfg).Namespace
+	namespace := run.GetConfig(maincfg).Namespace
 	if namespace == "" {
 		namespace = "kube-system"
 	}
-	groups := def.Groups()
 
-	logger.Infof("configured groups: %s", groups.AllGroups())
-
-	if def.ControllerDefinitions().Size() == 0 {
-		found := false
-		for _, e := range def.extensions {
-			if e.Size() > 0 {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return nil, fmt.Errorf("no controller or other extension registered")
+	found := false
+	for _, e := range def.extensions {
+		if e.Size() > 0 {
+			found = true
+			break
 		}
 	}
+	if !found {
+		return nil, fmt.Errorf("no controller manager extension registered")
+	}
 
-	logger.Infof("configured controllers: %s", def.ControllerDefinitions().Names())
 	for _, e := range def.extensions {
 		if e.Size() > 0 {
 			logger.Infof("configured %s: %s", e.Name(), e.Names())
 		}
 	}
-	active, err := groups.Activate(strings.Split(cmcfg.Controllers, ","))
-	if err != nil {
-		return nil, err
-	}
 
-	added := utils.StringSet{}
-	for c := range active {
-		req, err := def.controller_defs.GetRequiredControllers(c)
-		if err != nil {
-			return nil, err
-		}
-		added.AddSet(req)
-	}
-	added, _ = active.DiffFrom(added)
-	if len(added) > 0 {
-		logger.Infof("controllers implied by activated controllers: %s", added)
-		active.AddSet(added)
-	}
-
-	registrations, err := def.Registrations(active.AsArray()...)
-	if err != nil {
-		return nil, err
-	}
-
-	lgr := logger.New()
 	cm := &ControllerManager{
-		SharedAttributes: controller.SharedAttributes{
-			LogContext: lgr,
-		},
-
-		name:          name,
-		namespace:     namespace,
-		definition:    def,
-		areaconfig:    cfg,
-		config:        cmcfg,
-		registrations: registrations,
-		prepared:      map[string]*SyncPoint{},
-
-		plain_groups: map[string]StartupGroup{},
-		lease_groups: map[string]StartupGroup{},
+		LogContext: lgr,
+		name:       name,
+		namespace:  namespace,
+		definition: def,
+		config:     cfg,
 	}
+	ctx = context.WithValue(ctx, cmkey, cm)
 
-	set, err := def.ControllerDefinitions().DetermineRequestedClusters(def.ClusterDefinitions(), registrations.Names())
-	if err != nil {
-		return nil, err
-	}
+	set := utils.StringSet{}
 	cm.extensions = map[string]Extension{}
 	for _, d := range def.extensions {
 		e, err := d.CreateExtension(lgr.NewContext("extension", d.Name()), cm)
@@ -198,8 +124,8 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 		set.AddSet(s)
 	}
 
-	if len(registrations) == 0 && len(cm.extensions) == 0 {
-		return nil, fmt.Errorf("no controller or extension activated")
+	if len(cm.extensions) == 0 {
+		return nil, fmt.Errorf("no controller manager extension activated")
 	}
 
 	clusters, err := def.ClusterDefinitions().CreateClusters(ctx, lgr, cfg, set)
@@ -208,8 +134,6 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	}
 	cm.clusters = clusters
 
-	ctx = logger.Set(ctxutil.SyncContext(ctx), lgr)
-	ctx = context.WithValue(ctx, cmkey, cm)
 	cm.ctx = ctx
 	return cm, nil
 }
@@ -227,7 +151,11 @@ func (this *ControllerManager) GetContext() context.Context {
 }
 
 func (this *ControllerManager) GetConfig() *areacfg.Config {
-	return this.areaconfig
+	return this.config
+}
+
+func (this *ControllerManager) ClusterDefinitions() cluster.Definitions {
+	return this.definition.ClusterDefinitions()
 }
 
 func (this *ControllerManager) GetCluster(name string) cluster.Interface {
@@ -251,91 +179,9 @@ func (this *ControllerManager) Run() error {
 		}
 	}
 
-	for _, def := range this.registrations {
-		lines := strings.Split(def.String(), "\n")
-		this.Infof("creating %s", lines[0])
-		for _, l := range lines[1:] {
-			this.Info(l)
-		}
-		cmp, err := this.definition.GetMappingsFor(def.GetName())
-		if err != nil {
-			return err
-		}
-		cntr, err := controller.NewController(this, def, cmp)
-		if err != nil {
-			return err
-		}
-
-		if def.RequireLease() {
-			this.getLeaseStartupGroup(cntr.GetMainCluster()).Add(cntr)
-		} else {
-			this.getPlainStartupGroup(cntr.GetMainCluster()).Add(cntr)
-		}
-		this.controllers = append(this.controllers, cntr)
-		this.prepared[cntr.GetName()] = &SyncPoint{}
-	}
-
-	this.controllers, err = this.controllers.getOrder(this)
-	if err != nil {
-		return err
-	}
-
-	for _, cntr := range this.controllers {
-		err := this.checkController(cntr)
-		if err != nil {
-			return err
-		}
-	}
-
-	err = this.startGroups(this.plain_groups, this.lease_groups)
-	if err != nil {
-		return err
-	}
-
 	<-this.ctx.Done()
-	this.Info("waiting for controllers to shutdown")
+	this.Info("waiting for extensions to shutdown")
 	ctxutil.SyncPointWait(this.ctx, 120*time.Second)
 	this.Info("exit controller manager")
-	return nil
-}
-
-// checkController does all the checks that might cause startController to fail
-// after the check startController can execute without error
-func (this *ControllerManager) checkController(cntr Controller) error {
-	return cntr.Check()
-}
-
-// startController finally starts the controller
-// all error conditions MUST also be checked
-// in checkController, so after a successful checkController
-// startController MUST not return an error.
-func (this *ControllerManager) startController(cntr Controller) error {
-	for i, a := range cntr.GetDefinition().After() {
-		if i == 0 {
-			cntr.Infof("observing initialization requirements: %s", utils.Strings(cntr.GetDefinition().After()...))
-		}
-		after := this.prepared[a]
-		if after != nil {
-			if !after.IsReached() {
-				cntr.Infof("  startup of %q waiting for %q", cntr.GetName(), a)
-				if !after.Sync(this.ctx) {
-					return fmt.Errorf("setup aborted")
-				}
-				cntr.Infof("  controller %q is initialized now", a)
-			} else {
-				cntr.Infof("  controller %q is already initialized", a)
-			}
-		} else {
-			cntr.Infof("  omittimg unused controller %q", a)
-		}
-	}
-
-	err := cntr.Prepare()
-	if err != nil {
-		return err
-	}
-	this.prepared[cntr.GetName()].Reach()
-
-	ctxutil.SyncPointRunAndCancelOnExit(this.ctx, cntr.Run)
 	return nil
 }

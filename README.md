@@ -151,7 +151,7 @@ If cleanup tasks are required a finalizer should be used.
 
 _Note:_ A finalizer can be set or removed with methods of the controller interface.
 
-A complete example can be found [here](pkg/controller/test/controller.go).
+A complete example can be found [here](pkg/controllermanager/test/controller.go).
 
 ### The Main of the Controller Manager
 

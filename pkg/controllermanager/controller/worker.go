@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -31,7 +32,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 )
 
-const DeletionActivity = "DeletionActivity"
+const DeletionActivity = controllermanager.DeletionActivity
 
 // worker describe a single threaded worker entity synchronously working
 // on requests provided by the controller workqueue

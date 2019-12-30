@@ -20,10 +20,11 @@ package cluster
 
 import (
 	"fmt"
+
 	"github.com/gardener/controller-manager-library/pkg/config"
 )
 
-const OPTION_SOURCE = "controllermanager"
+const OPTION_SOURCE = "cluster"
 
 const SUBOPTION_ID = "id"
 const SUBOPTION_DISABLE_DEPLOY_CRDS = "disable-deploy-crds"
@@ -48,6 +49,8 @@ func NewConfig(def Definition) *Config {
 		Definition: def,
 		OptionSet:  config.NewDefaultOptionSet(configTargetKey(def), def.ConfigOptionName()),
 	}
+	cfg.AddStringOption(&cfg.ClusterId, SUBOPTION_ID, "", "", fmt.Sprintf("id for cluster %s", def.Name()))
+	cfg.AddBoolOption(&cfg.OmitCRDs, SUBOPTION_DISABLE_DEPLOY_CRDS, "", false, fmt.Sprintf("disable deployment of required crds for cluster %s", def.Name()))
 	callExtensions(func(e Extension) error { e.ExtendConfig(def, cfg); return nil })
 	return cfg
 }
@@ -55,12 +58,6 @@ func NewConfig(def Definition) *Config {
 func (this *Config) AddOptionsToSet(set config.OptionSet) {
 	if this.ConfigOptionName() != "" {
 		set.AddStringOption(&this.KubeConfig, this.ConfigOptionName(), "", "", this.Description())
-		set.AddStringOption(&this.ClusterId, this.subOption(SUBOPTION_ID), "", "", fmt.Sprintf("id for cluster %s", this.Definition.Name()))
-		set.AddBoolOption(&this.OmitCRDs, this.subOption(SUBOPTION_DISABLE_DEPLOY_CRDS), "", false, fmt.Sprintf("disable deployment of required crds for cluster %s", this.Definition.Name()))
 	}
 	this.OptionSet.AddOptionsToSet(set)
-}
-
-func (this *Config) subOption(name string) string {
-	return fmt.Sprintf("%s.%s", this.ConfigOptionName(), name)
 }

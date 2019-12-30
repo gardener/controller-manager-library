@@ -66,6 +66,6 @@ func (this *Config) AddOptionsToSet(set config.OptionSet) {
 	set.AddStringOption(&this.CPUProfile, "cpuprofile", "", "", "set file for cpu profiling")
 }
 
-func Get(cfg *configmain.Config) *Config {
+func GetConfig(cfg *configmain.Config) *Config {
 	return cfg.GetSource(OPTION_SOURCE).(*Config)
 }

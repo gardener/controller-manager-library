@@ -36,7 +36,7 @@ func Run(ctx context.Context, runner Runner) error {
 	if err != nil {
 		return err
 	}
-	cfg := Get(mcfg)
+	cfg := GetConfig(mcfg)
 
 	if cfg.CPUProfile != "" {
 		f, err := os.Create(cfg.CPUProfile)

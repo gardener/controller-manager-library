@@ -22,12 +22,25 @@ import (
 	"reflect"
 )
 
-var typekey reflect.Type
+var controller_key reflect.Type
+var extension_key reflect.Type
 
 func init() {
-	typekey, _ = utils.TypeKey((*controller)(nil))
+	controller_key, _ = utils.TypeKey((*controller)(nil))
 }
 
-func Get(ctx context.Context) *controller {
-	return ctx.Value(typekey).(*controller)
+func setController(ctx context.Context, c *controller) context.Context {
+	return context.WithValue(ctx, controller_key, c)
+}
+
+func GetController(ctx context.Context) Interface {
+	return ctx.Value(controller_key).(Interface)
+}
+
+func setExtension(ctx context.Context, e *Extension) context.Context {
+	return context.WithValue(ctx, extension_key, e)
+}
+
+func GetExtension(ctx context.Context) *Extension {
+	return ctx.Value(extension_key).(*Extension)
 }

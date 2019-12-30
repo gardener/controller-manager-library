@@ -20,11 +20,16 @@ package controllermanager
 
 import (
 	"context"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	"fmt"
+	"sync"
+
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
-	"sync"
 )
+
+type ExtensionDefinitions map[string]ExtensionDefinition
+type ExtensionTypes map[string]ExtensionType
 
 type ExtensionType interface {
 	Name() string
@@ -35,7 +40,8 @@ type ExtensionDefinition interface {
 	Name() string
 	Names() utils.StringSet
 	Size() int
-	ExtendConfig(*config.Config)
+	Validate() error
+	ExtendConfig(*areacfg.Config)
 	CreateExtension(logctx logger.LogContext, cm *ControllerManager) (Extension, error)
 }
 
@@ -46,42 +52,55 @@ type Extension interface {
 }
 
 type ExtensionRegistry interface {
-	RegisterExtension(e ExtensionType)
-	GetExtensionTypes() []ExtensionType
-	GetDefinitions() []ExtensionDefinition
+	RegisterExtension(e ExtensionType) error
+	MustRegisterExtension(e ExtensionType)
+	GetExtensionTypes() ExtensionTypes
+	GetDefinitions() ExtensionDefinitions
 }
 
 type _ExtensionRegistry struct {
 	lock       sync.Mutex
-	extensions []ExtensionType
+	extensions ExtensionTypes
 }
 
 func NewExtensionRegistry() ExtensionRegistry {
-	return &_ExtensionRegistry{}
+	return &_ExtensionRegistry{extensions: ExtensionTypes{}}
 }
 
-func (this *_ExtensionRegistry) RegisterExtension(e ExtensionType) {
+func (this *_ExtensionRegistry) RegisterExtension(e ExtensionType) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	this.extensions = append(this.extensions, e)
+	if this.extensions[e.Name()] != nil {
+		return fmt.Errorf("extension with name %q already registered", e.Name())
+	}
+	this.extensions[e.Name()] = e
+	return nil
 }
 
-func (this *_ExtensionRegistry) GetExtensionTypes() []ExtensionType {
+func (this *_ExtensionRegistry) MustRegisterExtension(e ExtensionType) {
+	if err := this.RegisterExtension(e); err != nil {
+		panic(err)
+	}
+}
+
+func (this *_ExtensionRegistry) GetExtensionTypes() ExtensionTypes {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	ext := make([]ExtensionType, len(this.extensions))
-	copy(ext, this.extensions)
+	ext := ExtensionTypes{}
+	for n, t := range this.extensions {
+		ext[n] = t
+	}
 	return ext
 }
 
-func (this *_ExtensionRegistry) GetDefinitions() []ExtensionDefinition {
+func (this *_ExtensionRegistry) GetDefinitions() ExtensionDefinitions {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	ext := make([]ExtensionDefinition, len(this.extensions))
-	for i, e := range this.extensions {
-		ext[i] = e.Definition()
+	ext := ExtensionDefinitions{}
+	for n, e := range this.extensions {
+		ext[n] = e.Definition()
 	}
 	return ext
 }

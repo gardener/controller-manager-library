@@ -19,20 +19,49 @@
 package config
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/configmain"
 )
 
-const OPTION_SOURCE = "controllers"
+var GracePeriod time.Duration
+
+const OPTION_SOURCE = "controllermanager"
 
 type Config struct {
+	Name                        string
+	DisableNamespaceRestriction bool
+	NamespaceRestriction        bool
+
 	config.OptionSet
 }
 
+var _ config.OptionSource = (*Config)(nil)
+
 func NewConfig() *Config {
-	return &Config{config.NewDefaultOptionSet(OPTION_SOURCE, "")}
+	cfg := &Config{
+		OptionSet: config.NewDefaultOptionSet(OPTION_SOURCE, ""),
+	}
+	cfg.AddDurationOption(&GracePeriod, "grace-period", "", 0, "inactivity grace period for detecting end of cleanup for shutdown")
+	cfg.AddStringOption(&cfg.Name, "name", "", "", "name used for controller manager")
+	cfg.AddBoolOption(&cfg.NamespaceRestriction, "namespace-local-access-only", "n", false, "enable access restriction for namespace local access only (deprecated)")
+	cfg.AddBoolOption(&cfg.DisableNamespaceRestriction, "disable-namespace-restriction", "", false, "disable access restriction for namespace local access only")
+	return cfg
 }
 
-func Get(cfg *configmain.Config) *Config {
+func (this *Config) Evaluate() error {
+	if this.NamespaceRestriction && this.DisableNamespaceRestriction {
+		return fmt.Errorf("contradiction options given for namespace restriction")
+	}
+	if !this.DisableNamespaceRestriction {
+		this.NamespaceRestriction = true
+	}
+	this.DisableNamespaceRestriction = false
+	return this.OptionSet.Evaluate()
+}
+
+func GetConfig(cfg *configmain.Config) *Config {
 	return cfg.GetSource(OPTION_SOURCE).(*Config)
 }

@@ -20,17 +20,13 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/groups"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 )
 
 type Definition struct {
-	name            string
-	description     string
-	extensions      []ExtensionDefinition
-	cluster_defs    cluster.Definitions
-	controller_defs controller.Definitions
+	name         string
+	description  string
+	extensions   ExtensionDefinitions
+	cluster_defs cluster.Definitions
 }
 
 func (this *Definition) GetName() string {
@@ -41,40 +37,35 @@ func (this *Definition) GetDescription() string {
 	return this.description
 }
 
-func (this *Definition) GetExtensions() []ExtensionDefinition {
-	return append(this.extensions[:0:0], this.extensions...)
+func (this *Definition) GetExtensions() ExtensionDefinitions {
+	defs := ExtensionDefinitions{}
+	for n, e := range this.extensions {
+		defs[n] = e
+	}
+	return defs
+}
+
+func (this *Definition) ExtensionDefinition(name string) ExtensionDefinition {
+	for _, e := range this.extensions {
+		if e.Name() == name {
+			return e
+		}
+	}
+	return nil
 }
 
 func (this *Definition) ClusterDefinitions() cluster.Definitions {
 	return this.cluster_defs
 }
 
-func (this *Definition) ControllerDefinitions() controller.Definitions {
-	return this.controller_defs
-}
-
-func (this *Definition) Groups() groups.Definitions {
-	return this.controller_defs.Groups()
-}
-
-func (this *Definition) Registrations(names ...string) (controller.Registrations, error) {
-	return this.controller_defs.Registrations(names...)
-}
-
-func (this *Definition) GetMappingsFor(name string) (mappings.Definition, error) {
-	return this.controller_defs.GetMappingsFor(name)
-}
-
 func (this *Definition) ExtendConfig(cfg *configmain.Config) {
 	ccfg := areacfg.NewConfig()
-	ccfg.AddSource(OPTION_SOURCE, &Config{})
-	cfg.AddSource(ccfg.Name(), ccfg)
+	cfg.AddSource(areacfg.OPTION_SOURCE, ccfg)
 
 	for _, e := range this.extensions {
 		e.ExtendConfig(ccfg)
 	}
 	this.cluster_defs.ExtendConfig(ccfg)
-	this.controller_defs.ExtendConfig(ccfg)
 }
 
 func DefaultDefinition(name, desc string) *Definition {

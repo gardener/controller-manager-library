@@ -29,11 +29,12 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/certs/access"
 	"github.com/gardener/controller-manager-library/pkg/certs/file"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
-func CreateSecretCertificateSource(ctx context.Context, logger logger.LogContext, cfg *Config, cm *controllermanager.ControllerManager) (certs.CertificateSource, error) {
+func CreateSecretCertificateSource(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, cm *controllermanager.ControllerManager) (certs.CertificateSource, error) {
 	cluster := cm.GetCluster(cfg.Cluster)
 	if cluster == nil {
 		return nil, fmt.Errorf("cluster %q for webhook server secret not found", cfg.Cluster)
@@ -57,6 +58,6 @@ func CreateSecretCertificateSource(ctx context.Context, logger logger.LogContext
 	return access.New(ctx, logger, secret, certcfg)
 }
 
-func CreateFileCertificateSource(ctx context.Context, logger logger.LogContext, cfg *Config) (certs.CertificateSource, error) {
+func CreateFileCertificateSource(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config) (certs.CertificateSource, error) {
 	return file.New(ctx, logger, cfg.CertFile, cfg.KeyFile, cfg.CACertFile, cfg.CAKeyFile)
 }

@@ -25,7 +25,7 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
@@ -107,7 +107,7 @@ type controller struct {
 	mappings    map[_ReconcilerMapping]string
 	finalizer   Finalizer
 
-	options  *Config
+	options  *ControllerConfig
 	handlers map[string]*ClusterHandler
 
 	pools map[string]*pool
@@ -118,7 +118,7 @@ func Filter(owning ResourceKey, resc resources.Object) bool {
 }
 
 func NewController(env Environment, def Definition, cmp mappings.Definition) (*controller, error) {
-	options := env.GetConfig().GetSource(def.GetName()).(*Config)
+	options := env.GetConfig().GetSource(def.GetName()).(*ControllerConfig)
 
 	required := cluster.Canonical(def.RequiredClusters())
 	clusters, err := mappings.MapClusters(env.GetClusters(), cmp, required...)
@@ -150,9 +150,8 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 	this.ready.start()
 
 	this.ctx, this.LogContext = logger.WithLogger(
-		ctxutil.SyncContext(
-			context.WithValue(env.GetContext(), typekey, this)),
-		"this", def.GetName())
+		ctxutil.SyncContext(setController(env.GetContext(), this)),
+		"controller", def.GetName())
 	this.Infof("  using clusters %+v: %s (selected from %s)", required, clusters, env.GetClusters())
 
 	for n, crds := range def.CustomResourceDefinitions() {
@@ -444,7 +443,7 @@ func (this *controller) GetDurationOption(name string) (time.Duration, error) {
 
 // Check does all the checks that might cause Prepare to fail
 // after a successful check Prepare can execute without error
-func (this *controller) Check() error {
+func (this *controller) check() error {
 	h, err := this.GetClusterHandler(CLUSTER_MAIN)
 	if err != nil {
 		return err
@@ -489,7 +488,7 @@ func (this *controller) registerWatch(h *ClusterHandler, r WatchResource, p stri
 // all error conditions MUST also be checked
 // in Check, so after a successful checkController
 // startController MUST not return an error.
-func (this *controller) Prepare() error {
+func (this *controller) prepare() error {
 	h, err := this.GetClusterHandler(CLUSTER_MAIN)
 	if err != nil {
 		return err

@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/groups"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/logger"

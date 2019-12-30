@@ -19,7 +19,6 @@ package controllermanager
 import (
 	"context"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/run"
 	"os"
 	"os/signal"
 	"runtime"
@@ -27,12 +26,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/cobra"
+
 	"github.com/gardener/controller-manager-library/pkg/configmain"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
-	"github.com/spf13/cobra"
+	"github.com/gardener/controller-manager-library/pkg/run"
 )
+
+const DeletionActivity = "DeletionActivity"
 
 func Start(use, short, long string) {
 	args := strings.Split(use, " ")
@@ -48,7 +51,7 @@ func (this Configuration) Start(use, short string) {
 	long := def.GetDescription()
 	var (
 		cctx = ctxutil.CancelContext(ctxutil.SyncContext(context.Background()))
-		ctx  = ctxutil.TickContext(cctx, controller.DeletionActivity)
+		ctx  = ctxutil.TickContext(cctx, DeletionActivity)
 		c    = make(chan os.Signal, 2)
 		t    = make(chan os.Signal, 2)
 	)
@@ -72,10 +75,10 @@ func (this Configuration) Start(use, short string) {
 				if cnt == 2 {
 					break loop
 				}
-				grace := GracePeriod
+				grace := areacfg.GracePeriod
 				if grace > 0 {
 					logger.Infof("process is being terminated with grace period for cleanup")
-					go ctxutil.CancelAfterInactivity(ctx, controller.DeletionActivity, grace)
+					go ctxutil.CancelAfterInactivity(ctx, DeletionActivity, grace)
 				} else {
 					logger.Infof("process is being terminated without grace period")
 					ctxutil.Cancel(ctx)

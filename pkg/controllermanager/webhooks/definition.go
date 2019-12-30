@@ -20,8 +20,10 @@ package webhooks
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/utils"
 	"strings"
+
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/config"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 type Definitions interface {
@@ -29,7 +31,7 @@ type Definitions interface {
 	Size() int
 	Names() utils.StringSet
 	Registrations(names ...string) (Registrations, error)
-	ExtendConfig(cfg *Config)
+	ExtendConfig(cfg *areacfg.Config)
 
 	GetActiveWebhooks(spec string) (utils.StringSet, error)
 }
@@ -65,7 +67,7 @@ func (this *_Definitions) Registrations(names ...string) (Registrations, error) 
 	return r, nil
 }
 
-func (this *_Definitions) ExtendConfig(cfg *Config) {
+func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 
 }
 
