@@ -1,4 +1,5 @@
 test-controller
+test-webhook
 /args
 /bin
 /.kube-secrets

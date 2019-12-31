@@ -27,22 +27,6 @@ type Mine struct {
 	Option string `configmain:"option,'dies ist ein test'"`
 }
 
-func Print(gap string, grp config.OptionSourceGroup) {
-	fmt.Printf("%s* %s\n", gap, grp.Name())
-	if set, ok := grp.(config.OptionSet); ok {
-		set.VisitAll(func(o *config.ArbitraryOption) bool {
-			fmt.Printf("%s  %s: %t: %v (%s)\n", gap, o.Name, o.Changed(), o.Value(), o.Description)
-			return true
-		})
-	}
-	grp.VisitSources(func(key string, t config.OptionSource) bool {
-		if sub, ok := t.(config.OptionSourceGroup); ok {
-			Print(gap+"  ", sub)
-		}
-		return true
-	})
-}
-
 type Targets struct {
 	data string
 	test string
@@ -94,7 +78,7 @@ func ConfigMain() {
 	fmt.Printf("evaluate args\n")
 	main.Evaluate()
 	fmt.Printf("print args\n")
-	Print("", main)
+	config.Print(config.PrintfWriter,"", main)
 	fmt.Printf("targets: %#v\n", targets)
 }
 

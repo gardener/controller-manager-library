@@ -19,6 +19,7 @@ package controllermanager
 import (
 	"context"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"sync"
 	"time"
@@ -52,6 +53,9 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	maincfg := configmain.Get(ctx)
 	cfg := areacfg.GetConfig(maincfg)
 	lgr := logger.New()
+	logger.Info("using option settings:")
+	config.Print(logger.Infof,"",cfg.OptionSet)
+	logger.Info("-----------------------")
 	ctx = logger.Set(ctxutil.SyncContext(ctx), lgr)
 	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName())
 

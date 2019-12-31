@@ -76,14 +76,14 @@ func (this *SharedOptionSet) evalShared() {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	fmt.Printf("eval shared %s\n", this.prefix)
+	//fmt.Printf("eval shared %s\n", this.prefix)
 	for name, o := range this.arbitraryOptions {
 		if !this.unshared[name] && !o.Changed() {
-			fmt.Printf("eval shared %s\n", name)
+			//fmt.Printf("eval shared %s\n", name)
 			shared := this.shared.GetOption(name)
 			if shared.Changed() {
 				value := reflect.ValueOf(shared.Target).Elem()
-				fmt.Printf("   %s changed shared\n", name)
+				//fmt.Printf("   %s changed shared\n", name)
 				o.Flag().Changed = true
 				reflect.ValueOf(o.Target).Elem().Set(value)
 			}
