@@ -49,7 +49,7 @@ func NewConfig() *Config {
 	cfg := &Config{
 		OptionSet: config.NewDefaultOptionSet(OPTION_SOURCE, OPTION_SOURCE),
 	}
-	cfg.AddStringOption(&cfg.Webhooks, "webhooks", "w", "all", "comma separated list of webhooks to start (<name>,all)")
+	cfg.AddStringOption(&cfg.Webhooks, "webhooks", "w", "all", "comma separated list of webhooks to start (<name>,<group>,all)")
 	cfg.AddStringOption(&cfg.Cluster, "cluster", "", cluster.DEFAULT, "cluster to maintain webhook server secret")
 	cfg.AddStringOption(&cfg.Secret, "secret", "", "", "name of secret to maintain for webhook server")
 	cfg.AddStringOption(&cfg.Service, "service", "", "", "name of service to use for webhook registragtion")

@@ -29,7 +29,6 @@ type Definitions interface {
 	Activate(controllers []string) (utils.StringSet, error)
 	AllGroups() map[string]utils.StringSet
 	AllControllers() utils.StringSet
-	AllActivateExplicitlyControllers() utils.StringSet
 }
 
 type Definition interface {
@@ -41,12 +40,12 @@ type _Definition struct {
 	name        string
 	controllers utils.StringSet
 
-	activateExplicitylyControllers utils.StringSet
+	explicit utils.StringSet
 }
 
 func (this *_Definition) copy() *_Definition {
 	return &_Definition{name: this.name, controllers: this.controllers.Copy(),
-		activateExplicitylyControllers: this.activateExplicitylyControllers.Copy()}
+		explicit: this.explicit.Copy()}
 }
 
 func (this *_Definition) Controllers() utils.StringSet {
@@ -54,7 +53,7 @@ func (this *_Definition) Controllers() utils.StringSet {
 }
 
 func (this *_Definition) ActivateExplicitlyControllers() utils.StringSet {
-	return this.activateExplicitylyControllers.Copy()
+	return this.explicit.Copy()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -66,19 +65,17 @@ func (this *_Definitions) Activate(controllers []string) (utils.StringSet, error
 	explicitActive := utils.StringSet{}
 	if len(controllers) == 0 {
 		logger.Infof("activating all controllers")
-		active = this.AllControllers()
+		active = this.AllNonExplicitControllers()
 	} else {
 		for _, name := range controllers {
 			g := this.definitions[name]
 			if g != nil {
 				logger.Infof("activating controller group %q", name)
-				active.AddSet(g.controllers)
+				active.AddSet(g.Controllers().RemoveSet(g.explicit))
 			} else {
 				if name == "all" {
 					logger.Infof("activating all controllers")
-					for _, g := range this.definitions {
-						active.AddSet(g.controllers)
-					}
+					active.AddSet(this.AllNonExplicitControllers())
 				} else {
 					if this.controllers.Contains(name) {
 						logger.Infof("activating controller %q", name)
@@ -89,12 +86,6 @@ func (this *_Definitions) Activate(controllers []string) (utils.StringSet, error
 					}
 				}
 			}
-		}
-	}
-	toBeActivatedExplicitly := this.AllActivateExplicitlyControllers()
-	for name := range active {
-		if !explicitActive.Contains(name) && toBeActivatedExplicitly.Contains(name) {
-			active.Remove(name)
 		}
 	}
 
@@ -122,12 +113,12 @@ func (this *_Definitions) AllControllers() utils.StringSet {
 	return active
 }
 
-func (this *_Definitions) AllActivateExplicitlyControllers() utils.StringSet {
+func (this *_Definitions) AllNonExplicitControllers() utils.StringSet {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	set := utils.StringSet{}
+	active := utils.StringSet{}
 	for _, g := range this.definitions {
-		set.AddSet(g.activateExplicitylyControllers)
+		active.AddSet(g.controllers).RemoveSet(g.explicit)
 	}
-	return set
+	return active
 }

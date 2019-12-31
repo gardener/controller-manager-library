@@ -20,9 +20,8 @@ package webhooks
 
 import (
 	"fmt"
-	"strings"
-
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/groups"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
@@ -30,14 +29,17 @@ type Definitions interface {
 	Get(name string) Definition
 	Size() int
 	Names() utils.StringSet
+	Groups() groups.Definitions
 	Registrations(names ...string) (Registrations, error)
 	ExtendConfig(cfg *areacfg.Config)
-
-	GetActiveWebhooks(spec string) (utils.StringSet, error)
 }
 
 func (this *_Definitions) Size() int {
 	return len(this.definitions)
+}
+
+func (this *_Definitions) Groups() groups.Definitions {
+	return this.groups
 }
 
 func (this *_Definitions) Names() utils.StringSet {
@@ -69,20 +71,4 @@ func (this *_Definitions) Registrations(names ...string) (Registrations, error) 
 
 func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 
-}
-
-func (this *_Definitions) GetActiveWebhooks(active string) (utils.StringSet, error) {
-	result := utils.StringSet{}
-	for _, w := range strings.Split(active, ",") {
-		w = strings.TrimSpace(w)
-		if w == "all" {
-			result.AddSet(this.Names())
-		} else {
-			if this.Get(w) == nil {
-				return nil, fmt.Errorf("unknown webhook %q", w)
-			}
-			result.Add(w)
-		}
-	}
-	return result, nil
 }

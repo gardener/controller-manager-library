@@ -57,14 +57,6 @@ func NewRegistry() Registry {
 	return registry
 }
 
-func DefaultDefinitions() Definitions {
-	return registry.GetDefinitions()
-}
-
-func DefaultRegistry() Registry {
-	return registry
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 var _ Registry = &_Registry{}
@@ -78,7 +70,7 @@ func (this *_Registry) RegisterGroup(name string) (*Configuration, error) {
 		if this.controllers.Contains(name) {
 			return nil, fmt.Errorf("name %q already busy by configured controller with this name", name)
 		}
-		def = &_Definition{name: name, controllers: utils.StringSet{}, activateExplicitylyControllers: utils.StringSet{}}
+		def = &_Definition{name: name, controllers: utils.StringSet{}, explicit: utils.StringSet{}}
 		this._Definitions.definitions[name] = def
 	}
 	return &Configuration{this, def}, nil
@@ -114,8 +106,6 @@ func (this *_Definition) Definition() Definition {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-var registry = NewRegistry()
-
 type Configuration struct {
 	registry   *_Registry
 	definition *_Definition
@@ -134,10 +124,20 @@ func (this Configuration) Controllers(names ...string) error {
 }
 
 func (this Configuration) ActivateExplicitlyControllers(names ...string) {
-	this.definition.activateExplicitylyControllers.AddAll(names)
+	this.definition.explicit.AddAll(names)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+
+var registry = NewRegistry()
+
+func DefaultDefinitions() Definitions {
+	return registry.GetDefinitions()
+}
+
+func DefaultRegistry() Registry {
+	return registry
+}
 
 func Register(name string) (*Configuration, error) {
 	return registry.RegisterGroup(name)

@@ -47,4 +47,5 @@ type Definition interface {
 	GetKind() string
 	GetHandlerType() AdmissionHandlerType
 	GetNamespaces() *metav1.LabelSelector
+	ActivateExplicitly() bool
 }

@@ -21,6 +21,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
@@ -111,7 +112,10 @@ type Extension struct {
 func NewExtension(logctx logger.LogContext, defs Definitions, cm *controllermanager.ControllerManager) (*Extension, error) {
 	cfg := areacfg.GetConfig(cm.GetConfig())
 
-	active, err := defs.GetActiveWebhooks(cfg.Webhooks)
+	groups := defs.Groups()
+	logctx.Infof("configured groups: %s", groups.AllGroups())
+
+	active, err := groups.Activate(strings.Split(cfg.Webhooks, ","))
 	if err != nil {
 		return nil, err
 	}
@@ -148,14 +152,7 @@ func (this *Extension) GetContext() context.Context {
 func (this *Extension) RequiredClusters() (utils.StringSet, error) {
 	result := utils.StringSet{}
 
-	defs := this.definitions
-	active, err := defs.GetActiveWebhooks(this.config.Webhooks)
-	if err != nil {
-		return nil, err
-	}
-
-	for n := range active {
-		r := defs.Get(n)
+	for _, r := range this.registrations {
 		c := r.GetCluster()
 		result.Add(c)
 	}
@@ -238,22 +235,16 @@ func (this *Extension) Start(ctx context.Context) error {
 		return err
 	}
 
-	defs := this.definitions
-	active, err := defs.GetActiveWebhooks(cfg.Webhooks)
-	if err != nil {
-		return err
-	}
-	if len(active) == 0 {
+	if len(this.registrations) == 0 {
 		this.Infof("no webhooks activated")
 		return nil
 	}
 
-	for n := range active {
-		this.RegisterHandler(defs.Get(n))
+	for _, r := range this.registrations {
+		this.RegisterHandler(r)
 	}
 	if !this.config.OmitRegistrations {
-		for n := range active {
-			def := this.definitions.Get(n)
+		for _, def := range this.registrations {
 			cn := def.GetCluster()
 			if cn != "" {
 				target := this.manager.GetCluster(cn)

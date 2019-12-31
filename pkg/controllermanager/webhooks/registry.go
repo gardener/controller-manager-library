@@ -20,6 +20,7 @@ package webhooks
 
 import (
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/groups"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 	"sync"
@@ -52,8 +53,8 @@ type Registerable interface {
 }
 
 type RegistrationInterface interface {
-	Register(Registerable) error
-	MustRegister(Registerable) RegistrationInterface
+	Register(reg Registerable, group ...string) error
+	MustRegister(reg Registerable, group ...string) RegistrationInterface
 }
 
 type Registry interface {
@@ -64,17 +65,23 @@ type Registry interface {
 type _Definitions struct {
 	lock        sync.RWMutex
 	definitions Registrations
+	groups      groups.Definitions
 }
 
 type _Registry struct {
 	*_Definitions
+	groups groups.Registry
 }
 
 var _ Definition = &_Definition{}
 var _ Definitions = &_Definitions{}
 
 func NewRegistry() Registry {
-	return &_Registry{_Definitions: &_Definitions{definitions: Registrations{}}}
+	return newRegistry(groups.NewRegistry())
+}
+
+func newRegistry(groups groups.Registry) Registry {
+	return &_Registry{_Definitions: &_Definitions{definitions: Registrations{}}, groups: groups}
 }
 
 func DefaultDefinitions() Definitions {
@@ -89,7 +96,7 @@ func DefaultRegistry() Registry {
 
 var _ Registry = &_Registry{}
 
-func (this *_Registry) Register(reg Registerable) error {
+func (this *_Registry) Register(reg Registerable, group ...string) error {
 	def := reg.Definition()
 	if def == nil {
 		return fmt.Errorf("no Definition found")
@@ -102,12 +109,25 @@ func (this *_Registry) Register(reg Registerable) error {
 	}
 	logger.Infof("Registering webhook %s", def.GetName())
 
+	if len(group) == 0 {
+		err := this.addToGroup(def, groups.DEFAULT)
+		if err != nil {
+			return err
+		}
+	} else {
+		for _, g := range group {
+			err := this.addToGroup(def, g)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	this.definitions[def.GetName()] = def
 	return nil
 }
 
-func (this *_Registry) MustRegister(reg Registerable) RegistrationInterface {
-	err := this.Register(reg)
+func (this *_Registry) MustRegister(reg Registerable, group ...string) RegistrationInterface {
+	err := this.Register(reg, group...)
 	if err != nil {
 		panic(err)
 	}
@@ -122,6 +142,7 @@ func (this *_Registry) GetDefinitions() Definitions {
 		defs[k] = v
 	}
 	return &_Definitions{
+		groups:      this.groups.GetDefinitions(),
 		definitions: defs,
 	}
 }
@@ -138,12 +159,25 @@ func (this *_Definition) Definition() Definition {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-var registry = NewRegistry()
+var registry = newRegistry(groups.DefaultRegistry())
 
-func Register(reg Registerable) error {
-	return registry.Register(reg)
+func (this *_Registry) addToGroup(def Definition, name string) error {
+	grp, err := this.groups.RegisterGroup(name)
+	if err != nil {
+		return err
+	}
+	if def.ActivateExplicitly() {
+		grp.ActivateExplicitly(def.GetName())
+	}
+	return grp.Members(def.GetName())
 }
 
-func MustRegister(reg Registerable) RegistrationInterface {
-	return registry.MustRegister(reg)
+///////////////////////////////////////////////////////////////////////////////
+
+func Register(reg Registerable, group ...string) error {
+	return registry.Register(reg, group...)
+}
+
+func MustRegister(reg Registerable, group ...string) RegistrationInterface {
+	return registry.MustRegister(reg, group...)
 }

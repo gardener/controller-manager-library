@@ -156,6 +156,7 @@ func (this *_Definition) String() string {
 	s += fmt.Sprintf("  commands:    %s\n", toString(this.commands))
 	s += fmt.Sprintf("  pools:       %s\n", toString(this.pools))
 	s += fmt.Sprintf("  finalizer:   %s\n", this.FinalizerName())
+	s += fmt.Sprintf("  explicit :   %t\n", this.activateExplicitly)
 	return s
 }
 

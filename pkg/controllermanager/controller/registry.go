@@ -83,7 +83,7 @@ var _ Definition = &_Definition{}
 var _ Definitions = &_Definitions{}
 
 func NewRegistry() Registry {
-	return newRegistry(mappings.DefaultRegistry(), groups.DefaultRegistry())
+	return newRegistry(mappings.NewRegistry(), groups.NewRegistry())
 }
 
 func newRegistry(mappings mappings.Registry, groups groups.Registry) Registry {
@@ -119,13 +119,13 @@ func (this *_Registry) RegisterController(reg Registerable, group ...string) err
 	logger.Infof("Registering controller %s", def.GetName())
 
 	if len(group) == 0 {
-		err := this.addControllerToGroup(def, groups.DEFAULT)
+		err := this.addToGroup(def, groups.DEFAULT)
 		if err != nil {
 			return err
 		}
 	} else {
 		for _, g := range group {
-			err := this.addControllerToGroup(def, g)
+			err := this.addToGroup(def, g)
 			if err != nil {
 				return err
 			}
@@ -186,7 +186,7 @@ func (this *_Definition) Definition() Definition {
 
 var registry = newRegistry(mappings.DefaultRegistry(), groups.DefaultRegistry())
 
-func (this *_Registry) addControllerToGroup(def Definition, name string) error {
+func (this *_Registry) addToGroup(def Definition, name string) error {
 	grp, err := this.groups.RegisterGroup(name)
 	if err != nil {
 		return err

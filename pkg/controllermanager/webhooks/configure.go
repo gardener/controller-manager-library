@@ -26,12 +26,13 @@ import (
 )
 
 type _Definition struct {
-	name       string
-	keys       []controller.ResourceKey
-	cluster    string
-	kind       string
-	handler    AdmissionHandlerType
-	namespaces *metav1.LabelSelector
+	name               string
+	keys               []controller.ResourceKey
+	cluster            string
+	kind               string
+	handler            AdmissionHandlerType
+	namespaces         *metav1.LabelSelector
+	activateExplicitly bool
 }
 
 var _ Definition = &_Definition{}
@@ -53,6 +54,9 @@ func (this *_Definition) GetHandlerType() AdmissionHandlerType {
 }
 func (this *_Definition) GetNamespaces() *metav1.LabelSelector {
 	return this.namespaces
+}
+func (this *_Definition) ActivateExplicitly() bool {
+	return this.activateExplicitly
 }
 
 func (this *_Definition) String() string {
@@ -104,6 +108,11 @@ func (this Configuration) Namespaces(selector *metav1.LabelSelector) Configurati
 
 func (this Configuration) Handler(htype AdmissionHandlerType) Configuration {
 	this.settings.handler = htype
+	return this
+}
+
+func (this Configuration) ActivateExplicitly() Configuration {
+	this.settings.activateExplicitly = true
 	return this
 }
 
