@@ -235,7 +235,7 @@ func (this *ResourceInfos) GetPreferred(gk schema.GroupKind) (*Info, error) {
 		i = this.getPreferred(gk)
 	}
 	if i == nil {
-		return nil, errors.ErrUnknown.New(gk)
+		return nil, errors.ErrUnknownResource.New("group kind", gk)
 	}
 	return i, nil
 }
@@ -264,7 +264,7 @@ func (this *ResourceInfos) Get(gvk schema.GroupVersionKind) (*Info, error) {
 		i = this.get(gvk)
 	}
 	if i == nil {
-		return nil, errors.ErrUnknown.New(gvk)
+		return nil, errors.ErrUnknownResource.New("group version kind", gvk)
 	}
 	return i, nil
 }

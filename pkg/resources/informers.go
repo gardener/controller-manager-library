@@ -133,7 +133,7 @@ func (f *sharedInformerFactory) InformerFor(gvk schema.GroupVersionKind) (Generi
 func (f *sharedInformerFactory) FilteredInformerFor(gvk schema.GroupVersionKind, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
 	informerType := f.context.KnownTypes(gvk.GroupVersion())[gvk.Kind]
 	if informerType == nil {
-		return nil, errors.ErrUnknown.New(gvk)
+		return nil, errors.ErrUnknownResource.New("group version kind", gvk)
 	}
 
 	return f.structured.informerFor(informerType, gvk, namespace, optionsFunc)
@@ -142,7 +142,7 @@ func (f *sharedInformerFactory) FilteredInformerFor(gvk schema.GroupVersionKind,
 func (f *sharedInformerFactory) LookupInformerFor(gvk schema.GroupVersionKind, namespace string) (GenericInformer, error) {
 	informerType := f.context.KnownTypes(gvk.GroupVersion())[gvk.Kind]
 	if informerType == nil {
-		return nil, errors.ErrUnknown.New(gvk)
+		return nil, errors.ErrUnknownResource.New("group version kind", gvk)
 	}
 
 	return f.structured.lookupInformerFor(informerType, gvk, namespace)

@@ -191,7 +191,7 @@ func (this *AbstractResources) GetByGVK(gvk schema.GroupVersionKind) (Resource, 
 func (this *AbstractResources) getResource(gvk schema.GroupVersionKind) (Resource, error) {
 	informerType := this.ctx.Scheme().KnownTypes(gvk.GroupVersion())[gvk.Kind]
 	if informerType == nil {
-		return nil, errors.ErrUnknown.New(gvk)
+		return nil, errors.ErrUnknownResource.New("group version kind", gvk)
 	}
 
 	return this._newResource(gvk, informerType)

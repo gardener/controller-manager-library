@@ -45,7 +45,7 @@ func (this factory) NewResource(resources abstract.Resources, gvk schema.GroupVe
 func (this factory) ResolveGVK(ctx abstract.ResourceContext, gk schema.GroupKind, gvks []schema.GroupVersionKind) (schema.GroupVersionKind, error) {
 	switch len(gvks) {
 	case 0:
-		return schema.GroupVersionKind{}, errors.ErrUnknown.New(gk)
+		return schema.GroupVersionKind{}, errors.ErrUnknownResource.New("group kind", gk)
 	case 1:
 		return gvks[0], nil
 	default:

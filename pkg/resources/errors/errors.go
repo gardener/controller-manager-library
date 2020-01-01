@@ -31,10 +31,16 @@ const (
 	// - object whose type is unexpected
 	ERR_UNEXPECTED_TYPE = "UNEXPECTED_TYPE"
 
-	// ERR_UNKNOWN: general error for an unknown element
+	// ERR_UNKNOWN: generic error for an unknown element
 	// objs:
 	// - unknown element
 	ERR_UNKNOWN = "UNKNOWN"
+
+	// ERR_UNKNOWN_RESOURCE: error for an unknown resource specification
+	// objs:
+	// - spec type
+	// - unknown element
+	ERR_UNKNOWN_RESOURCE = "UNKNOWN_RESOURCE"
 
 	// ERR_FAILED: operation failed for object
 	// objs:
@@ -106,9 +112,11 @@ var (
 	ErrTypeMismatch = errors.DeclareFormalType(GROUP, ERR_TYPE_MISMATCH, "unexpected type %T (expected %s)")
 	// ErrUnexpectedType: invalid type for a dedicated use case
 	ErrUnexpectedType = errors.DeclareFormalType(GROUP, ERR_UNEXPECTED_TYPE, "unexpected type for %s: %T")
+	// ErrUnknownResource
+	ErrUnknownResource = errors.DeclareFormalType(GROUP, ERR_UNKNOWN_RESOURCE, "unknown resource for %s %q")
 	// ErrUnknown
 	ErrUnknown = errors.DeclareFormalType(GROUP, ERR_UNKNOWN, "unknown %s")
-	// ErrUnknown
+	// ErrFailed
 	ErrFailed = errors.DeclareFormalType(GROUP, ERR_FAILED, "%s failed: %s")
 	// ErrNamespaced
 	ErrNamespaced = errors.DeclareFormalType(GROUP, ERR_NAMESPACED, "resource is namespaced: %s")

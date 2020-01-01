@@ -89,7 +89,7 @@ func (c *resourceContext) GetGVK(obj runtime.Object) (schema.GroupVersionKind, e
 	}
 	switch len(gvks) {
 	case 0:
-		return empty, errors.ErrUnknown.New(reflect.TypeOf(obj))
+		return empty, errors.ErrUnknownResource.New("resource object type", reflect.TypeOf(obj))
 	case 1:
 		return gvks[0], nil
 	default:
