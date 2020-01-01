@@ -23,22 +23,26 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	"strings"
 )
 
 const OPTION_SOURCE = "webhooks"
 
 type Config struct {
-	Webhooks          string
-	Cluster           string
-	Secret            string
-	Service           string
-	Hostname          string
-	CertFile          string
-	KeyFile           string
-	CACertFile        string
-	CAKeyFile         string
-	Port              int
-	OmitRegistrations bool
+	Webhooks               string
+	Cluster                string
+	Secret                 string
+	Service                string
+	Hostname               string
+	CertFile               string
+	KeyFile                string
+	CACertFile             string
+	CAKeyFile              string
+	Port                   int
+	RegistrationName       string
+	DedicatedRegistrations bool
+	OmitRegistrations      bool
+	Labels                 []string
 
 	config.OptionSet
 }
@@ -59,7 +63,10 @@ func NewConfig() *Config {
 	cfg.AddStringOption(&cfg.CACertFile, "cacertfile", "", "", "webhook server ca certificate file")
 	cfg.AddStringOption(&cfg.CAKeyFile, "cakeyfile", "", "", "webhook server ca certificate key file")
 	cfg.AddIntOption(&cfg.Port, "port", "", 8443, "port to use for webhook server")
+	cfg.AddStringOption(&cfg.RegistrationName, "registration-name", "", "", "webhook registration name for grouped registrations")
 	cfg.AddBoolOption(&cfg.OmitRegistrations, "omit-webhook-registration", "", false, "omit webhook registration")
+	cfg.AddBoolOption(&cfg.DedicatedRegistrations, "dedicated-webhook-registrations", "", false, "uses separate registrations for every configured webhook")
+	cfg.AddStringArrayOption(&cfg.Labels, "label", "", nil, "additional labels for the webhook registartions")
 	return cfg
 }
 
@@ -85,6 +92,12 @@ func (this *Config) Evaluate() error {
 	}
 	if this.Secret == "" && this.CertFile == "" {
 		return fmt.Errorf("one of webhook server certificate file or secret name must be specified")
+	}
+	for _, l := range this.Labels {
+		a := strings.Split(l, "=")
+		if len(a) != 2 {
+			return fmt.Errorf("invalid label spec (%s): must contain excactly one = character")
+		}
 	}
 	return this.OptionSet.Evaluate()
 }

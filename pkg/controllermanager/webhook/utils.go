@@ -16,28 +16,28 @@
  *
  */
 
-package webhooks
+package webhook
 
 import (
 	"fmt"
-
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/server"
 
-	"k8s.io/api/admissionregistration/v1beta1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	adminreg "k8s.io/api/admissionregistration/v1beta1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
 // WebHookClientSources
 
 type WebhookClientConfigSource interface {
-	WebhookClientConfig() *v1beta1.WebhookClientConfig
+	WebhookClientConfig() *adminreg.WebhookClientConfig
 }
 
-type WebhookClientConfig v1beta1.WebhookClientConfig
+type WebhookClientConfig adminreg.WebhookClientConfig
 
-func (this *WebhookClientConfig) WebhookClientConfig() *v1beta1.WebhookClientConfig {
-	return (*v1beta1.WebhookClientConfig)(this)
+func (this *WebhookClientConfig) WebhookClientConfig() *adminreg.WebhookClientConfig {
+	return (*adminreg.WebhookClientConfig)(this)
 }
 
 func NewURLWebhookClientConfig(url string, caBundle []byte) WebhookClientConfigSource {
@@ -64,9 +64,10 @@ func NewRuntimeServiceWebhookClientConfig(name resources.ObjectName, path string
 }
 
 func NewServiceWebhookClientConfig(name resources.ObjectName, path string, caBundle []byte) WebhookClientConfigSource {
+	path = server.NormPath(path)
 	return &WebhookClientConfig{
 		CABundle: caBundle,
-		Service: &v1beta1.ServiceReference{
+		Service: &adminreg.ServiceReference{
 			Namespace: name.Namespace(),
 			Name:      name.Name(),
 			Path:      &path,
@@ -77,50 +78,57 @@ func NewServiceWebhookClientConfig(name resources.ObjectName, path string, caBun
 ////////////////////////////////////////////////////////////////////////////////
 // WebHook Specs
 
-type Webhook v1beta1.MutatingWebhook
+type WebhookDeclaration adminreg.MutatingWebhook
+type WebhookDeclarations []*WebhookDeclaration
 
-func toMutating(hooks ...*Webhook) []v1beta1.MutatingWebhook {
-	result := make([]v1beta1.MutatingWebhook, len(hooks))
+func toMutating(hooks ...*WebhookDeclaration) []adminreg.MutatingWebhook {
+	result := make([]adminreg.MutatingWebhook, len(hooks))
 	for i, h := range hooks {
-		result[i] = v1beta1.MutatingWebhook(*h)
+		result[i] = adminreg.MutatingWebhook(*h)
 	}
 	return result
 }
 
-func NewWebhook(resources resources.ResourcesSource, name string, namespaces *v1.LabelSelector, client WebhookClientConfigSource, specs ...interface{}) (*Webhook, error) {
-	var rules []v1beta1.RuleWithOperations
+func NewWebhookDeclaration(resources resources.ResourcesSource, name string, namespaces *meta.LabelSelector, policy adminreg.FailurePolicyType, client WebhookClientConfigSource, ops []adminreg.OperationType, specs ...interface{}) (*WebhookDeclaration, error) {
+	var rules []adminreg.RuleWithOperations
 	for _, spec := range specs {
-		rule, err := NewAdmissionRegistration(resources, spec)
+		rule, err := NewAdmissionRegistration(resources, spec, ops...)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("webhook declaration error: %s", err)
 		}
 		rules = append(rules, *rule)
 	}
 
-	return &Webhook{
+	failurePolicy := &policy
+	if policy == "" {
+		failurePolicy = nil
+	}
+
+	return &WebhookDeclaration{
 		Name:              name,
 		NamespaceSelector: namespaces,
+		FailurePolicy:     failurePolicy,
 		Rules:             rules,
 		ClientConfig:      *client.WebhookClientConfig(),
 	}, nil
 }
 
-func NewAdmissionRegistration(resources resources.ResourcesSource, spec interface{}, ops ...v1beta1.OperationType) (*v1beta1.RuleWithOperations, error) {
+func NewAdmissionRegistration(resources resources.ResourcesSource, spec interface{}, ops ...adminreg.OperationType) (*adminreg.RuleWithOperations, error) {
 	r, err := resources.Resources().Get(spec)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("admission registration error: %s", err)
 	}
 
 	if len(ops) == 0 {
-		ops = []v1beta1.OperationType{
-			v1beta1.Create,
-			v1beta1.Update,
+		ops = []adminreg.OperationType{
+			adminreg.Create,
+			adminreg.Update,
 		}
 	}
 	// Create and return RuleWithOperations
-	return &v1beta1.RuleWithOperations{
+	return &adminreg.RuleWithOperations{
 		Operations: ops,
-		Rule: v1beta1.Rule{
+		Rule: adminreg.Rule{
 			APIGroups:   []string{r.GroupVersionKind().Group},
 			APIVersions: []string{r.GroupVersionKind().Version},
 			Resources:   []string{r.Name()},
@@ -130,10 +138,11 @@ func NewAdmissionRegistration(resources resources.ResourcesSource, spec interfac
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func CreateOrUpdateMutatingWebhookRegistration(cluster resources.Cluster, name string, webhooks ...*Webhook) error {
-	config := &v1beta1.MutatingWebhookConfiguration{
-		ObjectMeta: v1.ObjectMeta{
-			Name: name,
+func CreateOrUpdateMutatingWebhookRegistration(labels map[string]string, cluster resources.Cluster, name string, webhooks ...*WebhookDeclaration) error {
+	config := &adminreg.MutatingWebhookConfiguration{
+		ObjectMeta: meta.ObjectMeta{
+			Name:   name,
+			Labels: labels,
 		},
 		Webhooks: toMutating(webhooks...),
 	}

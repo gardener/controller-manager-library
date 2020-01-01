@@ -14,21 +14,21 @@
  *
  */
 
-package controllermanager
+package server
 
 import (
-	"context"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
-	"github.com/gardener/controller-manager-library/pkg/ctxutil"
+	"github.com/gardener/controller-manager-library/pkg/logger"
+	"net/http"
 )
 
-var ctx_controllermanager = ctxutil.NewValueType(config.OPTION_SOURCE, (*ControllerManager)(nil))
-var ctx_extension = ctxutil.NewValueType("extension", (*Extension)(nil))
+var servMux = http.NewServeMux()
 
-func GetControllerManager(ctx context.Context) *ControllerManager {
-	return ctx_controllermanager.Get(ctx).(*ControllerManager)
+func Register(pattern string, handler func(http.ResponseWriter, *http.Request)) {
+	logger.Infof("adding %s endpoint", pattern)
+	servMux.HandleFunc(pattern, handler)
 }
 
-func GetExtension(ctx context.Context) *Extension {
-	return ctx_extension.Get(ctx).(*Extension)
+func RegisterHandler(pattern string, handler http.Handler) {
+	logger.Infof("adding %s endpoint", pattern)
+	servMux.Handle(pattern, handler)
 }

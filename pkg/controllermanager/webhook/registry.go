@@ -16,11 +16,11 @@
  *
  */
 
-package webhooks
+package webhook
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/groups"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/groups"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 	"sync"

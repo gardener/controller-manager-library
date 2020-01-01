@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-var server = false
+var server = true
 
 func CertsMain() {
 
@@ -99,7 +99,7 @@ func CertsMain() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", HelloServer)
 	server := http.Server{
-		Addr:      ":4443",
+		Addr:      ":8443",
 		TLSConfig: tlscfg,
 		Handler:   mux,
 	}

@@ -87,9 +87,21 @@ type OptionSourceGroup interface {
 	AddSource(key string, src OptionSource)
 }
 
+type OptionVisitor func(*ArbitraryOption) bool
+
+// Options is an element offering named options
+type Options interface {
+	// GetOption gives access to configured options. Nested OptionSources are only
+	// visible after the OptionSet has been completed.
+	GetOption(name string) *ArbitraryOption
+
+	VisitOptions(OptionVisitor)
+}
+
 // OptionSet is an OptionSource that can be used to add arbitrary options,
 // either directly or by adding further nested OptionSource s.
 type OptionSet interface {
+	Options
 	OptionSource
 	OptionCompleter
 	OptionEvaluator
@@ -104,11 +116,6 @@ type OptionSet interface {
 
 	AddOption(otype OptionType, target interface{}, name, short string, def interface{}, desc string) interface{}
 	AddRenamedOption(opt *ArbitraryOption, name, short string, desc string) interface{}
-
-	// GetOption gives access to configured options. Nested OptionSources are only
-	// visible after the OptionSet has been completed.
-	GetOption(name string) *ArbitraryOption
-	VisitAll(func(*ArbitraryOption) bool)
 
 	// AddToFlags must complete the actual source if it contains nested
 	// option sources (implements OptionSourceSource) to figure out all relevant

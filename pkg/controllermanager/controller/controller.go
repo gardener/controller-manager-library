@@ -17,19 +17,17 @@
 package controller
 
 import (
-	"context"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
-	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 	"github.com/gardener/controller-manager-library/pkg/utils"
@@ -50,16 +48,6 @@ type EventRecorder interface {
 
 	// AnnotatedEventf is just like eventf, but with annotations attached
 	//AnnotatedEventf(object runtime.ObjectData, annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{})
-}
-
-type Environment interface {
-	GetContext() context.Context
-	GetClusters() cluster.Clusters
-	GetCluster(name string) cluster.Interface
-	GetConfig() *areacfg.Config
-	GetSharedValue(key interface{}) interface{}
-	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
-	//GetSharedOption(name string) *configmain.ArbitraryOption
 }
 
 type _ReconcilerMapping struct {
@@ -92,13 +80,13 @@ func (this *ReadyFlag) start() {
 }
 
 type controller struct {
+	controllermanager.ElementBase
 	record.EventRecorder
 	SharedAttributes
 
 	ready       ReadyFlag
 	definition  Definition
 	env         Environment
-	ctx         context.Context
 	cluster     cluster.Interface
 	clusters    cluster.Clusters
 	filters     []ResourceFilter
@@ -118,7 +106,6 @@ func Filter(owning ResourceKey, resc resources.Object) bool {
 }
 
 func NewController(env Environment, def Definition, cmp mappings.Definition) (*controller, error) {
-	options := env.GetConfig().GetSource(def.GetName()).(*ControllerConfig)
 
 	required := cluster.Canonical(def.RequiredClusters())
 	clusters, err := mappings.MapClusters(env.GetClusters(), cmp, required...)
@@ -126,16 +113,16 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		return nil, err
 	}
 	cluster := clusters.GetCluster(required[0])
+	options := env.GetConfig().GetSource(def.GetName()).(*ControllerConfig)
 
 	this := &controller{
 		EventRecorder: cluster.Resources(),
 
 		definition: def,
+		options:    options,
 		env:        env,
 		cluster:    cluster,
 		clusters:   clusters,
-
-		options: options,
 
 		owning:  def.MainWatchResource(),
 		filters: def.ResourceFilters(),
@@ -147,11 +134,11 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		finalizer:   NewDefaultFinalizer(def.FinalizerName()),
 	}
 
+	ctx := ctxutil.SyncContext(env.GetContext())
+	this.ElementBase = controllermanager.NewElementBase(ctx, ctx_controller, this, def.GetName(), options)
+
 	this.ready.start()
 
-	this.ctx, this.LogContext = logger.WithLogger(
-		ctxutil.SyncContext(setController(env.GetContext(), this)),
-		"controller", def.GetName())
 	this.Infof("  using clusters %+v: %s (selected from %s)", required, clusters, env.GetClusters())
 
 	for n, crds := range def.CustomResourceDefinitions() {
@@ -289,10 +276,6 @@ func (this *controller) GetPool(name string) Pool {
 	return pool
 }
 
-func (this *controller) GetName() string {
-	return this.definition.GetName()
-}
-
 func (this *controller) GetEnvironment() Environment {
 	return this.env
 }
@@ -390,54 +373,6 @@ func (this *controller) GetMainWatchResource() WatchResource {
 	return this.owning
 }
 
-func (this *controller) GetContext() context.Context {
-	return this.ctx
-}
-
-func (this *controller) GetOption(name string) (*config.ArbitraryOption, error) {
-	opt := this.options.GetOption(name)
-	if opt == nil {
-		return nil, fmt.Errorf("unknown option %q for controller %q", name, this.GetName())
-	}
-	return opt, nil
-}
-
-func (this *controller) GetBoolOption(name string) (bool, error) {
-	opt, err := this.GetOption(name)
-	if err != nil {
-		return false, err
-	}
-	return opt.BoolValue(), nil
-}
-func (this *controller) GetStringOption(name string) (string, error) {
-	opt, err := this.GetOption(name)
-	if err != nil {
-		return "", err
-	}
-	return opt.StringValue(), nil
-}
-func (this *controller) GetStringArrayOption(name string) ([]string, error) {
-	opt, err := this.GetOption(name)
-	if err != nil {
-		return []string{}, err
-	}
-	return opt.StringArray(), nil
-}
-func (this *controller) GetIntOption(name string) (int, error) {
-	opt, err := this.GetOption(name)
-	if err != nil {
-		return 0, err
-	}
-	return opt.IntValue(), nil
-}
-func (this *controller) GetDurationOption(name string) (time.Duration, error) {
-	opt, err := this.GetOption(name)
-	if err != nil {
-		return 0, err
-	}
-	return opt.DurationValue(), nil
-}
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // controller start up
 
@@ -527,7 +462,7 @@ func (this *controller) Run() {
 	this.ready.ready()
 	this.Infof("starting pools...")
 	for _, p := range this.pools {
-		ctxutil.SyncPointRunAndCancelOnExit(this.ctx, p.Run)
+		ctxutil.SyncPointRunAndCancelOnExit(this.GetContext(), p.Run)
 	}
 
 	this.Infof("starting reconcilers...")
@@ -535,9 +470,9 @@ func (this *controller) Run() {
 		r.Start()
 	}
 	this.Infof("controller started")
-	<-this.ctx.Done()
+	<-this.GetContext().Done()
 	this.Info("waiting for worker pools to shutdown")
-	ctxutil.SyncPointWait(this.ctx, 120*time.Second)
+	ctxutil.SyncPointWait(this.GetContext(), 120*time.Second)
 	this.Info("exit controller")
 }
 

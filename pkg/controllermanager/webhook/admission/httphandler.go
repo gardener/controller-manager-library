@@ -72,6 +72,7 @@ func (this *HTTPHandler) Webhook() Interface {
 // If the webhook is validating type, it delegates the AdmissionRequest to each handler and
 // deny the request if anyone denies.
 func (this *HTTPHandler) handle(ctx context.Context, req Request) Response {
+	this.Infof("handle request for %q (%s)", req.Name, req.Resource)
 	resp := this.webhook.Handle(ctx, req)
 	if err := resp.Complete(req); err != nil {
 		this.Error(err, "unable to encode response")

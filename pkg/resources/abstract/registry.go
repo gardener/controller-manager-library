@@ -20,18 +20,22 @@ package abstract
 
 import (
 	"fmt"
+	"sync"
+
+	admissionregistration "k8s.io/api/admissionregistration/v1beta1"
 	apps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sync"
 )
 
 func init() {
 	Register(corev1.SchemeBuilder)
 	Register(extensions.SchemeBuilder)
 	Register(apps.SchemeBuilder)
+	Register(admissionregistration.SchemeBuilder)
 }
 
 var lock sync.Mutex

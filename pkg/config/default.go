@@ -92,7 +92,7 @@ func (this *DefaultOptionSet) GetSource(key string) OptionSource {
 	return nil
 }
 
-func (this *DefaultOptionSet) VisitAll(f func(*ArbitraryOption) bool) {
+func (this *DefaultOptionSet) VisitOptions(f OptionVisitor) {
 	for _, o := range this.arbitraryOptions {
 		if !f(o) {
 			return

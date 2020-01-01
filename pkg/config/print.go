@@ -29,7 +29,7 @@ func PrintfWriter(msgfmt string, args ...interface{}) {
 func Print(log Writer, gap string, grp OptionSourceGroup) {
 	log("%s* %s", gap, grp.Name())
 	if set, ok := grp.(OptionSet); ok {
-		set.VisitAll(func(o *ArbitraryOption) bool {
+		set.VisitOptions(func(o *ArbitraryOption) bool {
 			log("%s  %s: %t: %v (%s)", gap, o.Name, o.Changed(), o.Value(), o.Description)
 			return true
 		})

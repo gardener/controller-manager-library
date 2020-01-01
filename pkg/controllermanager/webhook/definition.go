@@ -16,12 +16,12 @@
  *
  */
 
-package webhooks
+package webhook
 
 import (
 	"fmt"
-	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/config"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/groups"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/groups"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
@@ -67,8 +67,4 @@ func (this *_Definitions) Registrations(names ...string) (Registrations, error) 
 		}
 	}
 	return r, nil
-}
-
-func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
-
 }

@@ -102,3 +102,12 @@ var _ Interface = WebhookFunc(nil)
 func (this WebhookFunc) Handle(ctx context.Context, req Request) Response {
 	return this(ctx, req)
 }
+
+// DefaultHandler can be used for a default implementation of all interface
+// methods
+type DefaultHandler struct {
+}
+
+func (this *DefaultHandler) Handle(context.Context, Request) Response {
+	return Allowed("always")
+}

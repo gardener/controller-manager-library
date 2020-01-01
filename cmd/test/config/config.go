@@ -78,7 +78,7 @@ func ConfigMain() {
 	fmt.Printf("evaluate args\n")
 	main.Evaluate()
 	fmt.Printf("print args\n")
-	config.Print(config.PrintfWriter,"", main)
+	config.Print(config.PrintfWriter, "", main)
 	fmt.Printf("targets: %#v\n", targets)
 }
 

@@ -20,28 +20,30 @@ package test
 
 import (
 	"context"
-
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/admission"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 )
 
 func init() {
-	webhooks.Configure("test1").
+	webhook.Configure("test.gardener.cloud").
 		Cluster(cluster.DEFAULT).
-		Resource("a", "b").
+		Resource("core", "ResourceQuota").
 		Handler(MyHandlerType).
 		MustRegister()
 }
 
-func MyHandlerType(ext webhooks.Interface) (admission.Interface, error) {
-	return &MyHandler{ext}, nil
+func MyHandlerType(ext webhook.Interface) (admission.Interface, error) {
+	return &MyHandler{ext: ext}, nil
 }
 
 type MyHandler struct {
-	ext webhooks.Interface
+	admission.DefaultHandler
+	ext webhook.Interface
 }
 
 func (this *MyHandler) Handle(context.Context, admission.Request) admission.Response {
-	return admission.Response{}
+	return admission.Allowed("yepp")
+	return admission.Denied("aetsch")
+
 }

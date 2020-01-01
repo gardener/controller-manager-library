@@ -25,11 +25,9 @@ import (
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
-	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
@@ -98,18 +96,16 @@ func (this *ExtensionDefinition) ExtendConfig(cfg *parentcfg.Config) {
 	cfg.AddSource(areacfg.OPTION_SOURCE, my)
 }
 
-func (this *ExtensionDefinition) CreateExtension(logctx logger.LogContext, cm *controllermanager.ControllerManager) (controllermanager.Extension, error) {
-	return NewControllerExtension(logctx, this.definitions, cm)
+func (this *ExtensionDefinition) CreateExtension(cm *controllermanager.ControllerManager) (controllermanager.Extension, error) {
+	return NewExtension(this.definitions, cm)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 type Extension struct {
+	controllermanager.Environment
 	SharedAttributes
 
-	manager *controllermanager.ControllerManager
-
-	ctx           context.Context
 	config        *areacfg.Config
 	definitions   Definitions
 	registrations Registrations
@@ -123,12 +119,14 @@ type Extension struct {
 
 var _ Environment = &Extension{}
 
-func NewControllerExtension(logctx logger.LogContext, defs Definitions, cm *controllermanager.ControllerManager) (*Extension, error) {
+func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*Extension, error) {
+	ctx := ctxutil.SyncContext(cm.GetContext())
+	ext := controllermanager.NewDefaultEnvironment(ctx, TYPE, cm)
+
 	cfg := areacfg.GetConfig(cm.GetConfig())
-	ctx := logger.Set(ctxutil.SyncContext(cm.GetContext()), logctx)
 
 	groups := defs.Groups()
-	logctx.Infof("configured groups: %s", groups.AllGroups())
+	ext.Infof("configured groups: %s", groups.AllGroups())
 
 	active, err := groups.Activate(strings.Split(cfg.Controllers, ","))
 	if err != nil {
@@ -145,7 +143,7 @@ func NewControllerExtension(logctx logger.LogContext, defs Definitions, cm *cont
 	}
 	added, _ = active.DiffFrom(added)
 	if len(added) > 0 {
-		logctx.Infof("controllers implied by activated controllers: %s", added)
+		ext.Infof("controllers implied by activated controllers: %s", added)
 		active.AddSet(added)
 	}
 
@@ -154,15 +152,14 @@ func NewControllerExtension(logctx logger.LogContext, defs Definitions, cm *cont
 		return nil, err
 	}
 
-	logctx.Infof("activated controllers: %s", active)
+	ext.Infof("activated controllers: %s", active)
 
 	return &Extension{
+		Environment: ext,
 		SharedAttributes: SharedAttributes{
-			LogContext: logctx,
+			LogContext: ext,
 		},
-		ctx:           ctx,
 		config:        cfg,
-		manager:       cm,
 		definitions:   defs,
 		registrations: registrations,
 		prepared:      map[string]*controllermanager.SyncPoint{},
@@ -172,32 +169,12 @@ func NewControllerExtension(logctx logger.LogContext, defs Definitions, cm *cont
 	}, nil
 }
 
-func (this *Extension) Name() string {
-	return TYPE
-}
-
-func (this *Extension) Namespace() string {
-	return this.manager.GetNamespace()
-}
-
-func (this *Extension) GetContext() context.Context {
-	return this.ctx
-}
-
 func (this *Extension) RequiredClusters() (utils.StringSet, error) {
-	return this.definitions.DetermineRequestedClusters(this.manager.ClusterDefinitions(), this.registrations.Names())
+	return this.definitions.DetermineRequestedClusters(this.ClusterDefinitions(), this.registrations.Names())
 }
 
 func (this *Extension) GetConfig() *areacfg.Config {
 	return this.config
-}
-
-func (this *Extension) GetCluster(name string) cluster.Interface {
-	return this.manager.GetCluster(name)
-}
-
-func (this *Extension) GetClusters() cluster.Clusters {
-	return this.manager.GetClusters()
 }
 
 func (this *Extension) Start(ctx context.Context) error {
@@ -245,9 +222,9 @@ func (this *Extension) Start(ctx context.Context) error {
 	}
 
 	ctxutil.SyncPointRun(ctx, func() {
-		<-this.ctx.Done()
+		<-this.GetContext().Done()
 		this.Info("waiting for controllers to shutdown")
-		ctxutil.SyncPointWait(this.ctx, 120*time.Second)
+		ctxutil.SyncPointWait(this.GetContext(), 120*time.Second)
 		this.Info("all controllers down now")
 	})
 
@@ -273,7 +250,7 @@ func (this *Extension) startController(cntr *controller) error {
 		if after != nil {
 			if !after.IsReached() {
 				cntr.Infof("  startup of %q waiting for %q", cntr.GetName(), a)
-				if !after.Sync(this.ctx) {
+				if !after.Sync(this.GetContext()) {
 					return fmt.Errorf("setup aborted")
 				}
 				cntr.Infof("  controller %q is initialized now", a)
@@ -291,6 +268,6 @@ func (this *Extension) startController(cntr *controller) error {
 	}
 	this.prepared[cntr.GetName()].Reach()
 
-	ctxutil.SyncPointRunAndCancelOnExit(this.ctx, cntr.Run)
+	ctxutil.SyncPointRunAndCancelOnExit(this.GetContext(), cntr.Run)
 	return nil
 }

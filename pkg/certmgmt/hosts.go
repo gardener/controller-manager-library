@@ -77,6 +77,11 @@ func (this *CompoundHosts) GetIPs() []net.IP {
 }
 
 func (this *CompoundHosts) Add(hosts ...CertificateHosts) *CompoundHosts {
+	this.hosts = append(this.hosts, hosts...)
+	return this
+}
+
+func (this *CompoundHosts) With(hosts ...CertificateHosts) *CompoundHosts {
 	result := append(this.hosts, hosts...)
 	return NewCompoundHosts(result...)
 }

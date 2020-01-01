@@ -4,7 +4,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 
 	//	_ "github.com/gardener/gardener-botanist-aws/pkg/controller/controlplane"
-	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/test"
+	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/controller/test"
 )
 
 func main() {

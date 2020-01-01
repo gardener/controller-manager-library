@@ -132,11 +132,24 @@ func UpdateCertificate(old CertificateInfo, cfg *Config) (CertificateInfo, error
 	//	}
 	//}
 
-	if !IsValid(new, "", cfg.Rest) {
+	valid := IsValid(new, cfg.Rest, "")
+	if valid {
+		names := cfg.Hosts.GetDNSNames()
+		for _, ip := range cfg.Hosts.GetIPs() {
+			names = append(names, ip.String())
+		}
+		valid = IsValid(new, cfg.Rest, names...)
+		if !valid {
+			fmt.Printf("not valid for requested names: %v\n", names)
+		}
+	} else {
 		fmt.Printf("not valid\n")
+	}
+	if !valid {
+		fmt.Printf("renew/create cert\n")
 		if new.cacert != nil {
 			fmt.Printf("cacert found\n")
-			ok = Valid(new.cakey, new.cacert, new.cacert, "", 5*time.Hour*24)
+			ok = Valid(new.cakey, new.cacert, new.cacert, 5*time.Hour*24, "")
 			if ok {
 				fmt.Printf("cacert valid\n")
 				k, err := keyutil.ParsePrivateKeyPEM(new.cakey)
@@ -195,7 +208,7 @@ func UpdateCertificate(old CertificateInfo, cfg *Config) (CertificateInfo, error
 	return old, nil
 }
 
-func IsValid(info CertificateInfo, dnsname string, duration time.Duration) bool {
+func IsValid(info CertificateInfo, duration time.Duration, name ...string) bool {
 	if info.Cert() == nil || info.Key() == nil {
 		fmt.Printf("cert or key not set\n")
 		return false
@@ -204,48 +217,50 @@ func IsValid(info CertificateInfo, dnsname string, duration time.Duration) bool 
 		fmt.Printf("cacert not set\n")
 		return false
 	}
-	return Valid(info.Key(), info.Cert(), info.CACert(), dnsname, duration)
+	return Valid(info.Key(), info.Cert(), info.CACert(), duration, name...)
 }
 
-func Valid(key []byte, cert []byte, cacert []byte, dnsname string, duration time.Duration) bool {
+func Valid(key []byte, cert []byte, cacert []byte, duration time.Duration, name ...string) bool {
 
 	if len(cert) == 0 || len(key) == 0 || len(cacert) == 0 {
-		fmt.Printf("something empty\n")
+		//fmt.Printf("something empty\n")
 		return false
 	}
 
-	fmt.Printf("val for: %s\n", dnsname)
+	//fmt.Printf("val for: %s\n", dnsname)
 	_, err := tls.X509KeyPair(cert, key)
 	if err != nil {
-		fmt.Printf("key does not match certmgmt\n")
+		//fmt.Printf("key does not match certmgmt\n")
 		return false
 	}
 
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(cacert) {
-		fmt.Printf("cannot create pool\n")
+		//fmt.Printf("cannot create pool\n")
 		return false
 	}
 	block, _ := pem.Decode([]byte(cert))
 	if block == nil {
-		fmt.Printf("cannot decode certmgmt\n")
+		//fmt.Printf("cannot decode certmgmt\n")
 		return false
 	}
 	c, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		fmt.Printf("cannot parse certmgmt\n")
+		//fmt.Printf("cannot parse certmgmt\n")
 		return false
 	}
 	ops := x509.VerifyOptions{
-		DNSName:     dnsname,
 		Roots:       pool,
 		CurrentTime: time.Now().Add(duration),
 	}
-	_, err = c.Verify(ops)
-	if err != nil {
-		fmt.Printf("val: %s\n", err)
+	for _, n := range name {
+		ops.DNSName = n
+		_, err = c.Verify(ops)
+		if err != nil {
+			return false
+		}
 	}
-	return err == nil
+	return true
 }
 
 // NewSignedCert creates a signed certificate using the given CA certificate and key with the given validity duration

@@ -76,6 +76,7 @@ type GenericOptionSource struct {
 	prefixedShared OptionSet
 }
 
+var _ Options = (*GenericOptionSource)(nil)
 var _ OptionSource = (*GenericOptionSource)(nil)
 var _ OptionSourceSource = (*GenericOptionSource)(nil)
 
@@ -104,6 +105,14 @@ func (this *GenericOptionSource) GetOption(name string) *ArbitraryOption {
 		return set.GetOption(name)
 	}
 	return nil
+}
+
+func (this *GenericOptionSource) VisitOptions(f OptionVisitor) {
+	for n, o := range this.options {
+		if !f(o.GetOption(n)) {
+			return
+		}
+	}
 }
 
 func (this *GenericOptionSource) GetSource(name string) OptionSource {

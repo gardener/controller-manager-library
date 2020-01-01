@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
+	"github.com/gardener/controller-manager-library/pkg/server"
 	"sync"
 	"time"
 
@@ -31,7 +32,6 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/access"
 	"github.com/gardener/controller-manager-library/pkg/run"
-	"github.com/gardener/controller-manager-library/pkg/server"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
@@ -44,7 +44,7 @@ type ControllerManager struct {
 	namespace  string
 	definition *Definition
 
-	ctx      context.Context
+	context  context.Context
 	config   *areacfg.Config
 	clusters cluster.Clusters
 }
@@ -54,7 +54,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	cfg := areacfg.GetConfig(maincfg)
 	lgr := logger.New()
 	logger.Info("using option settings:")
-	config.Print(logger.Infof,"",cfg.OptionSet)
+	config.Print(logger.Infof, "", cfg.OptionSet)
 	logger.Info("-----------------------")
 	ctx = logger.Set(ctxutil.SyncContext(ctx), lgr)
 	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName())
@@ -107,12 +107,13 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 		definition: def,
 		config:     cfg,
 	}
-	ctx = context.WithValue(ctx, cmkey, cm)
+	ctx = ctx_controllermanager.WithValue(ctx, cm)
+	cm.context = ctx
 
 	set := utils.StringSet{}
 	cm.extensions = map[string]Extension{}
 	for _, d := range def.extensions {
-		e, err := d.CreateExtension(lgr.NewContext("extension", d.Name()), cm)
+		e, err := d.CreateExtension(cm)
 		if err != nil {
 			return nil, err
 		}
@@ -136,9 +137,9 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	if err != nil {
 		return nil, err
 	}
+
 	cm.clusters = clusters
 
-	cm.ctx = ctx
 	return cm, nil
 }
 
@@ -151,7 +152,7 @@ func (this *ControllerManager) GetNamespace() string {
 }
 
 func (this *ControllerManager) GetContext() context.Context {
-	return this.ctx
+	return this.context
 }
 
 func (this *ControllerManager) GetConfig() *areacfg.Config {
@@ -174,18 +175,18 @@ func (this *ControllerManager) Run() error {
 	var err error
 	this.Infof("run %s\n", this.name)
 
-	server.ServeFromConfig(this.ctx)
+	server.ServeFromMainConfig(this.context, "httpserver")
 
 	for _, e := range this.extensions {
-		err = e.Start(this.ctx)
+		err = e.Start(this.context)
 		if err != nil {
 			return err
 		}
 	}
 
-	<-this.ctx.Done()
+	<-this.context.Done()
 	this.Info("waiting for extensions to shutdown")
-	ctxutil.SyncPointWait(this.ctx, 120*time.Second)
-	this.Info("exit controller manager")
+	ctxutil.SyncPointWait(this.context, 120*time.Second)
+	this.Info("all extensions down -> exit controller manager")
 	return nil
 }

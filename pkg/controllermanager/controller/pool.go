@@ -113,7 +113,7 @@ func NewPool(controller *controller, name string, size int, period time.Duration
 		reconcilers: newReconcilerMapping(),
 	}
 	pool.ctx, pool.LogContext = logger.WithLogger(
-		ctxutil.SyncContext(context.WithValue(controller.ctx, poolkey, pool)),
+		ctxutil.SyncContext(context.WithValue(controller.GetContext(), poolkey, pool)),
 		"pool", name)
 	if pool.period != 0 {
 		pool.Infof("pool size %d, resync period %s", pool.size, pool.period.String())

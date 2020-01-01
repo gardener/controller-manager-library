@@ -18,24 +18,29 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"github.com/Masterminds/semver"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 type ReconcilerType func(Interface) (reconcile.Interface, error)
+
+type Environment interface {
+	controllermanager.Environment
+	GetConfig() *areacfg.Config
+	GetSharedValue(key interface{}) interface{}
+	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
+}
 
 type Pool interface {
 	StartTicker()
@@ -106,34 +111,14 @@ type Command interface {
 }
 
 // ResourceKey implementations are used as key and MUST therefore be value types
-type ResourceKey interface {
-	GroupKind() schema.GroupKind
-	String() string
-}
-
-type resourceKey struct {
-	key schema.GroupKind
-}
+type ResourceKey controllermanager.ResourceKey
 
 func NewResourceKey(group, kind string) ResourceKey {
-	if group == "core" {
-		group = corev1.GroupName
-	}
-	return resourceKey{schema.GroupKind{Group: group, Kind: kind}}
-}
-func (k resourceKey) GroupKind() schema.GroupKind {
-	return k.key
-}
-func (k resourceKey) String() string {
-	if k.key.Group == corev1.GroupName {
-		return fmt.Sprintf("%s/%s", "core", k.key.Kind)
-
-	}
-	return fmt.Sprintf("%s/%s", k.key.Group, k.key.Kind)
+	return controllermanager.NewResourceKey(group, kind)
 }
 
 func GetResourceKey(obj resources.Object) ResourceKey {
-	return NewResourceKey(obj.GroupKind().Group, obj.GroupKind().Kind)
+	return controllermanager.GetResourceKey(obj)
 }
 
 type Watches map[string][]Watch
@@ -149,12 +134,7 @@ type PoolDefinition interface {
 	Period() time.Duration
 }
 
-type OptionDefinition interface {
-	GetName() string
-	Type() config.OptionType
-	Default() interface{}
-	Description() string
-}
+type OptionDefinition controllermanager.OptionDefinition
 
 type Definition interface {
 	GetName() string

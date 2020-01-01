@@ -100,7 +100,11 @@ func (this *_Registry) GetDefinitions() Definitions {
 	for k, v := range this.definitions {
 		defs[k] = v.copy()
 	}
-	return &_Definitions{definitions: defs, elements: this.elements.Copy()}
+	return &_Definitions{
+		typeName:    this.typeName,
+		definitions: defs,
+		elements:    this.elements.Copy(),
+	}
 }
 
 func (this *_Definitions) Get(name string) Definition {

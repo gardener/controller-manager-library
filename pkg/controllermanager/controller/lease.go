@@ -59,7 +59,7 @@ func (g *leasestartupgroup) Startup() error {
 	if g.extension.config.OmitLease {
 		g.extension.Infof("omitting lease %q for cluster %s in namespace %q",
 			g.extension.Name(), msg, g.extension.Namespace())
-		ctxutil.SyncPointRun(g.extension.ctx, runit)
+		ctxutil.SyncPointRun(g.extension.GetContext(), runit)
 	} else {
 		g.extension.Infof("requesting lease %q for cluster %s in namespace %q",
 			g.extension.Name(), msg, g.extension.Namespace())
@@ -86,7 +86,7 @@ func (g *leasestartupgroup) Startup() error {
 		if err != nil {
 			return fmt.Errorf("couldn't create leader elector: %v", err)
 		}
-		ctxutil.SyncPointRun(g.extension.ctx, func() { leaderElector.Run(g.extension.ctx) })
+		ctxutil.SyncPointRun(g.extension.GetContext(), func() { leaderElector.Run(g.extension.GetContext()) })
 	}
 
 	return nil

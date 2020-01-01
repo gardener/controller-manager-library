@@ -53,7 +53,7 @@ func NewConfig() *Config {
 
 func (this *Config) Evaluate() error {
 	if this.NamespaceRestriction && this.DisableNamespaceRestriction {
-		return fmt.Errorf("contradiction options given for namespace restriction")
+		return fmt.Errorf("contradicting options given for namespace restriction")
 	}
 	if !this.DisableNamespaceRestriction {
 		this.NamespaceRestriction = true

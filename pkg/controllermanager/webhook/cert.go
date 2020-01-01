@@ -16,7 +16,7 @@
  *
  */
 
-package webhooks
+package webhook
 
 import (
 	"context"
@@ -28,36 +28,38 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/certs/access"
 	"github.com/gardener/controller-manager-library/pkg/certs/file"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
-	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/config"
-	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
-func CreateSecretCertificateSource(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, cm *controllermanager.ControllerManager) (certs.CertificateSource, error) {
-	cluster := cm.GetCluster(cfg.Cluster)
+func CreateSecretCertificateSource(ctx context.Context, ext Environment) (certs.CertificateSource, error) {
+	cfg := ext.GetConfig()
+	cluster := ext.GetCluster(cfg.Cluster)
 	if cluster == nil {
 		return nil, fmt.Errorf("cluster %q for webhook server secret not found", cfg.Cluster)
 	}
-	secret := certsecret.NewSecret(cluster, resources.NewObjectName(cm.GetNamespace(), cfg.Secret))
+	secret := certsecret.NewSecret(cluster, resources.NewObjectName(ext.Namespace(), cfg.Secret))
 	hosts := certmgmt.NewCompoundHosts()
 	if cfg.Hostname != "" {
+		ext.Infof("using hostname for certificate: %s", cfg.Hostname)
 		hosts.Add(certmgmt.NewDNSName(cfg.Hostname))
 	}
 	if cfg.Service != "" {
-		hosts.Add(certmgmt.NewServiceHosts(cfg.Service, cm.GetNamespace()))
+		ext.Infof("using service for certificate: %s/%s", cfg.Service, ext.Namespace())
+		hosts.Add(certmgmt.NewServiceHosts(cfg.Service, ext.Namespace()))
 	}
 
+	ext.Infof("using certificate for ips: %v, dns: %v", hosts.GetIPs(), hosts.GetDNSNames())
 	certcfg := &certmgmt.Config{
-		CommonName:   cm.GetName(),
+		CommonName:   ext.Name(),
 		Organization: []string{"kubernetes"},
 		Validity:     10 * 24 * time.Hour,
 		Rest:         24 * time.Hour,
 		Hosts:        hosts,
 	}
-	return access.New(ctx, logger, secret, certcfg)
+	return access.New(ctx, ext, secret, certcfg)
 }
 
-func CreateFileCertificateSource(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config) (certs.CertificateSource, error) {
-	return file.New(ctx, logger, cfg.CertFile, cfg.KeyFile, cfg.CACertFile, cfg.CAKeyFile)
+func CreateFileCertificateSource(ctx context.Context, ext Environment) (certs.CertificateSource, error) {
+	cfg := ext.GetConfig()
+	return file.New(ctx, ext, cfg.CertFile, cfg.KeyFile, cfg.CACertFile, cfg.CAKeyFile)
 }

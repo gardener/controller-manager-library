@@ -79,7 +79,7 @@ func (this *secretCertificateAccess) Set(logger logger.LogContext, cert certmgmt
 		return nil
 	})
 	if mod {
-		logger.Infof("certs in access %q are updated", this.name)
+		logger.Infof("certs in secret %q[%s] are updated", this.name, this.cluster.GetName())
 	}
 	return err
 }

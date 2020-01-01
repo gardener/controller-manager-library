@@ -16,14 +16,18 @@
  *
  */
 
-package webhooks
+package webhook
 
 import (
 	"context"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhooks/admission"
+	"github.com/gardener/controller-manager-library/pkg/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	adminreg "k8s.io/api/admissionregistration/v1beta1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -35,17 +39,35 @@ const VALIDATION = "validating"
 
 type AdmissionHandlerType func(Interface) (admission.Interface, error)
 
+type Environment interface {
+	controllermanager.Environment
+	GetConfig() *areacfg.Config
+}
+
 type Interface interface {
 	logger.LogContext
+	GetName() string
 	GetContext() context.Context
+	GetEnvironment() Environment
+	GetOption(name string) (*config.ArbitraryOption, error)
+	GetDefinition() Definition
+	GetHTTPHandler() *admission.HTTPHandler
 }
+
+type OptionDefinition controllermanager.OptionDefinition
 
 type Definition interface {
 	GetName() string
-	GetResources() []controller.ResourceKey
+	GetResources() []controllermanager.ResourceKey
 	GetCluster() string
 	GetKind() string
+	GetOperations() []adminreg.OperationType
+	GetFailurePolicy() adminreg.FailurePolicyType
 	GetHandlerType() AdmissionHandlerType
-	GetNamespaces() *metav1.LabelSelector
+	GetNamespaces() *meta.LabelSelector
 	ActivateExplicitly() bool
+
+	ConfigOptions() map[string]OptionDefinition
+
+	Definition() Definition
 }
