@@ -84,6 +84,10 @@ func (this *AbstractResources) ResourceContext() ResourceContext {
 	return this.ctx
 }
 
+func (this *AbstractResources) Scheme() *runtime.Scheme {
+	return this.ctx.Scheme()
+}
+
 func (this *AbstractResources) Decode(bytes []byte) (ObjectData, error) {
 	data, _, err := this.ctx.Decoder().Decode(bytes)
 	if err != nil {

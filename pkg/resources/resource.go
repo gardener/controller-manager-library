@@ -131,10 +131,7 @@ func (this *_resource) WarningEventf(name ObjectDataName, reason, msgfmt string,
 }
 
 func (this *_resource) namespacedRequest(req *restclient.Request, namespace string) *restclient.Request {
-	if this.Namespaced() {
-		return req.Namespace(namespace).Resource(this.Name())
-	}
-	return req.Resource(this.Name())
+	return req.NamespaceIfScoped(namespace, this.Namespaced()).Resource(this.Name())
 }
 
 func (this *_resource) resourceRequest(req *restclient.Request, obj ObjectDataName, sub ...string) *restclient.Request {

@@ -62,6 +62,7 @@ type ResourceContext interface {
 }
 
 type Resources interface {
+	Scheme() *runtime.Scheme
 }
 
 type Resource interface {
