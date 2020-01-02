@@ -17,18 +17,15 @@
 package controller
 
 import (
-	"context"
 	"github.com/Masterminds/semver"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
-	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -51,11 +48,11 @@ type Pool interface {
 }
 
 type Interface interface {
-	GetName() string
+	controllermanager.ElementBase
+
 	IsReady() bool
 	Owning() ResourceKey
 	GetMainWatchResource() WatchResource
-	GetContext() context.Context
 	GetEnvironment() Environment
 	GetPool(name string) Pool
 	GetMainCluster() cluster.Interface
@@ -63,13 +60,6 @@ type Interface interface {
 	GetCluster(name string) cluster.Interface
 	GetClusterAliases(eff string) utils.StringSet
 	GetDefinition() Definition
-
-	GetOption(name string) (*config.ArbitraryOption, error)
-	GetStringOption(name string) (string, error)
-	GetIntOption(name string) (int, error)
-	GetDurationOption(name string) (time.Duration, error)
-	GetBoolOption(name string) (bool, error)
-	GetStringArrayOption(name string) ([]string, error)
 
 	GetSharedValue(key interface{}) interface{}
 	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
@@ -85,8 +75,6 @@ type Interface interface {
 	EnqueueRateLimited(object resources.Object) error
 	EnqueueAfter(object resources.Object, duration time.Duration) error
 	EnqueueCommand(cmd string) error
-
-	logger.LogContext
 
 	GetObject(key resources.ClusterObjectKey) (resources.Object, error)
 	GetCachedObject(key resources.ClusterObjectKey) (resources.Object, error)

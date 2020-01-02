@@ -129,7 +129,7 @@ func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*E
 	groups := defs.Groups()
 	ext.Infof("configured groups: %s", groups.AllGroups())
 
-	active, err := groups.Activate(strings.Split(cfg.Webhooks, ","))
+	active, err := groups.Activate(ext, strings.Split(cfg.Webhooks, ","))
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,6 @@ func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*E
 	if err != nil {
 		return nil, err
 	}
-	ext.Infof("activated webhooks: %s", active)
 
 	spec := cfg.Service + "--" + cm.GetNamespace()
 	if cfg.Hostname != "" {
@@ -265,14 +264,20 @@ func (this *Extension) Start(ctx context.Context) error {
 				}
 				selector = selector.Add(*r)
 			}
-			this.Infof("looking for registrations: %s", selector.String())
+			this.Infof("looking for obsolete registrations: %s", selector.String())
 
 			list, err := r.List(meta.ListOptions{LabelSelector: selector.String()})
 			if err != nil {
 				return err
 			}
 			for _, found := range list {
-				this.Infof("found matching registration %q", found.GetName())
+				if !g.registrations.Contains(found.GetName()) {
+					this.Infof("found obsolete registration %q", found.GetName())
+					err := found.Delete()
+					if err != nil {
+						return fmt.Errorf("cannot delete obsolete webhook registration %q: %s", found.GetName(), err)
+					}
+				}
 			}
 		}
 	}
@@ -296,12 +301,18 @@ func (this *Extension) CreateWebhookDeclaration(def Definition, target cluster.I
 		return nil, fmt.Errorf("no cert authority given")
 	}
 	if this.config.Hostname != "" {
-		url := fmt.Sprintf("https://%s/%s", this.config.Hostname, def.GetName())
-		if this.config.Port > 0 {
-			url = fmt.Sprintf("https://%s:%d/%s", this.config.Hostname, this.config.Port, def.GetName())
+		if target == this.defaultCluster && this.config.Service != "" {
+			sn := resources.NewObjectName(this.Namespace(), this.config.Service)
+			this.Infof("registering webhook %q for cluster %q with service %q", def.GetName(), target, sn)
+			client = NewServiceWebhookClientConfig(sn, def.GetName(), cabundle)
+		} else {
+			url := fmt.Sprintf("https://%s/%s", this.config.Hostname, def.GetName())
+			if this.config.Port > 0 {
+				url = fmt.Sprintf("https://%s:%d/%s", this.config.Hostname, this.config.Port, def.GetName())
+			}
+			this.Infof("registering webhook %q for cluster %q with URL %q", def.GetName(), target, url)
+			client = NewURLWebhookClientConfig(url, cabundle)
 		}
-		this.Infof("registering webhook %q for cluster %q with URL %q", def.GetName(), target, url)
-		client = NewURLWebhookClientConfig(url, cabundle)
 	} else {
 		sn := resources.NewObjectName(this.Namespace(), this.config.Service)
 		if target == this.defaultCluster {

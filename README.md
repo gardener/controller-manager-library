@@ -54,20 +54,23 @@ The definition for a _reconciler_ watching _configmaps_ could look like this:
 
 ```go
 import (
-    "time"
-    
+	"time"
+	
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
+	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/resources"
+
 	corev1 "k8s.io/api/core/v1"
 )
 
 func init() {
-	controller.Configure("config-maps").
-		Reconciler(Create).
-		RequireLease().
+	controller.Configure("cm").
+		Reconciler(Create).RequireLease().
 		DefaultWorkerPool(10, 0*time.Second).
 		Commands("poll").
 		StringOption("test", "Controller argument").
-		MainResource("core", "ConfigMap").
+		MainResource("core", "ConfigMap", controller.NamespaceSelection("default")).
 		MustRegister()
 }
 ```
@@ -102,6 +105,8 @@ type reconciler struct {
 	reconcile.DefaultReconciler
 	controller controller.Interface
 }
+
+var _ reconcile.Interface = &reconciler{}
 ```
 
 The task of a reconciler is to handle events: commands and resource events.
@@ -167,28 +172,46 @@ _Note:_ A finalizer can be set or removed with methods of the controller interfa
 A complete example can be found [here](pkg/controllermanager/examples/controller/test/controller.go)
 with the [command main package](cmds/test-controller/main.go).
 
-### Defining a Webhook
 
+### Defining a Webhook
 
 The definition for a _webhook_ working on _resource quotas_ could look like this:
 
 ```go
-import (
-    "time"
-    
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
-	corev1 "k8s.io/api/core/v1"
-)
 
+import (
+	"context"
+	
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
+)
 
 func init() {
 	webhook.Configure("test.gardener.cloud").
 		Cluster(cluster.DEFAULT).
 		Resource("core", "ResourceQuota").
+		DefaultedStringOption("message", "yepp", "response message").
 		Handler(MyHandlerType).
 		MustRegister()
 }
+
 ```
+
+If desired, the webhook registrations can be maintained by the extension, also,
+either registering every webhook separately, or bundled per target cluster.
+As for controllers, webhooks can use the multi-cluster feature provided by
+the controller manager.
+
+The webhook extension supports various kinds of webhook runtime scenarios:
+- service based in-cluster webhooks
+- service based running together with the API server in a second cluster
+- hostname based for running webhooks somewhere outside a cluster
+
+The required server certicate can either be given via command line arguments or
+they are maintained in a dedicated kubernetes cluster as secret. In this
+second scenario the CA and the certificate is maintained and renewd automatically.
+
 
 #### The handler interface
 
@@ -196,9 +219,12 @@ A _handler_ is defined by a creation function (`MyHandlerType` in the example ab
 that is called to create a handler instance, when a controller is instantiated.
 
 ```go
-
-func MyHandlerType(ext webhook.Interface) (admission.Interface, error) {
-	return &MyHandler{ext: ext}, nil
+func MyHandlerType(webhook webhook.Interface) (admission.Interface, error) {
+	msg, err :=webhook.GetStringOption("message")
+	if err == nil {
+		webhook.Infof("found option message: %s", msg)
+	}
+	return &MyHandler{message: msg, hook: webhook}, nil
 }
 ```
 
@@ -208,16 +234,17 @@ webhook instance, because this one can be used to call several useful
 methods, for example it can be used marshal or unmarshal objects
 
 ```go
-
 type MyHandler struct {
+	message string
 	admission.DefaultHandler
-	ext webhook.Interface
+	hook webhook.Interface
 }
+
+var _ admission.Interface = &MyHandler{}
 
 func (this *MyHandler) Handle(context.Context, admission.Request) admission.Response {
-	return admission.Allowed("yepp")
+	return admission.Allowed(this.message)
 }
-
 ```
 
 The task of a reconciler is to admission requests.

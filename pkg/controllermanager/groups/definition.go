@@ -26,10 +26,22 @@ import (
 
 const DEFAULT = "default"
 
+type Groups map[string]utils.StringSet
+
+func (this Groups) String() string {
+	s := "{"
+	sep := ""
+	for k, v := range this {
+		s += fmt.Sprintf("%s%s: %s", sep, k, v)
+		sep = ", "
+	}
+	return s + "}"
+}
+
 type Definitions interface {
 	Get(name string) Definition
-	Activate(elems []string) (utils.StringSet, error)
-	AllGroups() map[string]utils.StringSet
+	Activate(log logger.LogContext, elems []string) (utils.StringSet, error)
+	AllGroups() Groups
 	AllMembers() utils.StringSet
 	AllNonExplicitMembers() utils.StringSet
 }
@@ -62,27 +74,27 @@ func (this *_Definition) ActivateExplicitlyMembers() utils.StringSet {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *_Definitions) Activate(members []string) (utils.StringSet, error) {
+func (this *_Definitions) Activate(log logger.LogContext, members []string) (utils.StringSet, error) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	active := utils.StringSet{}
 	explicitActive := utils.StringSet{}
 	if len(members) == 0 {
-		logger.Infof("activating all %ss", this.typeName)
+		log.Infof("activating all %ss", this.typeName)
 		active = this.AllNonExplicitMembers()
 	} else {
 		for _, name := range members {
 			g := this.definitions[name]
 			if g != nil {
-				logger.Infof("activating %s group %q", this.typeName, name)
+				log.Infof("activating %s group %q", this.typeName, name)
 				active.AddSet(g.Members().RemoveSet(g.explicit))
 			} else {
 				if name == "all" {
-					logger.Infof("activating all %ss", this.typeName)
+					log.Infof("activating all %ss", this.typeName)
 					active.AddSet(this.AllNonExplicitMembers())
 				} else {
 					if this.elements.Contains(name) {
-						logger.Infof("activating %s %q", name, this.typeName)
+						log.Infof("activating %s %q", name, this.typeName)
 						active.Add(name)
 						explicitActive.Add(name)
 					} else {
@@ -93,11 +105,11 @@ func (this *_Definitions) Activate(members []string) (utils.StringSet, error) {
 		}
 	}
 
-	logger.Infof("activated %ss: %s", this.typeName, active)
+	log.Infof("activated %ss: %s", this.typeName, active)
 	return active, nil
 }
 
-func (this *_Definitions) AllGroups() map[string]utils.StringSet {
+func (this *_Definitions) AllGroups() Groups {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	active := map[string]utils.StringSet{}

@@ -19,13 +19,9 @@
 package webhook
 
 import (
-	"context"
-	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
-	"github.com/gardener/controller-manager-library/pkg/logger"
-
 	adminreg "k8s.io/api/admissionregistration/v1beta1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -45,11 +41,9 @@ type Environment interface {
 }
 
 type Interface interface {
-	logger.LogContext
-	GetName() string
-	GetContext() context.Context
+	controllermanager.ElementBase
+
 	GetEnvironment() Environment
-	GetOption(name string) (*config.ArbitraryOption, error)
 	GetDefinition() Definition
 	GetHTTPHandler() *admission.HTTPHandler
 }

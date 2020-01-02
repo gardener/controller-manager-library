@@ -19,10 +19,10 @@
 package test
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"time"
 
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 
@@ -41,7 +41,6 @@ func init() {
 
 type reconciler struct {
 	reconcile.DefaultReconciler
-
 	controller controller.Interface
 }
 

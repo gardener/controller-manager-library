@@ -19,8 +19,9 @@ package controller
 import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/config"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/groups"
+	cgroups "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/groups"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/groups"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 	"sync"
@@ -83,7 +84,7 @@ var _ Definition = &_Definition{}
 var _ Definitions = &_Definitions{}
 
 func NewRegistry() Registry {
-	return newRegistry(mappings.NewRegistry(), groups.NewRegistry())
+	return newRegistry(mappings.NewRegistry(), cgroups.NewRegistry())
 }
 
 func newRegistry(mappings mappings.Registry, groups groups.Registry) Registry {
@@ -184,7 +185,7 @@ func (this *_Definition) Definition() Definition {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-var registry = newRegistry(mappings.DefaultRegistry(), groups.DefaultRegistry())
+var registry = newRegistry(mappings.DefaultRegistry(), cgroups.DefaultRegistry())
 
 func (this *_Registry) addToGroup(def Definition, name string) error {
 	grp, err := this.groups.RegisterGroup(name)
@@ -192,9 +193,9 @@ func (this *_Registry) addToGroup(def Definition, name string) error {
 		return err
 	}
 	if def.ActivateExplicitly() {
-		grp.ActivateExplicitlyControllers(def.GetName())
+		grp.ActivateExplicitly(def.GetName())
 	}
-	return grp.Controllers(def.GetName())
+	return grp.Members(def.GetName())
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -128,7 +128,7 @@ func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*E
 	groups := defs.Groups()
 	ext.Infof("configured groups: %s", groups.AllGroups())
 
-	active, err := groups.Activate(strings.Split(cfg.Controllers, ","))
+	active, err := groups.Activate(ext, strings.Split(cfg.Controllers, ","))
 	if err != nil {
 		return nil, err
 	}
@@ -145,14 +145,15 @@ func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*E
 	if len(added) > 0 {
 		ext.Infof("controllers implied by activated controllers: %s", added)
 		active.AddSet(added)
+		ext.Infof("finally active controllers: %s", active)
+	} else {
+		ext.Infof("no controllers implied")
 	}
 
 	registrations, err := defs.Registrations(active.AsArray()...)
 	if err != nil {
 		return nil, err
 	}
-
-	ext.Infof("activated controllers: %s", active)
 
 	return &Extension{
 		Environment: ext,

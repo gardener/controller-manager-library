@@ -20,6 +20,7 @@ package test
 
 import (
 	"context"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
@@ -29,21 +30,29 @@ func init() {
 	webhook.Configure("test.gardener.cloud").
 		Cluster(cluster.DEFAULT).
 		Resource("core", "ResourceQuota").
+		DefaultedStringOption("message", "yepp", "response message").
 		Handler(MyHandlerType).
 		MustRegister()
 }
 
-func MyHandlerType(ext webhook.Interface) (admission.Interface, error) {
-	return &MyHandler{ext: ext}, nil
+func MyHandlerType(webhook webhook.Interface) (admission.Interface, error) {
+	msg, err := webhook.GetStringOption("message")
+	if err == nil {
+		webhook.Infof("found option message: %s", msg)
+	}
+	return &MyHandler{message: msg, hook: webhook}, nil
 }
 
 type MyHandler struct {
+	message string
 	admission.DefaultHandler
-	ext webhook.Interface
+	hook webhook.Interface
 }
 
+var _ admission.Interface = &MyHandler{}
+
 func (this *MyHandler) Handle(context.Context, admission.Request) admission.Response {
-	return admission.Allowed("yepp")
+	return admission.Allowed(this.message)
 	return admission.Denied("aetsch")
 
 }
