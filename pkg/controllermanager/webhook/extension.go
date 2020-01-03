@@ -21,6 +21,9 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
+	"k8s.io/apimachinery/pkg/runtime"
 	"strings"
 
 	"github.com/gardener/controller-manager-library/pkg/certs"
@@ -205,13 +208,21 @@ func (this *Extension) Start(ctx context.Context) error {
 
 	for _, def := range this.registrations {
 		var target cluster.Interface
-		if def.GetCluster() == "" {
-			target = this.defaultCluster
-		} else {
-			target = this.GetCluster(def.GetCluster())
+		var scheme *runtime.Scheme
+
+		if def.GetCluster() != "" {
+			if def.GetCluster() == mappings.CLUSTER_MAIN {
+				target = this.defaultCluster
+			} else {
+				target = this.GetCluster(def.GetCluster())
+				if target == nil {
+					return fmt.Errorf("invalid cluster %q for webhook %q", def.GetCluster(), def.GetName())
+				}
+			}
+			scheme = target.ResourceContext().Scheme()
 		}
 
-		w, err := NewWebhook(this, def, target)
+		w, err := NewWebhook(this, def, scheme, target)
 		if err != nil {
 			return err
 		}
@@ -288,9 +299,8 @@ func (this *Extension) RegisterHandler(wh Interface) error {
 	if this.hooks[wh.GetName()] != nil {
 		return fmt.Errorf("handler for webhook with name %q already registed", wh.GetName())
 	}
-	httphandler := wh.GetHTTPHandler()
 	this.hooks[wh.GetName()] = wh
-	this.server.RegisterHandler(wh.GetName(), httphandler)
+	this.server.RegisterHandler(wh.GetName(), admission.New(wh, wh.GetScheme(), wh))
 	return nil
 }
 

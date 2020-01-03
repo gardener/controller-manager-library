@@ -20,6 +20,7 @@ package webhook
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/runtime"
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
@@ -33,6 +34,7 @@ type _Definition struct {
 	name               string
 	keys               []controllermanager.ResourceKey
 	cluster            string
+	scheme             *runtime.Scheme
 	kind               string
 	handler            AdmissionHandlerType
 	namespaces         *meta.LabelSelector
@@ -52,6 +54,9 @@ func (this *_Definition) GetName() string {
 }
 func (this *_Definition) GetCluster() string {
 	return this.cluster
+}
+func (this *_Definition) GetScheme() *runtime.Scheme {
+	return this.scheme
 }
 func (this *_Definition) GetKind() string {
 	return this.kind
@@ -92,6 +97,9 @@ func (this *_Definition) String() string {
 		s += fmt.Sprintf("  - %s\n", k)
 	}
 	s += fmt.Sprintf("  namespaces: %+v\n", this.namespaces)
+	if this.scheme != nil {
+		s += "  scheme set\n"
+	}
 	return s
 }
 
@@ -119,6 +127,11 @@ func (this Configuration) Name(name string) Configuration {
 
 func (this Configuration) Cluster(name string) Configuration {
 	this.settings.cluster = name
+	return this
+}
+
+func (this Configuration) Scheme(scheme *runtime.Scheme) Configuration {
+	this.settings.scheme = scheme
 	return this
 }
 

@@ -206,7 +206,11 @@ func init() {
 If desired, the webhook registrations can be maintained by the extension, also,
 either registering every webhook separately, or bundled per target cluster.
 As for controllers, webhooks can use the multi-cluster feature provided by
-the controller manager.
+the controller manager. To use this feature the webhook must declare a cluster.
+This can be an explicit one using the regular cluster names, or the default
+cluster for the webhook extension using the name `webhook.MAIN_CLUSTER`.
+This cluster can be configured independently of the cluster mappings, which
+might be useful, only if the a combination of controllers and webhooks are used.
 
 The webhook extension supports various kinds of webhook runtime scenarios:
 - service based in-cluster webhooks
@@ -248,8 +252,9 @@ type MyHandler struct {
 
 var _ admission.Interface = &MyHandler{}
 
-func (this *MyHandler) Handle(context.Context, admission.Request) admission.Response {
+func (this *MyHandler) Handle(logger.LogContext, admission.Request) admission.Response {
 	return admission.Allowed(this.message)
+
 }
 ```
 
@@ -264,6 +269,24 @@ later releases. It is recommended to always add the `DefaultHandler` to keep upd
 
 A complete example can be found [here](pkg/controllermanager/examples/webhook/test/webhook.go)
 with the [command main package](cmds/test-webhook/main.go).
+
+#### variants 
+
+There are two more variants for the handler interface, that provides access to
+parsed objects using the resource abstraction provided by this project.
+The type names are identical, but the package is a sub package of the `admission`
+package. Additionally the handler type must be adapted using the `Adapt` function
+of the package. It maps the specific handler type into a standard `AdmissionHandlerType`.
+
+- plain resources
+  The package [`pkg/controllermanager/webhook/admission/plain`](pkg/controllermanager/webhook/admission/plain/interface.go)
+  provides parsed objects with the plain resource abstraction just requiring a scheme,
+  but not a concreate source cluster.
+- cluster based resources
+  The package [`pkg/controllermanager/webhook/admission/bound`](pkg/controllermanager/webhook/admission/bound/interface.go)
+  provides parsed objects with the regular resource abstraction requiring a
+  source cluster for the handler. Such a handler works only for the dedicated
+  declared cluster and cannot be registerd somewhere else.
 
 
 ### The Main of the Controller Manager

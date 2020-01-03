@@ -20,15 +20,18 @@ package webhook
 
 import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
 	adminreg "k8s.io/api/admissionregistration/v1beta1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
 // Definition
 ////////////////////////////////////////////////////////////////////////////////
+const MAIN_CLUSTER = "<main>"
 
 const MUTATING = "mutating"
 const VALIDATION = "validating"
@@ -42,10 +45,13 @@ type Environment interface {
 
 type Interface interface {
 	controllermanager.ElementBase
+	admission.Interface
 
 	GetEnvironment() Environment
 	GetDefinition() Definition
-	GetHTTPHandler() *admission.HTTPHandler
+	GetCluster() cluster.Interface
+	GetScheme() *runtime.Scheme
+	GetDecoder() *admission.Decoder
 }
 
 type OptionDefinition controllermanager.OptionDefinition

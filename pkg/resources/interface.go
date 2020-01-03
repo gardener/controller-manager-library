@@ -174,6 +174,7 @@ type Resources interface {
 	GetUnstructuredByGVK(gvk schema.GroupVersionKind) (Interface, error)
 
 	Wrap(obj ObjectData) (Object, error)
+	Decode(bytes []byte) (Object, error)
 
 	GetObjectInto(ObjectName, ObjectData) (Object, error)
 

@@ -19,11 +19,11 @@
 package admission
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/logger"
 	"net/http"
 )
 
 import (
-	"context"
 	"errors"
 	"github.com/appscode/jsonpatch"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
@@ -90,17 +90,17 @@ func (this *Response) Complete(req Request) error {
 
 // Interface can handle an AdmissionRequest.
 type Interface interface {
-	Handle(context.Context, Request) Response
+	Handle(logger.LogContext, Request) Response
 }
 
 // WebhookFunc implements Handler interface using a single function.
-type WebhookFunc func(context.Context, Request) Response
+type WebhookFunc func(logger.LogContext, Request) Response
 
 var _ Interface = WebhookFunc(nil)
 
 // Handle process the AdmissionRequest by invoking the underlying function.
-func (this WebhookFunc) Handle(ctx context.Context, req Request) Response {
-	return this(ctx, req)
+func (this WebhookFunc) Handle(logger logger.LogContext, req Request) Response {
+	return this(logger, req)
 }
 
 // DefaultHandler can be used for a default implementation of all interface
@@ -108,6 +108,6 @@ func (this WebhookFunc) Handle(ctx context.Context, req Request) Response {
 type DefaultHandler struct {
 }
 
-func (this *DefaultHandler) Handle(context.Context, Request) Response {
+func (this *DefaultHandler) Handle(logger.LogContext, Request) Response {
 	return Allowed("always")
 }

@@ -19,23 +19,23 @@
 package admission
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/logger"
-	"github.com/gardener/controller-manager-library/pkg/resources"
 	"io"
 	"io/ioutil"
+	"net/http"
+
+	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/resources"
+
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"net/http"
 )
 
 var admissionScheme = runtime.NewScheme()
 var admissionCodecs = serializer.NewCodecFactory(admissionScheme)
-var defaultDecoder = NewDecoder(resources.DefaultScheme())
 
 func init() {
 	utilruntime.Must(admissionv1beta1.AddToScheme(admissionScheme))
@@ -49,18 +49,11 @@ type HTTPHandler struct {
 	// and potentially patches to apply to the handler.
 	webhook Interface
 
-	// decoder is constructed on receiving a scheme and passed down to then handler
-	decoder *Decoder
-
 	logger.LogContext
 }
 
 func New(logger logger.LogContext, scheme *runtime.Scheme, webhook Interface) *HTTPHandler {
-	d := defaultDecoder
-	if scheme != nil {
-		d = NewDecoder(scheme)
-	}
-	return &HTTPHandler{webhook: webhook, decoder: d, LogContext: logger}
+	return &HTTPHandler{webhook: webhook, LogContext: logger}
 }
 
 func (this *HTTPHandler) Webhook() Interface {
@@ -71,20 +64,16 @@ func (this *HTTPHandler) Webhook() Interface {
 // If the webhook is mutating type, it delegates the AdmissionRequest to each handler and merge the patches.
 // If the webhook is validating type, it delegates the AdmissionRequest to each handler and
 // deny the request if anyone denies.
-func (this *HTTPHandler) handle(ctx context.Context, req Request) Response {
-	this.Infof("handle request for %q (%s)", req.Name, req.Resource)
-	resp := this.webhook.Handle(ctx, req)
+func (this *HTTPHandler) handle(req Request) Response {
+	name := resources.NewObjectName(req.Namespace, req.Name)
+	logctx := this.NewContext("object", name.String())
+	logctx.Infof("handle request for %s", req.Resource)
+	resp := this.webhook.Handle(logctx, req)
 	if err := resp.Complete(req); err != nil {
-		this.Error(err, "unable to encode response")
+		logctx.Error(err, "unable to encode response")
 		return ErrorResponse(http.StatusInternalServerError, errUnableToEncodeResponse)
 	}
 	return resp
-}
-
-// GetDecoder returns a decoder to decode the objects embedded in admission requests.
-// It may be nil if we haven't received a scheme to use to determine object types yet.
-func (this *HTTPHandler) GetDecoder() *Decoder {
-	return this.decoder
 }
 
 func (this *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -130,7 +119,7 @@ func (this *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: add panic-recovery for Handle
-	reviewResponse = this.handle(context.Background(), req)
+	reviewResponse = this.handle(req)
 	this.writeResponse(w, reviewResponse)
 }
 

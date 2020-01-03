@@ -23,36 +23,48 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"k8s.io/apimachinery/pkg/runtime"
 )
+
+var defaultDecoder = admission.NewDecoder(resources.DefaultScheme())
 
 type webhook struct {
 	controllermanager.ElementBase
+	admission.Interface
 
-	config      *WebhookConfig
-	extension   *Extension
-	definition  Definition
-	cluster     cluster.Interface
-	hook        admission.Interface
-	httphandler *admission.HTTPHandler
+	config     *WebhookConfig
+	extension  *Extension
+	definition Definition
+	scheme     *runtime.Scheme
+	decoder    *admission.Decoder
+	cluster    cluster.Interface
 }
 
 var _ Interface = &webhook{}
 
-func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*webhook, error) {
+func NewWebhook(ext *Extension, def Definition, scheme *runtime.Scheme, cluster cluster.Interface) (*webhook, error) {
+	var err error
+
 	options := ext.GetConfig().GetSource(def.GetName()).(*WebhookConfig)
+	decoder := defaultDecoder
+	if scheme != nil {
+		decoder = admission.NewDecoder(scheme)
+	} else {
+		scheme = resources.DefaultScheme()
+	}
 	this := &webhook{
 		extension:  ext,
 		definition: def,
 		config:     options,
 		cluster:    cluster,
+		scheme:     scheme,
+		decoder:    decoder,
 	}
 	this.ElementBase = controllermanager.NewElementBase(ext.GetContext(), ctx_webhook, this, def.GetName(), options)
-	hook, err := def.GetHandlerType()(this)
+	this.Interface, err = def.GetHandlerType()(this)
 	if err != nil {
 		return nil, err
 	}
-	this.hook = hook
-	this.httphandler = admission.New(this, this.cluster.ResourceContext().Scheme(), this.hook)
 	return this, nil
 }
 
@@ -68,6 +80,16 @@ func (this *webhook) GetDefinition() Definition {
 	return this.definition
 }
 
-func (this *webhook) GetHTTPHandler() *admission.HTTPHandler {
-	return this.httphandler
+func (this *webhook) GetCluster() cluster.Interface {
+	return this.cluster
+}
+
+func (this *webhook) GetScheme() *runtime.Scheme {
+	return this.scheme
+}
+
+// GetDecoder returns a decoder to decode the objects embedded in admission requests.
+// It may be nil if we haven't received a scheme to use to determine object types yet.
+func (this *webhook) GetDecoder() *admission.Decoder {
+	return this.decoder
 }
