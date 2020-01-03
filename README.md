@@ -20,11 +20,11 @@ _For example:_
 There are two basic usage modes for the controller manager:
 
 - explicitly configuring controller manager definitions
-- configuring and running a default controller manager basied on
+- configuring and running a default controller manager based on
   controller and/or webhook registrations provided by `init` functions.
 
 The controller manger itself is just a frame for embedded
-extension types. Tee implementatio of the extension does the
+extension types. The implementation of the extension does the
 actual work. So far, two extension types are available:
 - `controller` manages kubernetes controllers
 - `webhook` manages kubernetes admission webhooks.
@@ -37,13 +37,13 @@ incorporarted, that are really used.
 
 ## Quick and Easy
 
-Building a controller manager consists of 4(7) steps:
+Building a controller manager consists of 4 steps (plus 3 optional):
 
 - Define and register a controller and/or webhook
 - Implement at least one reconciler (which does the real work) for a controller
-- _Optional:_ Define the physical clusters supported by the controller manager
+- _Optional:_ Define the logical clusters supported by the controller manager
 - Just import the package of the controller/webhook definitions that should
-  be aggragated into the controller manager.
+  be aggregated into the controller manager.
 - _Optional:_ Provide the cluster mapping for the various controllers 
 - Implement a simple main function.
 - _Optional:_ Register additional non-standard API Groups
@@ -75,8 +75,13 @@ func init() {
 }
 ```
 
-It also requests a command line argument (`test`) and a non-resource 
-event (`poll`). Such events are called `command`.
+Here a controller named `cm` is defined, backed by a reconciler factory function `Create`.
+Automatic leader election is enabled with `RequireLease`, the default worker contains 10 workers and
+does not automatically resync (resync period set to `0s`).
+It defines a non-resource  event (`poll`). Such events are called `command`.
+It also specifes a command line argument (`test`).
+The main resource, i.e. the resource objects which are reconciled, is set to kind `ConfigMap` of the api group `core`.
+In this example it only listens to resource objects in the namespace `default`.
 
 #### The reconciler interface
 
@@ -208,9 +213,9 @@ The webhook extension supports various kinds of webhook runtime scenarios:
 - service based running together with the API server in a second cluster
 - hostname based for running webhooks somewhere outside a cluster
 
-The required server certicate can either be given via command line arguments or
-they are maintained in a dedicated kubernetes cluster as secret. In this
-second scenario the CA and the certificate is maintained and renewd automatically.
+The required server certificate can either be given via command line arguments or
+they are maintained in a dedicated Kubernetes cluster as secret. In this
+second scenario the CA and the certificate is maintained and renewed automatically.
 
 
 #### The handler interface
@@ -220,11 +225,12 @@ that is called to create a handler instance, when a controller is instantiated.
 
 ```go
 func MyHandlerType(webhook webhook.Interface) (admission.Interface, error) {
-	msg, err :=webhook.GetStringOption("message")
-	if err == nil {
-		webhook.Infof("found option message: %s", msg)
-	}
-	return &MyHandler{message: msg, hook: webhook}, nil
+    msg, err := webhook.GetStringOption("message")
+    if err != nil {
+        return nil, fmt.Errorf("missing option message")
+    }
+    webhook.Infof("found option message: %s", msg)
+    return &MyHandler{message: msg, hook: webhook}, nil
 }
 ```
 
@@ -254,8 +260,7 @@ the implementing struct can use the `admission.DefaultHandler` as anonymous
 member to provide a default implementation for unrequired methods.
 
 So far, there is no `Start`function as for the `controller`. This will change in 
-later releases. To be save for such changes the `DefaultHandler` should always
-be added.
+later releases. It is recommended to always add the `DefaultHandler` to keep updating straight forward.
 
 A complete example can be found [here](pkg/controllermanager/examples/webhook/test/webhook.go)
 with the [command main package](cmds/test-webhook/main.go).
@@ -263,8 +268,9 @@ with the [command main package](cmds/test-webhook/main.go).
 
 ### The Main of the Controller Manager
 
-The main module of a controller should import the definition packages
-of the desired controller with anonymous (`_`) imports
+The main module of a controller manager should import the definition packages
+of the desired controller with anonymous (`_`) imports to enable
+automatic registration of the controller.
 
 ```go
 import (
@@ -311,15 +317,15 @@ func init() {
 ```
 
 If other API groups are used by the controllers, they must explicity be
-registered according the example above. If this libraray is redistributed
-together with a new API group, this registration can directy be done in
+registered according the example above. If this library is redistributed
+together with a new API group, this registration can directly be done in
 the package defining its _SchemeBuilder_. Otherwise it could be done together
 with the controller registration.
 
 
 ### Command Line Interface
 
-The settings for all the configured controllers will be gathers and finally
+The settings for all the configured controllers will be gathered and finally
 lead to a set of command line options.
 
 For the example controlelr above, this would look like this:
