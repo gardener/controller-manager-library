@@ -35,27 +35,27 @@ func CertsMain() {
 		return
 	}
 
-	if !certmgmt.IsValid(n, "test.mandelsoft.org", 24*time.Hour) {
+	if !certmgmt.IsValid(n, 24*time.Hour, "test.mandelsoft.org") {
 		fmt.Printf("dns not valid for 24h")
 		return
 	}
 
-	if !certmgmt.IsValid(n, "[1.2.3.4]", 24*time.Hour) {
+	if !certmgmt.IsValid(n, 24*time.Hour, "[1.2.3.4]") {
 		fmt.Printf("ip not valid for 24h")
 		return
 	}
 
-	if certmgmt.IsValid(n, "test.mandelsoft.org", cfg.Validity) {
+	if certmgmt.IsValid(n, cfg.Validity, "test.mandelsoft.org") {
 		fmt.Printf("valid for more than initial validity")
 		return
 	}
 
-	if !certmgmt.IsValid(n, "", 24*time.Hour) {
+	if !certmgmt.IsValid(n, 24*time.Hour, "") {
 		fmt.Printf("not valid for no dnsnames")
 		return
 	}
 
-	if certmgmt.IsValid(n, "", cfg.Validity) {
+	if certmgmt.IsValid(n, cfg.Validity, "") {
 		fmt.Printf("valid for more than initial validity")
 		return
 	}
@@ -65,7 +65,7 @@ func CertsMain() {
 		fmt.Printf("update failed: %s", err)
 		return
 	}
-	if !certmgmt.IsValid(r, "test.mandelsoft.org", 24*time.Hour) {
+	if !certmgmt.IsValid(r, 24*time.Hour, "test.mandelsoft.org") {
 		fmt.Printf("not valid for 24h")
 		return
 	}

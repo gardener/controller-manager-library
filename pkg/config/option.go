@@ -73,6 +73,10 @@ func (this *ArbitraryOption) IntValue() int {
 	v, _ := this.FlagSet.GetInt(this.Name)
 	return v
 }
+func (this *ArbitraryOption) UintValue() uint {
+	v, _ := this.FlagSet.GetUint(this.Name)
+	return v
+}
 func (this *ArbitraryOption) BoolValue() bool {
 	v, _ := this.FlagSet.GetBool(this.Name)
 	return v
