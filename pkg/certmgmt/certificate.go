@@ -26,16 +26,15 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/utils"
 	"math"
 	"math/big"
 	"time"
 
 	"github.com/pkg/errors"
-
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
-	"k8s.io/kubernetes/cmd/kubeadm/app/util/pkiutil"
+	"github.com/gardener/controller-manager-library/pkg/utils"
+	"github.com/gardener/controller-manager-library/pkg/utils/pkiutil"
 )
 
 type info struct {
@@ -85,15 +84,7 @@ func NewCertInfo(cert []byte, key []byte, cacert []byte, cakey []byte) Certifica
 }
 
 func newPrivateKey() (*rsa.PrivateKey, error) {
-	signer, err := pkiutil.NewPrivateKey()
-	if err != nil {
-		return nil, err
-	}
-	key, ok := signer.(*rsa.PrivateKey)
-	if !ok {
-		return nil, fmt.Errorf("not a private key: %t", key)
-	}
-	return key, nil
+	return pkiutil.NewPrivateKey()
 }
 
 // EncodePrivateKeyPEM returns PEM-encoded private key data

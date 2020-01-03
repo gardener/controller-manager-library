@@ -40,12 +40,14 @@ func (t optionType) AddToFlags(flags *pflag.FlagSet, target interface{}, name, s
 	return t.f(flags, target, name, short, def, desc)
 }
 
-var StringOption OptionType = optionTypeImpl(tStringOption)
-var StringArrayOption OptionType = optionTypeImpl(tStringArrayOption)
-var IntOption OptionType = optionTypeImpl(tIntOption)
-var UintOption OptionType = optionTypeImpl(tUintOption)
-var BoolOption OptionType = optionTypeImpl(tBoolOption)
-var DurationOption OptionType = optionTypeImpl(tDurationOption)
+var (
+	StringOption      = optionTypeImpl(tStringOption)
+	StringArrayOption = optionTypeImpl(tStringArrayOption)
+	IntOption         = optionTypeImpl(tIntOption)
+	UintOption        = optionTypeImpl(tUintOption)
+	BoolOption        = optionTypeImpl(tBoolOption)
+	DurationOption    = optionTypeImpl(tDurationOption)
+)
 
 func tStringOption(flags *pflag.FlagSet, target interface{}, name, short string, def interface{}, desc string) interface{} {
 	if def == nil {

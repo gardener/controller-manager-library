@@ -25,52 +25,52 @@ const (
 
 	// formal
 
-	// ERR_UNEXPECTED_TYPE: general error for an unexpected type
+	// ERR_UNEXPECTED_TYPE is a general error for an unexpected type
 	// objs:
 	// - usage scenario
 	// - object whose type is unexpected
 	ERR_UNEXPECTED_TYPE = "UNEXPECTED_TYPE"
 
-	// ERR_UNKNOWN: generic error for an unknown element
+	// ERR_UNKNOWN is a generic error for an unknown element
 	// objs:
 	// - unknown element
 	ERR_UNKNOWN = "UNKNOWN"
 
-	// ERR_UNKNOWN_RESOURCE: error for an unknown resource specification
+	// ERR_UNKNOWN_RESOURCE is an error for an unknown resource specification
 	// objs:
 	// - spec type
 	// - unknown element
 	ERR_UNKNOWN_RESOURCE = "UNKNOWN_RESOURCE"
 
-	// ERR_FAILED: operation failed for object
+	// ERR_FAILED is returned if operation failed for object
 	// objs:
 	// - operation
 	// - object
 	ERR_FAILED = "FAILED"
 
-	// ERR_NAMESPACED: resource is namespaced and requires namespace for identity
+	// ERR_NAMESPACED is returned if resource is namespaced and requires namespace for identity
 	// objs:
 	// - element type info, i.e gvk
 	ERR_NAMESPACED = "NAMESPACED"
 
-	// ERR_NOT_NAMESPACED: resource is not namespaced
+	// ERR_NOT_NAMESPACED is returned if resource is not namespaced
 	// objs:
 	// - element type info, i.e gvk
 	ERR_NOT_NAMESPACED = "NOT_NAMESPACED"
 
-	// ERR_RESOURCE_MISMATCH: resource object cannot handle instance of foreign resource
+	// ERR_RESOURCE_MISMATCH is returned if resource object cannot handle instance of foreign resource
 	// objs:
 	// - called resource
 	// - requested resource
 	ERR_RESOURCE_MISMATCH = "RESOURCE_MISMATCH"
 
-	// ERR_TYPE_MISMATCH: wrong type given
+	// ERR_TYPE_MISMATCH is returned if wrong type given
 	// objs:
 	// - given object
 	// - required type
 	ERR_TYPE_MISMATCH = "TYPE_MISMATCH"
 
-	// ERR_NO_STATUS_SUBRESOURCE: resource has no status sub resource
+	// ERR_NO_STATUS_SUBRESOURCE is returned if resource has no status sub resource
 	// objs:
 	// - given resource spec
 	ERR_NO_STATUS_SUBRESOURCE = "NO_STATUS_SUBRESOURCE"
@@ -108,23 +108,23 @@ const (
 )
 
 var (
-	// ErrTypeMismatch
+	// ErrTypeMismatch is returned if wrong type given
 	ErrTypeMismatch = errors.DeclareFormalType(GROUP, ERR_TYPE_MISMATCH, "unexpected type %T (expected %s)")
-	// ErrUnexpectedType: invalid type for a dedicated use case
+	// ErrUnexpectedType is returned if invalid type for a dedicated use case
 	ErrUnexpectedType = errors.DeclareFormalType(GROUP, ERR_UNEXPECTED_TYPE, "unexpected type for %s: %T")
-	// ErrUnknownResource
+	// ErrUnknownResource is an error for an unknown resource specification
 	ErrUnknownResource = errors.DeclareFormalType(GROUP, ERR_UNKNOWN_RESOURCE, "unknown resource for %s %q")
-	// ErrUnknown
+	// ErrUnknown is a generic error for an unknown element
 	ErrUnknown = errors.DeclareFormalType(GROUP, ERR_UNKNOWN, "unknown %s")
-	// ErrFailed
+	// ErrFailed is returned if operation failed for object
 	ErrFailed = errors.DeclareFormalType(GROUP, ERR_FAILED, "%s failed: %s")
-	// ErrNamespaced
+	// ErrNamespaced is returned if resource is namespaced and requires namespace for identity
 	ErrNamespaced = errors.DeclareFormalType(GROUP, ERR_NAMESPACED, "resource is namespaced: %s")
-	// ErrNotNamespaced
+	// ErrNotNamespaced is returned if resource is not namespaced
 	ErrNotNamespaced = errors.DeclareFormalType(GROUP, ERR_NOT_NAMESPACED, "resource is not namespaced: %s")
-	// ErrResourceMismatch
-	ErrResourceMismatch = errors.DeclareFormalType(GROUP, ERR_NAMESPACED, "resource object for %s cannot handle resource %s")
-	// ErrNoStatusSubResource
+	// ErrResourceMismatch is returned if resource object cannot handle instance of foreign resource
+	ErrResourceMismatch = errors.DeclareFormalType(GROUP, ERR_RESOURCE_MISMATCH, "resource object for %s cannot handle resource %s")
+	// ErrNoStatusSubResource is returned if resource has no status sub resource
 	ErrNoStatusSubResource = errors.DeclareFormalType(GROUP, ERR_NO_STATUS_SUBRESOURCE, "resource %q has no status sub resource")
 )
 

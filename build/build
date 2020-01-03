@@ -47,10 +47,14 @@ echo "running build..."
 
 if [[ -z "$LOCAL_BUILD" ]]; then
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -mod=vendor \
     -a -v ./...
 
 
 # If the LOCAL_BUILD environment variable is set, we simply run `go build`.
 else
-  go build -v ./pkg/... ./cmd/...
+  go build \
+  -mod=vendor \
+  -v \
+  ./pkg/... ./cmd/...
 fi

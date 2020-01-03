@@ -34,7 +34,7 @@ func Flat(t *GenericOptionSource) OptionSet {
 	return t.Flat()
 }
 
-// FlatPrefixed options are just added with a name prefix to an outer option sink
+// Prefixed options are just added with a name prefix to an outer option sink
 func Prefixed(t *GenericOptionSource) OptionSet {
 	return t.Prefixed()
 }

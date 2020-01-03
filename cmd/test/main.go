@@ -88,7 +88,7 @@ type S struct {
 	m map[string]*C
 }
 
-var set = &S{map[string]*C{"a": &C{"A"}}}
+var set = &S{map[string]*C{"a": {"A"}}}
 
 func (c *C) String() string {
 	return c.name

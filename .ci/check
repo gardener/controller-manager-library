@@ -41,20 +41,22 @@ ignore=(
 )
 
 # Install Golint (linting tool).
-go get -u golang.org/x/lint/golint
+go install -mod=vendor ./vendor/golang.org/x/lint/golint
 
 ###############################################################################
 
 join_by() { local IFS="$1"; shift; echo "$*"; }
 
-PACKAGES="$(go list -e ./... | grep -vE '/tmp/|/vendor/')"
+PACKAGES="$(go list -mod=vendor -e ./... | grep -vE '/tmp/|/vendor/')"
+PACKAGES_DIRS="$(echo ${PACKAGES} | sed "s|github.com/gardener/controller-manager-library|.|g")"
 LINT_FOLDERS="$(echo ${PACKAGES} | sed "s|$GITPROVIDER/$PROJECT|.|g")"
 
 # Execute static code checks.
-#go vet ${PACKAGES}
+#go vet -mod=vendor ${PACKAGES}
 
 # Execute automatic code formatting directive.
-go fmt ${PACKAGES}
+echo "Running gofmt..."
+gofmt -l -w -s ${PACKAGES_DIRS}
 
 # Execute lint checks.
 hack/lint -vacs  ${LINT_FOLDERS}
