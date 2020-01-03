@@ -35,7 +35,7 @@ type _Definition struct {
 	keys               []controllermanager.ResourceKey
 	cluster            string
 	scheme             *runtime.Scheme
-	kind               string
+	kind               WebhookKind
 	handler            AdmissionHandlerType
 	namespaces         *meta.LabelSelector
 	operations         []adminreg.OperationType
@@ -58,7 +58,10 @@ func (this *_Definition) GetCluster() string {
 func (this *_Definition) GetScheme() *runtime.Scheme {
 	return this.scheme
 }
-func (this *_Definition) GetKind() string {
+func (this *_Definition) GetKind() WebhookKind {
+	if this.kind == "" {
+		return MUTATING
+	}
 	return this.kind
 }
 func (this *_Definition) GetHandlerType() AdmissionHandlerType {
@@ -90,8 +93,8 @@ func (this *_Definition) ActivateExplicitly() bool {
 }
 
 func (this *_Definition) String() string {
-	s := fmt.Sprintf("%s webhook %q:\n", this.kind, this.name)
-	s += fmt.Sprintf("  cluster: %s\n", this.cluster)
+	s := fmt.Sprintf("%s webhook %q:\n", this.GetKind(), this.GetName())
+	s += fmt.Sprintf("  cluster: %s\n", this.GetCluster())
 	s += fmt.Sprintf("  gvks:\n")
 	for _, k := range this.keys {
 		s += fmt.Sprintf("  - %s\n", k)
@@ -122,6 +125,11 @@ func Configure(name string) Configuration {
 
 func (this Configuration) Name(name string) Configuration {
 	this.settings.name = name
+	return this
+}
+
+func (this Configuration) Kind(kind WebhookKind) Configuration {
+	this.settings.kind = kind
 	return this
 }
 

@@ -21,7 +21,6 @@ package webhook
 import (
 	"context"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	"k8s.io/apimachinery/pkg/runtime"
 	"strings"
@@ -42,6 +41,11 @@ import (
 )
 
 const TYPE = areacfg.OPTION_SOURCE
+
+var kinds = map[string]WebhookKind{
+	"MutatingWebhookConfiguration":   MUTATING,
+	"ValidatingWebhookConfiguration": VALIDATING,
+}
 
 func init() {
 	controllermanager.RegisterExtension(&ExtensionType{DefaultRegistry()})
@@ -168,6 +172,14 @@ func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*E
 	}, nil
 }
 
+func (this *Extension) getCluster(def Definition) string {
+	cn := def.GetCluster()
+	if cn == CLUSTER_MAIN {
+		return this.config.Cluster
+	}
+	return cn
+}
+
 func (this *Extension) GetConfig() *areacfg.Config {
 	return this.config
 }
@@ -176,8 +188,10 @@ func (this *Extension) RequiredClusters() (utils.StringSet, error) {
 	result := utils.StringSet{}
 
 	for _, r := range this.registrations {
-		c := r.GetCluster()
-		result.Add(c)
+		c := this.getCluster(r)
+		if c != "" {
+			result.Add(c)
+		}
 	}
 	result.Add(this.config.Cluster)
 	return result, nil
@@ -211,7 +225,7 @@ func (this *Extension) Start(ctx context.Context) error {
 		var scheme *runtime.Scheme
 
 		if def.GetCluster() != "" {
-			if def.GetCluster() == mappings.CLUSTER_MAIN {
+			if def.GetCluster() == CLUSTER_MAIN {
 				target = this.defaultCluster
 			} else {
 				target = this.GetCluster(def.GetCluster())
@@ -235,12 +249,12 @@ func (this *Extension) Start(ctx context.Context) error {
 
 		for _, w := range this.hooks {
 			def := w.GetDefinition()
-			cn := def.GetCluster()
+			cn := this.getCluster(def)
 			if cn != "" {
 				target := this.GetCluster(cn)
 				reg := registrations.Assure(target)
 				if this.config.DedicatedRegistrations {
-					reg.AddRegistration(def.GetName())
+					reg.AddRegistration(def.GetName(), def.GetKind())
 					err := this.RegisterWebhook(def, target)
 					if err != nil {
 						return err
@@ -257,15 +271,22 @@ func (this *Extension) Start(ctx context.Context) error {
 		for n, g := range registrations {
 			if len(g.declarations) > 0 {
 				this.Infof("registering webbhooks for cluster %q (%s)", n, this.config.RegistrationName)
-				g.AddRegistration(this.config.RegistrationName)
-				err := CreateOrUpdateMutatingWebhookRegistration(this.labels, g.cluster, this.config.RegistrationName, g.declarations...)
+				cnt, err := CreateOrUpdateMutatingWebhookRegistration(this.labels, g.cluster, this.config.RegistrationName, g.declarations...)
 				if err != nil {
 					return err
 				}
-			}
-			r, err := g.cluster.Resources().GetByExample(&v1beta1.MutatingWebhookConfiguration{})
-			if err != nil {
-				return err
+				if cnt > 0 {
+					g.AddRegistration(this.config.RegistrationName, MUTATING)
+					this.Infof("  found %d mutating webhooks", cnt)
+				}
+				cnt, err = CreateOrUpdateValidatingWebhookRegistration(this.labels, g.cluster, this.config.RegistrationName, g.declarations...)
+				if err != nil {
+					return err
+				}
+				if cnt > 0 {
+					g.AddRegistration(this.config.RegistrationName, VALIDATING)
+					this.Infof("  found %d validating webhooks", cnt)
+				}
 			}
 			selector := labels.NewSelector()
 			for k, v := range this.labels {
@@ -277,17 +298,40 @@ func (this *Extension) Start(ctx context.Context) error {
 			}
 			this.Infof("looking for obsolete registrations: %s", selector.String())
 
-			list, err := r.List(meta.ListOptions{LabelSelector: selector.String()})
+			err = this.cleanup(g.cluster, selector, g.registrations, &v1beta1.MutatingWebhookConfiguration{}, &v1beta1.ValidatingWebhookConfiguration{})
 			if err != nil {
 				return err
 			}
-			for _, found := range list {
-				if !g.registrations.Contains(found.GetName()) {
-					this.Infof("found obsolete registration %q", found.GetName())
-					err := found.Delete()
-					if err != nil {
-						return fmt.Errorf("cannot delete obsolete webhook registration %q: %s", found.GetName(), err)
-					}
+		}
+	}
+	return nil
+}
+
+func (this *Extension) cleanup(cluster cluster.Interface, selector labels.Selector, keep map[string]utils.StringSet, examples ...runtime.Object) error {
+	for _, example := range examples {
+		r, err := cluster.Resources().GetByExample(example)
+		if err != nil {
+			return err
+		}
+		kind := r.Info().Kind()
+		if err != nil {
+			return err
+		}
+
+		list, err := r.List(meta.ListOptions{LabelSelector: selector.String()})
+		if err != nil {
+			return err
+		}
+
+		key := string(kinds[kind])
+
+		this.Infof("found %d matching %ss  (%s)", len(list), kind, key)
+		for _, found := range list {
+			if !keep[found.GetName()].Contains(key) {
+				this.Infof("found obsolete %s %q (%s) in cluster %q", kind, found.GetName(), keep[found.GetName()], cluster.GetName())
+				err := found.Delete()
+				if err != nil {
+					return fmt.Errorf("cannot delete obsolete %s %q in cluster %q: %s", kind, found.GetName(), cluster.GetName(), err)
 				}
 			}
 		}
@@ -338,7 +382,7 @@ func (this *Extension) CreateWebhookDeclaration(def Definition, target cluster.I
 	for i, s := range def.GetResources() {
 		specs[i] = s
 	}
-	return NewWebhookDeclaration(target, def.GetName(), def.GetNamespaces(), def.GetFailurePolicy(), client, def.GetOperations(), specs...)
+	return NewWebhookDeclaration(def.GetKind(), target, def.GetName(), def.GetNamespaces(), def.GetFailurePolicy(), client, def.GetOperations(), specs...)
 }
 
 func (this *Extension) RegisterWebhook(def Definition, target cluster.Interface) error {
@@ -346,5 +390,13 @@ func (this *Extension) RegisterWebhook(def Definition, target cluster.Interface)
 	if err != nil {
 		return fmt.Errorf("webhook registration for %q failed: %s", def.GetName(), err)
 	}
-	return CreateOrUpdateMutatingWebhookRegistration(this.labels, target, def.GetName(), wh)
+	switch def.GetKind() {
+	case MUTATING:
+		_, err := CreateOrUpdateMutatingWebhookRegistration(this.labels, target, def.GetName(), wh)
+		return err
+	case VALIDATING:
+		_, err := CreateOrUpdateValidatingWebhookRegistration(this.labels, target, def.GetName(), wh)
+		return err
+	}
+	return fmt.Errorf("invalid kind %q for webhook %q", def.GetKind(), def.GetName())
 }

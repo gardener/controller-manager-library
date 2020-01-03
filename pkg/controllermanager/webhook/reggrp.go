@@ -25,14 +25,14 @@ import (
 
 type WebhookRegistrationGroup struct {
 	cluster       cluster.Interface
-	registrations utils.StringSet
+	registrations map[string]utils.StringSet
 	declarations  WebhookDeclarations
 }
 
 func NewWebhookRegistrationGroup(cluster cluster.Interface) *WebhookRegistrationGroup {
 	return &WebhookRegistrationGroup{
 		cluster:       cluster,
-		registrations: utils.StringSet{},
+		registrations: map[string]utils.StringSet{},
 		declarations:  WebhookDeclarations{},
 	}
 }
@@ -41,8 +41,13 @@ func (this *WebhookRegistrationGroup) AddDeclaration(d *WebhookDeclaration) {
 	this.declarations = append(this.declarations, d)
 }
 
-func (this *WebhookRegistrationGroup) AddRegistration(name string) {
-	this.registrations.Add(name)
+func (this *WebhookRegistrationGroup) AddRegistration(name string, kind WebhookKind) {
+	set := this.registrations[name]
+	if set == nil {
+		set = utils.StringSet{}
+		this.registrations[name] = set
+	}
+	set.Add(string(kind))
 }
 
 type WebhookRegistrationGroups map[string]*WebhookRegistrationGroup

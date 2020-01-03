@@ -78,18 +78,46 @@ func NewServiceWebhookClientConfig(name resources.ObjectName, path string, caBun
 ////////////////////////////////////////////////////////////////////////////////
 // WebHook Specs
 
-type WebhookDeclaration adminreg.MutatingWebhook
+type WebhookDeclaration struct {
+	adminreg.MutatingWebhook
+	Kind WebhookKind
+}
+
 type WebhookDeclarations []*WebhookDeclaration
 
 func toMutating(hooks ...*WebhookDeclaration) []adminreg.MutatingWebhook {
-	result := make([]adminreg.MutatingWebhook, len(hooks))
-	for i, h := range hooks {
-		result[i] = adminreg.MutatingWebhook(*h)
+	result := make([]adminreg.MutatingWebhook, 0, len(hooks))
+	for _, h := range hooks {
+		if h.Kind == MUTATING {
+			result = append(result, h.MutatingWebhook)
+		}
 	}
 	return result
 }
 
-func NewWebhookDeclaration(resources resources.ResourcesSource, name string, namespaces *meta.LabelSelector, policy adminreg.FailurePolicyType, client WebhookClientConfigSource, ops []adminreg.OperationType, specs ...interface{}) (*WebhookDeclaration, error) {
+func toValidating(hooks ...*WebhookDeclaration) []adminreg.ValidatingWebhook {
+	result := make([]adminreg.ValidatingWebhook, 0, len(hooks))
+	for _, h := range hooks {
+		if h.Kind == VALIDATING {
+			hook := adminreg.ValidatingWebhook{
+				Name:                    h.Name,
+				ClientConfig:            h.ClientConfig,
+				Rules:                   h.Rules,
+				FailurePolicy:           h.FailurePolicy,
+				MatchPolicy:             h.MatchPolicy,
+				NamespaceSelector:       h.NamespaceSelector,
+				ObjectSelector:          h.ObjectSelector,
+				SideEffects:             h.SideEffects,
+				TimeoutSeconds:          h.TimeoutSeconds,
+				AdmissionReviewVersions: h.AdmissionReviewVersions,
+			}
+			result = append(result, hook)
+		}
+	}
+	return result
+}
+
+func NewWebhookDeclaration(kind WebhookKind, resources resources.ResourcesSource, name string, namespaces *meta.LabelSelector, policy adminreg.FailurePolicyType, client WebhookClientConfigSource, ops []adminreg.OperationType, specs ...interface{}) (*WebhookDeclaration, error) {
 	var rules []adminreg.RuleWithOperations
 	for _, spec := range specs {
 		rule, err := NewAdmissionRegistration(resources, spec, ops...)
@@ -105,11 +133,14 @@ func NewWebhookDeclaration(resources resources.ResourcesSource, name string, nam
 	}
 
 	return &WebhookDeclaration{
-		Name:              name,
-		NamespaceSelector: namespaces,
-		FailurePolicy:     failurePolicy,
-		Rules:             rules,
-		ClientConfig:      *client.WebhookClientConfig(),
+		Kind: kind,
+		MutatingWebhook: adminreg.MutatingWebhook{
+			Name:              name,
+			NamespaceSelector: namespaces,
+			FailurePolicy:     failurePolicy,
+			Rules:             rules,
+			ClientConfig:      *client.WebhookClientConfig(),
+		},
 	}, nil
 }
 
@@ -138,7 +169,16 @@ func NewAdmissionRegistration(resources resources.ResourcesSource, spec interfac
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func CreateOrUpdateMutatingWebhookRegistration(labels map[string]string, cluster resources.Cluster, name string, webhooks ...*WebhookDeclaration) error {
+func AddLabel(labels map[string]string, key, value string) map[string]string {
+	new := map[string]string{}
+	for k, v := range labels {
+		new[k] = v
+	}
+	new[key] = value
+	return new
+}
+
+func CreateOrUpdateMutatingWebhookRegistration(labels map[string]string, cluster resources.Cluster, name string, webhooks ...*WebhookDeclaration) (int, error) {
 	config := &adminreg.MutatingWebhookConfiguration{
 		ObjectMeta: meta.ObjectMeta{
 			Name:   name,
@@ -146,8 +186,26 @@ func CreateOrUpdateMutatingWebhookRegistration(labels map[string]string, cluster
 		},
 		Webhooks: toMutating(webhooks...),
 	}
-	_, err := cluster.Resources().CreateOrUpdateObject(config)
-	return err
+	var err error
+	if len(config.Webhooks) > 0 {
+		_, err = cluster.Resources().CreateOrUpdateObject(config)
+	}
+	return len(config.Webhooks), err
+}
+
+func CreateOrUpdateValidatingWebhookRegistration(labels map[string]string, cluster resources.Cluster, name string, webhooks ...*WebhookDeclaration) (int, error) {
+	config := &adminreg.ValidatingWebhookConfiguration{
+		ObjectMeta: meta.ObjectMeta{
+			Name:   name,
+			Labels: labels,
+		},
+		Webhooks: toValidating(webhooks...),
+	}
+	var err error
+	if len(config.Webhooks) > 0 {
+		_, err = cluster.Resources().CreateOrUpdateObject(config)
+	}
+	return len(config.Webhooks), err
 }
 
 ////////////////////////////////////////////////////////////////////////////////

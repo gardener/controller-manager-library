@@ -31,10 +31,12 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 // Definition
 ////////////////////////////////////////////////////////////////////////////////
-const MAIN_CLUSTER = "<main>"
+const CLUSTER_MAIN = "<MAIN>"
 
-const MUTATING = "mutating"
-const VALIDATION = "validating"
+type WebhookKind string
+
+const MUTATING = WebhookKind("mutating")
+const VALIDATING = WebhookKind("validating")
 
 type AdmissionHandlerType func(Interface) (admission.Interface, error)
 
@@ -60,7 +62,7 @@ type Definition interface {
 	GetName() string
 	GetResources() []controllermanager.ResourceKey
 	GetCluster() string
-	GetKind() string
+	GetKind() WebhookKind
 	GetOperations() []adminreg.OperationType
 	GetFailurePolicy() adminreg.FailurePolicyType
 	GetHandlerType() AdmissionHandlerType

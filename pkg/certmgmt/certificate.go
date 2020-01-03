@@ -30,11 +30,11 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/gardener/controller-manager-library/pkg/utils"
+	"github.com/gardener/controller-manager-library/pkg/utils/pkiutil"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
-	"github.com/gardener/controller-manager-library/pkg/utils"
-	"github.com/gardener/controller-manager-library/pkg/utils/pkiutil"
 )
 
 type info struct {

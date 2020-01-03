@@ -27,7 +27,8 @@ import (
 
 func init() {
 	webhook.Configure("test.gardener.cloud").
-		Cluster(webhook.MAIN_CLUSTER).
+		Kind(webhook.VALIDATING).
+		Cluster(webhook.CLUSTER_MAIN).
 		Resource("core", "ResourceQuota").
 		DefaultedStringOption("message", "yepp", "response message").
 		Handler(MyHandlerType).
