@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/gardener/controller-manager-library/cmd/test/certs"
 	"github.com/gardener/controller-manager-library/cmd/test/cond"
 	"github.com/gardener/controller-manager-library/cmd/test/config"
@@ -12,10 +15,11 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/plain"
 	"github.com/gardener/controller-manager-library/cmd/test/preferred"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"github.com/gardener/controller-manager-library/pkg/sync"
-	"os"
-	"time"
+
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
+
+	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme"
 )
 
 var values = map[controller.ResourceKey]int{}

@@ -58,12 +58,14 @@ func PreferredMain() {
 	fmt.Println()
 
 	rctx := c.ResourceContext()
+	fmt.Printf("=============================\n")
 	for _, gv := range rctx.GetGroups() {
 		fmt.Printf("**** %s ****\n", gv)
 		for _, r := range rctx.GetResourceInfos(gv) {
 			fmt.Printf("  %s\n", r.InfoString())
 		}
 	}
+	fmt.Printf("=============================\n")
 
 	fmt.Println()
 
