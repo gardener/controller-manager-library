@@ -10,9 +10,10 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/field"
 	"github.com/gardener/controller-manager-library/cmd/test/match"
 	"github.com/gardener/controller-manager-library/cmd/test/plain"
+	"github.com/gardener/controller-manager-library/cmd/test/preferred"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
+	"github.com/gardener/controller-manager-library/pkg/sync"
 	"os"
 	"time"
 )
@@ -42,6 +43,8 @@ func main() {
 			cond.CondMain()
 		case "plain":
 			plain.PlainMain()
+		case "preferred":
+			preferred.PreferredMain()
 		}
 	}
 }
@@ -99,7 +102,7 @@ func (c *S) String() string {
 
 func doit() {
 	fmt.Println("sync test *******************")
-	s1 := &controllermanager.SyncPoint{}
+	s1 := &sync.SyncPoint{}
 
 	ctx, cancel := context.WithCancel(context.TODO())
 	go func() {

@@ -81,7 +81,7 @@ func (this *HTTPServer) Start(source certs.CertificateSource, bindAddress string
 		TLSConfig: tlscfg,
 	}
 
-	ctxutil.SyncPointAdd(this.ctx)
+	ctxutil.WaitGroupAdd(this.ctx)
 	go func() {
 		<-this.ctx.Done()
 		this.Infof("shutting down server %q with timeout", this.name)
@@ -102,7 +102,7 @@ func (this *HTTPServer) Start(source certs.CertificateSource, bindAddress string
 		}
 		this.Infof("server %q stopped", this.name)
 		ctxutil.Cancel(this.ctx)
-		ctxutil.SyncPointDone(this.ctx)
+		ctxutil.WaitGroupDone(this.ctx)
 	}()
 }
 
