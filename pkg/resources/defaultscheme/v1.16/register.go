@@ -16,19 +16,19 @@
  *
  */
 
-package abstract
+package v1_16
 
 import (
-	admissionregistration "k8s.io/api/admissionregistration/v1beta1"
+	admissionregistration "k8s.io/api/admissionregistration/v1"
 	apps "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
+	core "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
 
 	. "github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
 func init() {
-	Register(corev1.SchemeBuilder)
+	Register(core.SchemeBuilder)
 	Register(extensions.SchemeBuilder)
 	Register(apps.SchemeBuilder)
 	Register(admissionregistration.SchemeBuilder)

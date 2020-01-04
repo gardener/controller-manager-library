@@ -17,6 +17,7 @@
 package controller
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
 	"time"
 
 	"github.com/Masterminds/semver"
@@ -143,6 +144,8 @@ type Definition interface {
 	FinalizerName() string
 	ActivateExplicitly() bool
 	ConfigOptions() map[string]OptionDefinition
+
+	Scheme() *runtime.Scheme
 
 	Definition() Definition
 

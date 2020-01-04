@@ -37,15 +37,16 @@ incorporarted, that are really used.
 
 ## Quick and Easy
 
-Building a controller manager consists of 4 steps (plus 3 optional):
+Building a controller manager consists of 5 steps (plus 3 optional):
 
 - Define and register a controller and/or webhook
 - Implement at least one reconciler (which does the real work) for a controller
 - _Optional:_ Define the logical clusters supported by the controller manager
 - Just import the package of the controller/webhook definitions that should
-  be aggregated into the controller manager.
+  be aggregated into the controller manager into your main program.
 - _Optional:_ Provide the cluster mapping for the various controllers 
 - Implement a simple main function.
+- Register standard API groups in a desired version and/or.
 - _Optional:_ Register additional non-standard API Groups
 
 ### Defining a Controller
@@ -317,14 +318,16 @@ func main() {
 Please refer to a complete [example](cmd/test-controller/main.go)
 
 
-### Using Own API Groups
+### Using API Groups
 
 The used resource abstraction requires information about the object
 implementations for the resources of the used API Groups.
-Some standard API Groups are registered by default:
+Some standard API Groups are registered by importing a default scheme
+for a dedicatd version:
 
 ```go
 import (
+	admissionregistration "k8s.io/api/admissionregistration/v1beta1"
 	apps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	extensions "k8s.io/api/extensions/v1beta1"
@@ -336,14 +339,23 @@ func init() {
 	resources.Register(corev1.SchemeBuilder)
 	resources.Register(extensions.SchemeBuilder)
 	resources.Register(apps.SchemeBuilder)
+	Register(admissionregistration.SchemeBuilder)
 }
 ```
 
+Two preconfigured standard schemes are provided by the library, that can just
+be selected by using and additional anonymouds import:
+- [`github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.12`](pkg/resources/defaultscheme/v1.12/register.go)
+- [`github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.16`](pkg/resources/defaultscheme/v1.16/register.go)
+
 If other API groups are used by the controllers, they must explicity be
-registered according the example above. If this library is redistributed
-together with a new API group, this registration can directly be done in
-the package defining its _SchemeBuilder_. Otherwise it could be done together
-with the controller registration.
+(additionally) registered according the example above. If this library is
+redistributed together with a new API group, this registration can directly be
+done in the package defining its _SchemeBuilder_. Otherwise it could be done
+together with the controller registration or main function.
+
+It is also possible to select a dedicated scheme for a dedicated controller or
+webhook by using the `Scheme` configuration function.
 
 
 ### Command Line Interface

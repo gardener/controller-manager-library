@@ -6,7 +6,7 @@ import (
 	//	_ "github.com/gardener/gardener-botanist-aws/pkg/controller/controlplane"
 	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/controller/test"
 
-	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme"
+	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.12"
 )
 
 func main() {

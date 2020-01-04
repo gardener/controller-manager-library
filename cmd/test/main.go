@@ -19,12 +19,24 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 
-	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme"
+	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.12"
 )
 
 var values = map[controller.ResourceKey]int{}
 
 func main() {
+
+	x := map[string]map[string]string{}
+	x["a"] = map[string]string{}
+	x["a"]["b"] = "c"
+	x["a"]["c"] = "d"
+	if x["a"]["b"] != "c" {
+		panic("shit")
+	}
+	delete(x["a"], "b")
+	if _, ok := x["a"]["b"]; ok {
+		panic("shit")
+	}
 
 	//doit()
 	for i := 1; i < len(os.Args); i++ {

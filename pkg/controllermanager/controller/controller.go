@@ -106,11 +106,16 @@ func Filter(owning ResourceKey, resc resources.Object) bool {
 }
 
 func NewController(env Environment, def Definition, cmp mappings.Definition) (*controller, error) {
-
 	required := cluster.Canonical(def.RequiredClusters())
 	clusters, err := mappings.MapClusters(env.GetClusters(), cmp, required...)
 	if err != nil {
 		return nil, err
+	}
+	if def.Scheme() != nil {
+		if def.Scheme() != resources.DefaultScheme() {
+			this.Infof("  using dedicated scheme for clusters")
+		}
+		clusters, err = clusters.For(def.Scheme())
 	}
 	cluster := clusters.GetCluster(required[0])
 	options := env.GetConfig().GetSource(def.GetName()).(*ControllerConfig)

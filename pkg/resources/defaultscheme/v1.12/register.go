@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved.
+ * Copyright 2020 SAP SE or an SAP affiliate company. All rights reserved.
  * This file is licensed under the Apache Software License, v. 2 except as noted
  * otherwise in the LICENSE file
  *
@@ -16,17 +16,20 @@
  *
  */
 
-package main
+package v1_12
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
+	admissionregistration "k8s.io/api/admissionregistration/v1beta1"
+	apps "k8s.io/api/apps/v1"
+	core "k8s.io/api/core/v1"
+	extensions "k8s.io/api/extensions/v1beta1"
 
-	//	_ "github.com/gardener/gardener-botanist-aws/pkg/controller/controlplane"
-	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/webhook/test"
-
-	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.12"
+	. "github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
-func main() {
-	controllermanager.Start("test-webhook", "Launch the Test Controller", "A test webhook using the controller-manager-library")
+func init() {
+	Register(core.SchemeBuilder)
+	Register(extensions.SchemeBuilder)
+	Register(apps.SchemeBuilder)
+	Register(admissionregistration.SchemeBuilder)
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"k8s.io/apimachinery/pkg/runtime"
 	"time"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -115,6 +116,7 @@ type _Definition struct {
 	finalizerDomain      string
 	crds                 map[string][]*CustomResourceDefinition
 	activateExplicitly   bool
+	scheme               *runtime.Scheme
 }
 
 var _ Definition = &_Definition{}
@@ -131,6 +133,9 @@ func (this *_Definition) String() string {
 	s += fmt.Sprintf("  pools:       %s\n", toString(this.pools))
 	s += fmt.Sprintf("  finalizer:   %s\n", this.FinalizerName())
 	s += fmt.Sprintf("  explicit :   %t\n", this.activateExplicitly)
+	if this.scheme != nil {
+		s += fmt.Sprintf("  scheme is set\n")
+	}
 	return s
 }
 
@@ -148,6 +153,9 @@ func (this *_Definition) Watches() Watches {
 }
 func (this *_Definition) Commands() Commands {
 	return this.commands
+}
+func (this *_Definition) Scheme() *runtime.Scheme {
+	return this.scheme
 }
 func (this *_Definition) ResourceFilters() []ResourceFilter {
 	return this.resource_filters
@@ -432,6 +440,11 @@ func (this Configuration) FinalizerDomain(name string) Configuration {
 }
 func (this Configuration) RequireLease() Configuration {
 	this.settings.require_lease = true
+	return this
+}
+
+func (this Configuration) Scheme(scheme *runtime.Scheme) Configuration {
+	this.settings.scheme = scheme
 	return this
 }
 

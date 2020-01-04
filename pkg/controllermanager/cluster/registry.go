@@ -133,10 +133,6 @@ func (this *_Definitions) GetScheme() *runtime.Scheme {
 	return this.scheme
 }
 
-func (this *_Definition) Definition() Definition {
-	return this
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 var registry = NewRegistry(nil)

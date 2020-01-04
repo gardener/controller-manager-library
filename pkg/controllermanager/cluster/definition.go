@@ -44,6 +44,9 @@ type Definition interface {
 	ConfigOptionName() string
 	Fallback() string
 	Scheme() *runtime.Scheme
+
+	Definition() Definition
+	Configure() Configuration
 }
 
 type _Definition struct {
@@ -78,6 +81,13 @@ func (this *_Definition) Fallback() string {
 }
 func (this *_Definition) Scheme() *runtime.Scheme {
 	return this.scheme
+}
+func (this *_Definition) Definition() Definition {
+	return this
+}
+
+func (this *_Definition) Configure() Configuration {
+	return Configuration{*this}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
