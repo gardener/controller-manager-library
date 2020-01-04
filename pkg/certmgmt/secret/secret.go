@@ -19,6 +19,7 @@
 package secret
 
 import (
+	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
@@ -55,6 +56,10 @@ func NewSecret(cluster cluster.Interface, name resources.ObjectName) certmgmt.Ce
 		cluster: cluster,
 		name:    name,
 	}
+}
+
+func (this *secretCertificateAccess) String() string {
+	return fmt.Sprintf("{cluster: %s, secret: %s}", this.cluster.GetName(), this.name)
 }
 
 func (this *secretCertificateAccess) Get(logger logger.LogContext) (certmgmt.CertificateInfo, error) {

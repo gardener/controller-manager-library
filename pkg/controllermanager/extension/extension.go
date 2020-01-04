@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 SAP SE or an SAP affiliate company. All rights reserved.
+ * Copyright 2020 SAP SE or an SAP affiliate company. All rights reserved.
  * This file is licensed under the Apache Software License, v. 2 except as noted
  * otherwise in the LICENSE file
  *
@@ -16,7 +16,7 @@
  *
  */
 
-package controllermanager
+package extension
 
 import (
 	"context"
@@ -34,6 +34,7 @@ import (
 
 type ExtensionDefinitions map[string]ExtensionDefinition
 type ExtensionTypes map[string]ExtensionType
+type Extensions map[string]Extension
 
 type ExtensionType interface {
 	Name() string
@@ -46,7 +47,7 @@ type ExtensionDefinition interface {
 	Size() int
 	Validate() error
 	ExtendConfig(*areacfg.Config)
-	CreateExtension(cm *ControllerManager) (Extension, error)
+	CreateExtension(cm ControllerManager) (Extension, error)
 }
 
 type Extension interface {
@@ -121,6 +122,21 @@ func RegisterExtension(e ExtensionType) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+type ControllerManager interface {
+	GetName() string
+	GetNamespace() string
+
+	GetConfig() *areacfg.Config
+	NewContext(key, value string) logger.LogContext
+	GetContext() context.Context
+
+	GetCluster(name string) cluster.Interface
+	GetClusters() cluster.Clusters
+	ClusterDefinitions() cluster.Definitions
+
+	GetExtension(name string) Extension
+}
+
 type Environment interface {
 	logger.LogContext
 	Name() string
@@ -135,10 +151,10 @@ type environment struct {
 	logger.LogContext
 	name    string
 	context context.Context
-	manager *ControllerManager
+	manager ControllerManager
 }
 
-func NewDefaultEnvironment(ctx context.Context, name string, manager *ControllerManager) Environment {
+func NewDefaultEnvironment(ctx context.Context, name string, manager ControllerManager) Environment {
 	if ctx == nil {
 		ctx = manager.GetContext()
 	}
@@ -201,7 +217,7 @@ type elementBase struct {
 	options  config.Options
 }
 
-func NewElementBase(ctx context.Context, valueType ctxutil.ValueType, element interface{}, name string, set config.Options) ElementBase {
+func NewElementBase(ctx context.Context, valueType ctxutil.ValueKey, element interface{}, name string, set config.Options) ElementBase {
 	ctx = valueType.WithValue(ctx, name)
 	ctx, logctx := logger.WithLogger(ctx, valueType.Name(), name)
 	return &elementBase{

@@ -16,7 +16,7 @@
  *
  */
 
-package controllermanager
+package extension
 
 import (
 	"fmt"

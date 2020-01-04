@@ -148,11 +148,16 @@ type Configuration struct {
 var _ Registerable = Configuration{}
 
 func Configure(name string, option string, short string) Configuration {
-	return Configuration{_Definition{name, "", option, short}}
+	return Configuration{_Definition{name, "", option, short, nil}}
 }
 
 func (this Configuration) Fallback(name string) Configuration {
 	this.definition.fallback = name
+	return this
+}
+
+func (this Configuration) Scheme(scheme *runtime.Scheme) Configuration {
+	this.definition.scheme = scheme
 	return this
 }
 

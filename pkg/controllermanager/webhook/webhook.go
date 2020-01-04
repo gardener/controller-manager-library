@@ -19,8 +19,8 @@
 package webhook
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,7 +29,7 @@ import (
 var defaultDecoder = admission.NewDecoder(resources.DefaultScheme())
 
 type webhook struct {
-	controllermanager.ElementBase
+	extension.ElementBase
 	admission.Interface
 
 	config     *WebhookConfig
@@ -60,7 +60,7 @@ func NewWebhook(ext *Extension, def Definition, scheme *runtime.Scheme, cluster 
 		scheme:     scheme,
 		decoder:    decoder,
 	}
-	this.ElementBase = controllermanager.NewElementBase(ext.GetContext(), ctx_webhook, this, def.GetName(), options)
+	this.ElementBase = extension.NewElementBase(ext.GetContext(), ctx_webhook, this, def.GetName(), options)
 	this.Interface, err = def.GetHandlerType()(this)
 	if err != nil {
 		return nil, err

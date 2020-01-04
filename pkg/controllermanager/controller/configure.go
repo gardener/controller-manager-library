@@ -19,8 +19,8 @@ package controller
 import (
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/config"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"time"
 
@@ -110,7 +110,7 @@ type _Definition struct {
 	required_controllers []string
 	require_lease        bool
 	pools                map[string]PoolDefinition
-	configs              controllermanager.OptionDefinitions
+	configs              extension.OptionDefinitions
 	finalizerName        string
 	finalizerDomain      string
 	crds                 map[string][]*CustomResourceDefinition
@@ -228,7 +228,7 @@ func Configure(name string) Configuration {
 			name:        name,
 			reconcilers: map[string]ReconcilerType{},
 			pools:       map[string]PoolDefinition{},
-			configs:     controllermanager.OptionDefinitions{},
+			configs:     extension.OptionDefinitions{},
 		},
 		cluster: CLUSTER_MAIN,
 		pool:    DEFAULT_POOL,
@@ -474,7 +474,7 @@ func (this Configuration) addOption(name string, t config.OptionType, def interf
 	if this.settings.configs[name] != nil {
 		panic(fmt.Sprintf("option %q already defined", name))
 	}
-	this.settings.configs[name] = controllermanager.NewOptionDefinition(name, t, def, desc)
+	this.settings.configs[name] = extension.NewOptionDefinition(name, t, def, desc)
 	return this
 }
 

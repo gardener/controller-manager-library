@@ -17,15 +17,16 @@
 package controller
 
 import (
-	"github.com/Masterminds/semver"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"time"
+
+	"github.com/Masterminds/semver"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -33,7 +34,7 @@ import (
 type ReconcilerType func(Interface) (reconcile.Interface, error)
 
 type Environment interface {
-	controllermanager.Environment
+	extension.Environment
 	GetConfig() *areacfg.Config
 	GetSharedValue(key interface{}) interface{}
 	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
@@ -48,7 +49,7 @@ type Pool interface {
 }
 
 type Interface interface {
-	controllermanager.ElementBase
+	extension.ElementBase
 
 	IsReady() bool
 	Owning() ResourceKey
@@ -99,14 +100,14 @@ type Command interface {
 }
 
 // ResourceKey implementations are used as key and MUST therefore be value types
-type ResourceKey controllermanager.ResourceKey
+type ResourceKey extension.ResourceKey
 
 func NewResourceKey(group, kind string) ResourceKey {
-	return controllermanager.NewResourceKey(group, kind)
+	return extension.NewResourceKey(group, kind)
 }
 
 func GetResourceKey(obj resources.Object) ResourceKey {
-	return controllermanager.GetResourceKey(obj)
+	return extension.GetResourceKey(obj)
 }
 
 type Watches map[string][]Watch
@@ -122,7 +123,7 @@ type PoolDefinition interface {
 	Period() time.Duration
 }
 
-type OptionDefinition controllermanager.OptionDefinition
+type OptionDefinition extension.OptionDefinition
 
 type Definition interface {
 	GetName() string

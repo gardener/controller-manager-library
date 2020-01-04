@@ -23,7 +23,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 )
 
-var ctx_webhook = ctxutil.NewValueType(TYPE, (*webhook)(nil))
+var ctx_webhook = ctxutil.NewValueKey(TYPE, (*webhook)(nil))
 
 func GetWebhook(ctx context.Context) Interface {
 	return ctx_webhook.Get(ctx).(Interface)

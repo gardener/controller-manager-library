@@ -23,33 +23,33 @@ import (
 	"reflect"
 )
 
-type ValueType interface {
+type ValueKey interface {
 	Name() string
 	WithValue(ctx context.Context, value interface{}) context.Context
 	Get(ctx context.Context) interface{}
 }
 
-type valueType struct {
+type valueKey struct {
 	name string
 	key  reflect.Type
 }
 
-func NewValueType(name string, proto interface{}) ValueType {
+func NewValueKey(name string, proto interface{}) ValueKey {
 	t := reflect.TypeOf(proto)
-	return &valueType{
+	return &valueKey{
 		name: name,
 		key:  t,
 	}
 }
 
-func (this *valueType) Name() string {
+func (this *valueKey) Name() string {
 	return this.name
 }
 
-func (this *valueType) WithValue(ctx context.Context, value interface{}) context.Context {
+func (this *valueKey) WithValue(ctx context.Context, value interface{}) context.Context {
 	return context.WithValue(ctx, this.key, value)
 }
 
-func (this *valueType) Get(ctx context.Context) interface{} {
+func (this *valueKey) Get(ctx context.Context) interface{} {
 	return ctx.Value(this.key)
 }

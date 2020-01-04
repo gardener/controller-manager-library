@@ -21,12 +21,13 @@ package controller
 import (
 	"context"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/sync"
 	"strings"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -34,14 +35,14 @@ import (
 const TYPE = areacfg.OPTION_SOURCE
 
 func init() {
-	controllermanager.RegisterExtension(&ExtensionType{DefaultRegistry()})
+	extension.RegisterExtension(&ExtensionType{DefaultRegistry()})
 }
 
 type ExtensionType struct {
 	Registry
 }
 
-var _ controllermanager.ExtensionType = &ExtensionType{}
+var _ extension.ExtensionType = &ExtensionType{}
 
 func NewExtensionType() *ExtensionType {
 	return &ExtensionType{NewRegistry()}
@@ -51,7 +52,7 @@ func (this *ExtensionType) Name() string {
 	return TYPE
 }
 
-func (this *ExtensionType) Definition() controllermanager.ExtensionDefinition {
+func (this *ExtensionType) Definition() extension.ExtensionDefinition {
 	return NewExtensionDefinition(this.GetDefinitions())
 }
 
@@ -96,14 +97,14 @@ func (this *ExtensionDefinition) ExtendConfig(cfg *parentcfg.Config) {
 	cfg.AddSource(areacfg.OPTION_SOURCE, my)
 }
 
-func (this *ExtensionDefinition) CreateExtension(cm *controllermanager.ControllerManager) (controllermanager.Extension, error) {
+func (this *ExtensionDefinition) CreateExtension(cm extension.ControllerManager) (extension.Extension, error) {
 	return NewExtension(this.definitions, cm)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 type Extension struct {
-	controllermanager.Environment
+	extension.Environment
 	SharedAttributes
 
 	config        *areacfg.Config
@@ -114,14 +115,14 @@ type Extension struct {
 
 	plain_groups map[string]StartupGroup
 	lease_groups map[string]StartupGroup
-	prepared     map[string]*controllermanager.SyncPoint
+	prepared     map[string]*sync.SyncPoint
 }
 
 var _ Environment = &Extension{}
 
-func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*Extension, error) {
-	ctx := ctxutil.SyncContext(cm.GetContext())
-	ext := controllermanager.NewDefaultEnvironment(ctx, TYPE, cm)
+func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension, error) {
+	ctx := ctxutil.WaitGroupContext(cm.GetContext())
+	ext := extension.NewDefaultEnvironment(ctx, TYPE, cm)
 
 	cfg := areacfg.GetConfig(cm.GetConfig())
 
@@ -163,7 +164,7 @@ func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*E
 		config:        cfg,
 		definitions:   defs,
 		registrations: registrations,
-		prepared:      map[string]*controllermanager.SyncPoint{},
+		prepared:      map[string]*sync.SyncPoint{},
 
 		plain_groups: map[string]StartupGroup{},
 		lease_groups: map[string]StartupGroup{},
@@ -202,7 +203,7 @@ func (this *Extension) Start(ctx context.Context) error {
 			this.getPlainStartupGroup(cntr.GetMainCluster()).Add(cntr)
 		}
 		this.controllers = append(this.controllers, cntr)
-		this.prepared[cntr.GetName()] = &controllermanager.SyncPoint{}
+		this.prepared[cntr.GetName()] = &sync.SyncPoint{}
 	}
 
 	this.controllers, err = this.controllers.getOrder(this)
@@ -222,10 +223,10 @@ func (this *Extension) Start(ctx context.Context) error {
 		return err
 	}
 
-	ctxutil.SyncPointRun(ctx, func() {
+	ctxutil.WaitGroupRun(ctx, func() {
 		<-this.GetContext().Done()
 		this.Info("waiting for controllers to shutdown")
-		ctxutil.SyncPointWait(this.GetContext(), 120*time.Second)
+		ctxutil.WaitGroupWait(this.GetContext(), 120*time.Second)
 		this.Info("all controllers down now")
 	})
 
@@ -269,6 +270,6 @@ func (this *Extension) startController(cntr *controller) error {
 	}
 	this.prepared[cntr.GetName()].Reach()
 
-	ctxutil.SyncPointRunAndCancelOnExit(this.GetContext(), cntr.Run)
+	ctxutil.WaitGroupRunAndCancelOnExit(this.GetContext(), cntr.Run)
 	return nil
 }

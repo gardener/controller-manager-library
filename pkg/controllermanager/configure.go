@@ -18,6 +18,7 @@ package controllermanager
 
 import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -25,7 +26,7 @@ import (
 type Configuration struct {
 	name          string
 	description   string
-	extension_reg ExtensionRegistry
+	extension_reg extension.ExtensionRegistry
 	cluster_reg   cluster.Registry
 }
 
@@ -35,21 +36,21 @@ func Configure(name, desc string, scheme *runtime.Scheme) Configuration {
 	return Configuration{
 		name:          name,
 		description:   desc,
-		extension_reg: NewExtensionRegistry(),
+		extension_reg: extension.NewExtensionRegistry(),
 		cluster_reg:   cluster.NewRegistry(scheme),
 	}
 }
 
 func (this Configuration) ByDefault() Configuration {
-	this.extension_reg = DefaultRegistry()
+	this.extension_reg = extension.DefaultRegistry()
 	this.cluster_reg = cluster.DefaultRegistry()
 	return this
 }
 
-func (this Configuration) RegisterExtension(reg ExtensionType) {
+func (this Configuration) RegisterExtension(reg extension.ExtensionType) {
 	this.extension_reg.RegisterExtension(reg)
 }
-func (this Configuration) Extension(name string) ExtensionType {
+func (this Configuration) Extension(name string) extension.ExtensionType {
 	for _, e := range this.extension_reg.GetExtensionTypes() {
 		if e.Name() == name {
 			return e

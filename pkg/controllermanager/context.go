@@ -19,16 +19,18 @@ package controllermanager
 import (
 	"context"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 )
 
-var ctx_controllermanager = ctxutil.NewValueType(config.OPTION_SOURCE, (*ControllerManager)(nil))
-var ctx_extension = ctxutil.NewValueType("extension", (*Extension)(nil))
+var ctx_controllermanager = ctxutil.NewValueKey(config.OPTION_SOURCE, (*ControllerManager)(nil))
 
 func GetControllerManager(ctx context.Context) *ControllerManager {
 	return ctx_controllermanager.Get(ctx).(*ControllerManager)
 }
 
-func GetExtension(ctx context.Context) *Extension {
-	return ctx_extension.Get(ctx).(*Extension)
+var ctx_extension = ctxutil.NewValueKey("extension", (*extension.Extension)(nil))
+
+func GetExtension(ctx context.Context) *extension.Extension {
+	return ctx_extension.Get(ctx).(*extension.Extension)
 }

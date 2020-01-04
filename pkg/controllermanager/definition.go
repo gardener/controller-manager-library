@@ -20,12 +20,13 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 )
 
 type Definition struct {
 	name         string
 	description  string
-	extensions   ExtensionDefinitions
+	extensions   extension.ExtensionDefinitions
 	cluster_defs cluster.Definitions
 }
 
@@ -37,15 +38,15 @@ func (this *Definition) GetDescription() string {
 	return this.description
 }
 
-func (this *Definition) GetExtensions() ExtensionDefinitions {
-	defs := ExtensionDefinitions{}
+func (this *Definition) GetExtensions() extension.ExtensionDefinitions {
+	defs := extension.ExtensionDefinitions{}
 	for n, e := range this.extensions {
 		defs[n] = e
 	}
 	return defs
 }
 
-func (this *Definition) ExtensionDefinition(name string) ExtensionDefinition {
+func (this *Definition) ExtensionDefinition(name string) extension.ExtensionDefinition {
 	for _, e := range this.extensions {
 		if e.Name() == name {
 			return e

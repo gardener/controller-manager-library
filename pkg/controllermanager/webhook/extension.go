@@ -21,12 +21,12 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	"k8s.io/apimachinery/pkg/runtime"
 	"strings"
 
 	"github.com/gardener/controller-manager-library/pkg/certs"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
@@ -48,14 +48,14 @@ var kinds = map[string]WebhookKind{
 }
 
 func init() {
-	controllermanager.RegisterExtension(&ExtensionType{DefaultRegistry()})
+	extension.RegisterExtension(&ExtensionType{DefaultRegistry()})
 }
 
 type ExtensionType struct {
 	Registry
 }
 
-var _ controllermanager.ExtensionType = &ExtensionType{}
+var _ extension.ExtensionType = &ExtensionType{}
 
 func NewExtensionType() *ExtensionType {
 	return &ExtensionType{NewRegistry()}
@@ -65,7 +65,7 @@ func (this *ExtensionType) Name() string {
 	return TYPE
 }
 
-func (this *ExtensionType) Definition() controllermanager.ExtensionDefinition {
+func (this *ExtensionType) Definition() extension.ExtensionDefinition {
 	return NewExtensionDefinition(this.GetDefinitions())
 }
 
@@ -103,14 +103,14 @@ func (this *ExtensionDefinition) ExtendConfig(cfg *parentcfg.Config) {
 	cfg.AddSource(areacfg.OPTION_SOURCE, ecfg)
 }
 
-func (this *ExtensionDefinition) CreateExtension(cm *controllermanager.ControllerManager) (controllermanager.Extension, error) {
+func (this *ExtensionDefinition) CreateExtension(cm extension.ControllerManager) (extension.Extension, error) {
 	return NewExtension(this.definitions, cm)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 type Extension struct {
-	controllermanager.Environment
+	extension.Environment
 
 	config         *areacfg.Config
 	definitions    Definitions
@@ -122,8 +122,8 @@ type Extension struct {
 	labels         map[string]string
 }
 
-func NewExtension(defs Definitions, cm *controllermanager.ControllerManager) (*Extension, error) {
-	ext := controllermanager.NewDefaultEnvironment(nil, TYPE, cm)
+func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension, error) {
+	ext := extension.NewDefaultEnvironment(nil, TYPE, cm)
 	cfg := areacfg.GetConfig(cm.GetConfig())
 
 	if !cfg.DedicatedRegistrations {
@@ -201,7 +201,6 @@ func (this *Extension) Start(ctx context.Context) error {
 	var err error
 
 	this.defaultCluster = this.GetCluster(this.config.Cluster)
-
 	if this.defaultCluster == nil {
 		return fmt.Errorf("default cluster %q for webhook server not found", this.config.Cluster)
 	}

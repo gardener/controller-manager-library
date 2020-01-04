@@ -20,19 +20,19 @@ package webhook
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 
 	adminreg "k8s.io/api/admissionregistration/v1beta1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type _Definition struct {
 	name               string
-	keys               []controllermanager.ResourceKey
+	keys               []extension.ResourceKey
 	cluster            string
 	scheme             *runtime.Scheme
 	kind               WebhookKind
@@ -40,13 +40,13 @@ type _Definition struct {
 	namespaces         *meta.LabelSelector
 	operations         []adminreg.OperationType
 	policy             adminreg.FailurePolicyType
-	configs            controllermanager.OptionDefinitions
+	configs            extension.OptionDefinitions
 	activateExplicitly bool
 }
 
 var _ Definition = &_Definition{}
 
-func (this *_Definition) GetResources() []controllermanager.ResourceKey {
+func (this *_Definition) GetResources() []extension.ResourceKey {
 	return append(this.keys[:0:0], this.keys...)
 }
 func (this *_Definition) GetName() string {
@@ -118,7 +118,7 @@ func Configure(name string) Configuration {
 	return Configuration{
 		settings: _Definition{
 			name:    name,
-			configs: controllermanager.OptionDefinitions{},
+			configs: extension.OptionDefinitions{},
 		},
 	}
 }
@@ -144,7 +144,7 @@ func (this Configuration) Scheme(scheme *runtime.Scheme) Configuration {
 }
 
 func (this Configuration) Resource(group, kind string) Configuration {
-	this.settings.keys = append(this.settings.keys, controllermanager.NewResourceKey(group, kind))
+	this.settings.keys = append(this.settings.keys, extension.NewResourceKey(group, kind))
 	return this
 }
 
@@ -207,7 +207,7 @@ func (this Configuration) addOption(name string, t config.OptionType, def interf
 	if this.settings.configs[name] != nil {
 		panic(fmt.Sprintf("option %q already defined", name))
 	}
-	this.settings.configs[name] = controllermanager.NewOptionDefinition(name, t, def, desc)
+	this.settings.configs[name] = extension.NewOptionDefinition(name, t, def, desc)
 	return this
 }
 

@@ -164,7 +164,7 @@ func (this *_Cluster) GetServerVersion() *semver.Version {
 }
 
 func (this *_Cluster) setup(logger logger.LogContext) error {
-	rctx, err := resources.NewResourceContext(this.ctx, this, nil, 0*time.Second)
+	rctx, err := resources.NewResourceContext(this.ctx, this, this.definition.Scheme(), 0*time.Second)
 	if err != nil {
 		return err
 	}
@@ -173,8 +173,8 @@ func (this *_Cluster) setup(logger logger.LogContext) error {
 	return nil
 }
 
-func CreateCluster(ctx context.Context, logger logger.LogContext, req Definition, id string, kubeconfig string) (Interface, error) {
-	name := req.Name()
+func CreateCluster(ctx context.Context, logger logger.LogContext, def Definition, id string, kubeconfig string) (Interface, error) {
+	name := def.Name()
 	cluster := &_Cluster{name: name, attributes: map[interface{}]interface{}{}}
 
 	if kubeconfig == "" {
@@ -188,7 +188,7 @@ func CreateCluster(ctx context.Context, logger logger.LogContext, req Definition
 	}
 
 	cluster.ctx = ctx
-	cluster.definition = req
+	cluster.definition = def
 	cluster.id = id
 	cluster.kubeConfig = kubeConfig
 	cluster.local = kubeconfig == ""

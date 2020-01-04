@@ -31,6 +31,7 @@ import (
 
 type ResourceContext interface {
 	abstract.ResourceContext
+	GetResourceInfos(gv schema.GroupVersion) []*Info
 	Cluster
 
 	GetParameterCodec() runtime.ParameterCodec

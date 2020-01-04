@@ -19,8 +19,8 @@
 package webhook
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
 	adminreg "k8s.io/api/admissionregistration/v1beta1"
@@ -41,12 +41,12 @@ const VALIDATING = WebhookKind("validating")
 type AdmissionHandlerType func(Interface) (admission.Interface, error)
 
 type Environment interface {
-	controllermanager.Environment
+	extension.Environment
 	GetConfig() *areacfg.Config
 }
 
 type Interface interface {
-	controllermanager.ElementBase
+	extension.ElementBase
 	admission.Interface
 
 	GetEnvironment() Environment
@@ -56,11 +56,11 @@ type Interface interface {
 	GetDecoder() *admission.Decoder
 }
 
-type OptionDefinition controllermanager.OptionDefinition
+type OptionDefinition extension.OptionDefinition
 
 type Definition interface {
 	GetName() string
-	GetResources() []controllermanager.ResourceKey
+	GetResources() []extension.ResourceKey
 	GetCluster() string
 	GetKind() WebhookKind
 	GetOperations() []adminreg.OperationType

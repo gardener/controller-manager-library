@@ -21,7 +21,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 )
 
-var ctx_controller = ctxutil.NewValueType(TYPE, (*controller)(nil))
+var ctx_controller = ctxutil.NewValueKey(TYPE, (*controller)(nil))
 
 func GetController(ctx context.Context) Interface {
 	return ctx.Value(ctx_controller).(Interface)

@@ -43,6 +43,7 @@ type Definition interface {
 	Description() string
 	ConfigOptionName() string
 	Fallback() string
+	Scheme() *runtime.Scheme
 }
 
 type _Definition struct {
@@ -50,10 +51,17 @@ type _Definition struct {
 	fallback         string
 	configOptionName string
 	description      string
+	scheme           *runtime.Scheme
 }
 
 func copy(d Definition) *_Definition {
-	return &_Definition{d.Name(), d.Fallback(), d.ConfigOptionName(), d.Description()}
+	return &_Definition{
+		d.Name(),
+		d.Fallback(),
+		d.ConfigOptionName(),
+		d.Description(),
+		d.Scheme(),
+	}
 }
 
 func (this *_Definition) Name() string {
@@ -67,6 +75,9 @@ func (this *_Definition) Description() string {
 }
 func (this *_Definition) Fallback() string {
 	return this.fallback
+}
+func (this *_Definition) Scheme() *runtime.Scheme {
+	return this.scheme
 }
 
 ////////////////////////////////////////////////////////////////////////////////

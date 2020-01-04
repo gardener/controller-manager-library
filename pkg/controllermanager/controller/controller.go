@@ -18,7 +18,6 @@ package controller
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +26,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
@@ -80,7 +80,7 @@ func (this *ReadyFlag) start() {
 }
 
 type controller struct {
-	controllermanager.ElementBase
+	extension.ElementBase
 	record.EventRecorder
 	SharedAttributes
 
@@ -134,8 +134,8 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		finalizer:   NewDefaultFinalizer(def.FinalizerName()),
 	}
 
-	ctx := ctxutil.SyncContext(env.GetContext())
-	this.ElementBase = controllermanager.NewElementBase(ctx, ctx_controller, this, def.GetName(), options)
+	ctx := ctxutil.WaitGroupContext(env.GetContext())
+	this.ElementBase = extension.NewElementBase(ctx, ctx_controller, this, def.GetName(), options)
 
 	this.ready.start()
 
@@ -462,7 +462,7 @@ func (this *controller) Run() {
 	this.ready.ready()
 	this.Infof("starting pools...")
 	for _, p := range this.pools {
-		ctxutil.SyncPointRunAndCancelOnExit(this.GetContext(), p.Run)
+		ctxutil.WaitGroupRunAndCancelOnExit(this.GetContext(), p.Run)
 	}
 
 	this.Infof("starting reconcilers...")
@@ -472,7 +472,7 @@ func (this *controller) Run() {
 	this.Infof("controller started")
 	<-this.GetContext().Done()
 	this.Info("waiting for worker pools to shutdown")
-	ctxutil.SyncPointWait(this.GetContext(), 120*time.Second)
+	ctxutil.WaitGroupWait(this.GetContext(), 120*time.Second)
 	this.Info("exit controller")
 }
 

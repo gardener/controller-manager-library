@@ -28,6 +28,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/access"
@@ -38,7 +39,7 @@ import (
 type ControllerManager struct {
 	logger.LogContext
 	lock       sync.Mutex
-	extensions map[string]Extension
+	extensions extension.Extensions
 
 	name       string
 	namespace  string
@@ -49,6 +50,8 @@ type ControllerManager struct {
 	clusters cluster.Clusters
 }
 
+var _ extension.ControllerManager = &ControllerManager{}
+
 func NewControllerManager(ctx context.Context, def *Definition) (*ControllerManager, error) {
 	maincfg := configmain.Get(ctx)
 	cfg := areacfg.GetConfig(maincfg)
@@ -56,7 +59,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	logger.Info("using option settings:")
 	config.Print(logger.Infof, "", cfg.OptionSet)
 	logger.Info("-----------------------")
-	ctx = logger.Set(ctxutil.SyncContext(ctx), lgr)
+	ctx = logger.Set(ctxutil.WaitGroupContext(ctx), lgr)
 	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName())
 
 	for _, e := range def.extensions {
@@ -111,7 +114,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	cm.context = ctx
 
 	set := utils.StringSet{}
-	cm.extensions = map[string]Extension{}
+	cm.extensions = extension.Extensions{}
 	for _, d := range def.extensions {
 		e, err := d.CreateExtension(cm)
 		if err != nil {
@@ -159,6 +162,10 @@ func (this *ControllerManager) GetConfig() *areacfg.Config {
 	return this.config
 }
 
+func (this *ControllerManager) GetExtension(name string) extension.Extension {
+	return this.extensions[name]
+}
+
 func (this *ControllerManager) ClusterDefinitions() cluster.Definitions {
 	return this.definition.ClusterDefinitions()
 }
@@ -186,7 +193,7 @@ func (this *ControllerManager) Run() error {
 
 	<-this.context.Done()
 	this.Info("waiting for extensions to shutdown")
-	ctxutil.SyncPointWait(this.context, 120*time.Second)
+	ctxutil.WaitGroupWait(this.context, 120*time.Second)
 	this.Info("all extensions down -> exit controller manager")
 	return nil
 }
