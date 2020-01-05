@@ -87,15 +87,15 @@ func NewGroupKindSetBySets(sets ...GroupKindSet) GroupKindSet {
 // Object Name
 ////////////////////////////////////////////////////////////////////////////////
 
-func NewObjectNameFor(p ObjectNameProvider) ObjectName {
+func NewObjectNameFor(p ObjectNameProvider) abstract.GenericObjectName {
 	return abstract.NewObjectNameFor(p)
 }
 
-func NewObjectName(names ...string) ObjectName {
+func NewObjectName(names ...string) abstract.GenericObjectName {
 	return abstract.NewObjectName(names...)
 }
 
-func ParseObjectName(name string) (ObjectName, error) {
+func ParseObjectName(name string) (abstract.GenericObjectName, error) {
 	return abstract.ParseObjectName(name)
 }
 

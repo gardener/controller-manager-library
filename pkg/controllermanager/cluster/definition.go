@@ -31,7 +31,7 @@ const CLUSTERID_GROUP = "gardener.cloud"
 
 type Definitions interface {
 	Get(name string) Definition
-	CreateClusters(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, names utils.StringSet) (Clusters, error)
+	CreateClusters(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, cache SchemeCache, names utils.StringSet) (Clusters, error)
 	ExtendConfig(cfg *areacfg.Config)
 	GetScheme() *runtime.Scheme
 }
@@ -98,6 +98,9 @@ func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, 
 	if id != "" {
 		logger.Infof("found id %q for cluster %q", id, req.Name())
 	}
+	if req.Scheme() == nil {
+		req = req.Configure().Scheme(this.scheme).Definition()
+	}
 	cluster, err := CreateCluster(ctx, logger, req, id, cfg.KubeConfig)
 	if err != nil {
 		return nil, err
@@ -116,8 +119,8 @@ func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, 
 	return cluster, nil
 }
 
-func (this *_Definitions) CreateClusters(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, names utils.StringSet) (Clusters, error) {
-	clusters := NewClusters()
+func (this *_Definitions) CreateClusters(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, cache SchemeCache, names utils.StringSet) (Clusters, error) {
+	clusters := NewClusters(cache)
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 

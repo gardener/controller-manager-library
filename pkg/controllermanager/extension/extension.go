@@ -24,6 +24,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sync"
 	"time"
 
@@ -127,6 +128,7 @@ type ControllerManager interface {
 	GetNamespace() string
 
 	GetConfig() *areacfg.Config
+	GetDefaultScheme() *runtime.Scheme
 	NewContext(key, value string) logger.LogContext
 	GetContext() context.Context
 
@@ -144,6 +146,7 @@ type Environment interface {
 	GetContext() context.Context
 	GetCluster(name string) cluster.Interface
 	GetClusters() cluster.Clusters
+	GetDefaultScheme() *runtime.Scheme
 	ClusterDefinitions() cluster.Definitions
 }
 
@@ -185,6 +188,10 @@ func (this *environment) GetCluster(name string) cluster.Interface {
 
 func (this *environment) GetClusters() cluster.Clusters {
 	return this.manager.GetClusters()
+}
+
+func (this *environment) GetDefaultScheme() *runtime.Scheme {
+	return this.manager.GetDefaultScheme()
 }
 
 func (this *environment) ClusterDefinitions() cluster.Definitions {

@@ -42,16 +42,20 @@ type webhook struct {
 
 var _ Interface = &webhook{}
 
-func NewWebhook(ext *Extension, def Definition, scheme *runtime.Scheme, cluster cluster.Interface) (*webhook, error) {
+func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*webhook, error) {
 	var err error
 
+	scheme := def.GetScheme()
 	options := ext.GetConfig().GetSource(def.GetName()).(*WebhookConfig)
-	decoder := defaultDecoder
-	if scheme != nil {
-		decoder = admission.NewDecoder(scheme)
+	if scheme != nil && cluster!=nil {
+		cluster, err = ext.GetClusters().Cache().WithScheme(cluster, scheme)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		scheme = resources.DefaultScheme()
+		scheme=cluster.ResourceContext().Scheme()
 	}
+	decoder := admission.NewDecoder(scheme)
 	this := &webhook{
 		extension:  ext,
 		definition: def,
@@ -69,6 +73,9 @@ func NewWebhook(ext *Extension, def Definition, scheme *runtime.Scheme, cluster 
 }
 
 func (this *webhook) GetResources() resources.Resources {
+	if this.cluster==nil {
+		return nil
+	}
 	return this.cluster.Resources()
 }
 

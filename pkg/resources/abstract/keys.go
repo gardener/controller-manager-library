@@ -357,19 +357,24 @@ func (this GroupKindSet) AsArray() []schema.GroupKind {
 // Object Name
 ////////////////////////////////////////////////////////////////////////////////
 
+type GenericObjectName interface {
+  ObjectName
+  ObjectDataName
+}
+
 type objectName struct {
 	namespace string
 	name      string
 }
 
-func NewObjectNameFor(p ObjectNameProvider) ObjectName {
+func NewObjectNameFor(p ObjectNameProvider) GenericObjectName {
 	if p == nil {
 		return nil
 	}
 	return NewObjectName(p.Namespace(), p.Name())
 }
 
-func NewObjectName(names ...string) objectName {
+func NewObjectName(names ...string) GenericObjectName {
 	switch len(names) {
 	case 1:
 		return objectName{"", names[0]}
@@ -404,7 +409,7 @@ func (this objectName) String() string {
 	return fmt.Sprintf("%s/%s", this.namespace, this.name)
 }
 
-func ParseObjectName(name string) (ObjectName, error) {
+func ParseObjectName(name string) (GenericObjectName, error) {
 	comps := strings.Split(name, "/")
 	switch len(comps) {
 	case 0:

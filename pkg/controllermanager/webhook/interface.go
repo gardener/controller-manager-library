@@ -62,6 +62,7 @@ type Definition interface {
 	GetName() string
 	GetResources() []extension.ResourceKey
 	GetCluster() string
+	GetScheme() *runtime.Scheme
 	GetKind() WebhookKind
 	GetOperations() []adminreg.OperationType
 	GetFailurePolicy() adminreg.FailurePolicyType

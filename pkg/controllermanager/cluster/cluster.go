@@ -70,7 +70,7 @@ type Interface interface {
 	ResourceContext() resources.ResourceContext
 	Definition() Definition
 
-	For(scheme *runtime.Scheme) (Interface, error)
+	WithScheme(scheme *runtime.Scheme) (Interface, error)
 	resources.ClusterSource
 }
 
@@ -170,8 +170,8 @@ func (this *_Cluster) setup(logger logger.LogContext) error {
 	return nil
 }
 
-func (this *_Cluster) For(scheme *runtime.Scheme) (Interface, error) {
-	if this.rctx.Scheme() == scheme {
+func (this *_Cluster) WithScheme(scheme *runtime.Scheme) (Interface, error) {
+	if scheme==nil || this.rctx.Scheme() == scheme {
 		return this, nil
 	}
 	logger.Infof("  clone cluster %q[%s] for new scheme", this.name, this.id)
@@ -194,6 +194,9 @@ func CreateCluster(ctx context.Context, logger logger.LogContext, def Definition
 func CreateClusterForScheme(ctx context.Context, logger logger.LogContext, def Definition, id string, kubeconfig *restclient.Config, scheme *runtime.Scheme) (Interface, error) {
 	cluster := &_Cluster{name: def.Name(), attributes: map[interface{}]interface{}{}}
 
+	if def.Scheme() == nil {
+		scheme = resources.DefaultScheme()
+	}
 	if scheme != nil && def.Scheme() != scheme {
 		def = def.Configure().Scheme(scheme).Definition()
 	}
@@ -242,10 +245,12 @@ type Clusters interface {
 
 	String() string
 
-	For(scheme *runtime.Scheme) (Clusters, error)
+	WithScheme(scheme *runtime.Scheme) (Clusters, error)
+	Cache() SchemeCache
 }
 
 type _Clusters struct {
+	cache     SchemeCache
 	infos     map[string]string
 	mapped    map[string]utils.StringSet
 	clusters  clusters
@@ -255,14 +260,22 @@ type _Clusters struct {
 
 var _ Clusters = &_Clusters{}
 
-func NewClusters() *_Clusters {
+func NewClusters(cache SchemeCache) *_Clusters {
+	if cache == nil {
+		cache = NewSchemeCache()
+	}
 	return &_Clusters{
+		cache,
 		map[string]string{},
 		map[string]utils.StringSet{},
 		clusters{},
 		clusters{},
 		clusters{},
 	}
+}
+
+func (this *_Clusters) Cache() SchemeCache {
+	return this.cache
 }
 
 func (this *_Clusters) Names() utils.StringSet {
@@ -277,18 +290,18 @@ func (this *_Clusters) Ids() utils.StringSet {
 	return this.byid.Names()
 }
 
-func (this *_Clusters) For(scheme *runtime.Scheme) (Clusters, error) {
+func (this *_Clusters) WithScheme(scheme *runtime.Scheme) (Clusters, error) {
 	var err error
 
 	if scheme == nil {
 		return this, nil
 	}
 	modified := false
-	result := NewClusters()
+	result := NewClusters(this.cache)
 	for n, c := range this.clusters {
 		mapped := result.GetEffective(c.GetName())
 		if mapped == nil {
-			mapped, err = c.For(scheme)
+			mapped, err = this.cache.WithScheme(c, scheme)
 			if err != nil {
 				return nil, err
 			}
@@ -310,6 +323,7 @@ func (this *_Clusters) Add(name string, cluster Interface, info ...interface{}) 
 	} else {
 		this.infos[name] = name
 	}
+	this.cache.Add(cluster)
 	this.clusters[name] = cluster
 	this.effective[cluster.GetName()] = cluster
 	set := this.mapped[cluster.GetName()]
@@ -334,7 +348,7 @@ func (this *_Clusters) GetById(id string) Interface {
 }
 
 func (this *_Clusters) GetClusters(name ...string) (Clusters, error) {
-	clusters := NewClusters()
+	clusters := NewClusters(this.cache)
 	for _, n := range name {
 		cluster := this.clusters[n]
 		if cluster == nil {

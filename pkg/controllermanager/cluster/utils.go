@@ -27,5 +27,5 @@ import (
 ///////////////////////////////////////////////////////////////////////////////
 
 func CreateClustersFromDefaults(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, names utils.StringSet) (Clusters, error) {
-	return registry.GetDefinitions().CreateClusters(ctx, logger, cfg, names)
+	return registry.GetDefinitions().CreateClusters(ctx, logger, cfg, NewSchemeCache(), names)
 }

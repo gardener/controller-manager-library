@@ -22,6 +22,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/server"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sync"
 	"time"
 
@@ -136,7 +137,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 		return nil, fmt.Errorf("no controller manager extension activated")
 	}
 
-	clusters, err := def.ClusterDefinitions().CreateClusters(ctx, lgr, cfg, set)
+	clusters, err := def.ClusterDefinitions().CreateClusters(ctx, lgr, cfg, cluster.NewSchemeCache(), set)
 	if err != nil {
 		return nil, err
 	}
@@ -176,6 +177,10 @@ func (this *ControllerManager) GetCluster(name string) cluster.Interface {
 
 func (this *ControllerManager) GetClusters() cluster.Clusters {
 	return this.clusters
+}
+
+func (this *ControllerManager) GetDefaultScheme() *runtime.Scheme {
+	return this.definition.cluster_defs.GetScheme()
 }
 
 func (this *ControllerManager) Run() error {

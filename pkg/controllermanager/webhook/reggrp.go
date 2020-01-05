@@ -52,7 +52,7 @@ func (this *WebhookRegistrationGroup) AddRegistration(name string, kind WebhookK
 
 type WebhookRegistrationGroups map[string]*WebhookRegistrationGroup
 
-func (this WebhookRegistrationGroups) Assure(cluster cluster.Interface) *WebhookRegistrationGroup {
+func (this WebhookRegistrationGroups) GetOrCreateGroup(cluster cluster.Interface) *WebhookRegistrationGroup {
 	g := this[cluster.GetName()]
 	if g == nil {
 		g = NewWebhookRegistrationGroup(cluster)

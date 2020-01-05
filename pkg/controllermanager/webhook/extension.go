@@ -221,7 +221,6 @@ func (this *Extension) Start(ctx context.Context) error {
 
 	for _, def := range this.registrations {
 		var target cluster.Interface
-		var scheme *runtime.Scheme
 
 		if def.GetCluster() != "" {
 			if def.GetCluster() == CLUSTER_MAIN {
@@ -232,10 +231,9 @@ func (this *Extension) Start(ctx context.Context) error {
 					return fmt.Errorf("invalid cluster %q for webhook %q", def.GetCluster(), def.GetName())
 				}
 			}
-			scheme = target.ResourceContext().Scheme()
 		}
 
-		w, err := NewWebhook(this, def, scheme, target)
+		w, err := NewWebhook(this, def, target)
 		if err != nil {
 			return err
 		}
@@ -249,9 +247,9 @@ func (this *Extension) Start(ctx context.Context) error {
 		for _, w := range this.hooks {
 			def := w.GetDefinition()
 			cn := this.getCluster(def)
-			if cn != "" {
+			if cn != "" { // use unmapped cluster here with default scheme
 				target := this.GetCluster(cn)
-				reg := registrations.Assure(target)
+				reg := registrations.GetOrCreateGroup(target)
 				if this.config.DedicatedRegistrations {
 					reg.AddRegistration(def.GetName(), def.GetKind())
 					err := this.RegisterWebhook(def, target)
@@ -399,3 +397,14 @@ func (this *Extension) RegisterWebhook(def Definition, target cluster.Interface)
 	}
 	return fmt.Errorf("invalid kind %q for webhook %q", def.GetKind(), def.GetName())
 }
+
+func (this *Extension) DeleteWebhook(def Definition, target cluster.Interface) error {
+	switch def.GetKind() {
+	case MUTATING:
+		return DeleteMutatingWebhookRegistration(target, def.GetName())
+	case VALIDATING:
+		return DeleteValidatingWebhookRegistration(target, def.GetName())
+	}
+	return fmt.Errorf("invalid kind %q for webhook %q", def.GetKind(), def.GetName())
+}
+
