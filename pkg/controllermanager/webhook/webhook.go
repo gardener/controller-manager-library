@@ -47,13 +47,13 @@ func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*web
 
 	scheme := def.GetScheme()
 	options := ext.GetConfig().GetSource(def.GetName()).(*WebhookConfig)
-	if scheme != nil && cluster!=nil {
+	if scheme != nil && cluster != nil {
 		cluster, err = ext.GetClusters().Cache().WithScheme(cluster, scheme)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		scheme=cluster.ResourceContext().Scheme()
+		scheme = cluster.ResourceContext().Scheme()
 	}
 	decoder := admission.NewDecoder(scheme)
 	this := &webhook{
@@ -73,7 +73,7 @@ func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*web
 }
 
 func (this *webhook) GetResources() resources.Resources {
-	if this.cluster==nil {
+	if this.cluster == nil {
 		return nil
 	}
 	return this.cluster.Resources()

@@ -171,7 +171,7 @@ func (this *_Cluster) setup(logger logger.LogContext) error {
 }
 
 func (this *_Cluster) WithScheme(scheme *runtime.Scheme) (Interface, error) {
-	if scheme==nil || this.rctx.Scheme() == scheme {
+	if scheme == nil || this.rctx.Scheme() == scheme {
 		return this, nil
 	}
 	logger.Infof("  clone cluster %q[%s] for new scheme", this.name, this.id)

@@ -211,15 +211,15 @@ func CreateOrUpdateValidatingWebhookRegistration(labels map[string]string, clust
 ////////////////////////////////////////////////////////////////////////////////
 
 func DeleteMutatingWebhookRegistration(cluster resources.ResourcesSource, name string) error {
-	r,err:=cluster.Resources().Get(&adminreg.MutatingWebhookConfiguration{})
+	r, err := cluster.Resources().Get(&adminreg.MutatingWebhookConfiguration{})
 	if err != nil {
-	    return err
+		return err
 	}
 	return r.DeleteByName(resources.NewObjectName(name))
 }
 
 func DeleteValidatingWebhookRegistration(cluster resources.ResourcesSource, name string) error {
-	r,err:=cluster.Resources().Get(&adminreg.ValidatingWebhookConfiguration{})
+	r, err := cluster.Resources().Get(&adminreg.ValidatingWebhookConfiguration{})
 	if err != nil {
 		return err
 	}

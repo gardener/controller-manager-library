@@ -358,8 +358,8 @@ func (this GroupKindSet) AsArray() []schema.GroupKind {
 ////////////////////////////////////////////////////////////////////////////////
 
 type GenericObjectName interface {
-  ObjectName
-  ObjectDataName
+	ObjectName
+	ObjectDataName
 }
 
 type objectName struct {

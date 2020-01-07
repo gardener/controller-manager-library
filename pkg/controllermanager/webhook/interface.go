@@ -43,6 +43,13 @@ type AdmissionHandlerType func(Interface) (admission.Interface, error)
 type Environment interface {
 	extension.Environment
 	GetConfig() *areacfg.Config
+
+	RegisterWebhookByName(name string, target cluster.Interface) error
+	RegisterWebhook(def Definition, target cluster.Interface) error
+	RegisterWebhookGroup(name string, target cluster.Interface) error
+
+	DeleteWebhookByName(name string, target cluster.Interface) error
+	DeleteWebhook(def Definition, target cluster.Interface) error
 }
 
 type Interface interface {
