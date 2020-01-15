@@ -96,7 +96,7 @@ func DefaultRegistry() Registry {
 
 var _ Registry = &_Registry{}
 
-func (this *_Registry) Register(reg Registerable, group ...string) error {
+func (this *_Registry) Register(reg Registerable, grps ...string) error {
 	def := reg.Definition()
 	if def == nil {
 		return fmt.Errorf("no Definition found")
@@ -109,17 +109,13 @@ func (this *_Registry) Register(reg Registerable, group ...string) error {
 	}
 	logger.Infof("Registering webhook %s", def.GetName())
 
-	if len(group) == 0 {
-		err := this.addToGroup(def, groups.DEFAULT)
+	if len(grps) == 0 {
+		grps = []string{groups.DEFAULT}
+	}
+	for _, g := range grps {
+		err := this.addToGroup(def, g)
 		if err != nil {
 			return err
-		}
-	} else {
-		for _, g := range group {
-			err := this.addToGroup(def, g)
-			if err != nil {
-				return err
-			}
 		}
 	}
 	this.definitions[def.GetName()] = def

@@ -40,7 +40,7 @@ func (this Groups) String() string {
 
 type Definitions interface {
 	Get(name string) Definition
-	Activate(log logger.LogContext, elems []string) (utils.StringSet, error)
+	Members(log logger.LogContext, elems []string) (utils.StringSet, error)
 	AllGroups() Groups
 	AllMembers() utils.StringSet
 	AllNonExplicitMembers() utils.StringSet
@@ -74,7 +74,7 @@ func (this *_Definition) ActivateExplicitlyMembers() utils.StringSet {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *_Definitions) Activate(log logger.LogContext, members []string) (utils.StringSet, error) {
+func (this *_Definitions) Members(log logger.LogContext, members []string) (utils.StringSet, error) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	active := utils.StringSet{}

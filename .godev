@@ -1,0 +1,6 @@
+
+# name: lib
+# name: cml
+
+export KUBECONFIG=/home/d021770/k8s/CLUSTERS/dnslb-test
+

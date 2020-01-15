@@ -23,6 +23,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"k8s.io/apimachinery/pkg/runtime"
+	"reflect"
 	"time"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -33,6 +34,19 @@ import (
 func NamespaceSelection(namespace string) WatchSelectionFunction {
 	return func(c Interface) (string, resources.TweakListOptionsFunc) {
 		return namespace, nil
+	}
+}
+
+func OptionSourceCreator(proto config.OptionSource) extension.OptionSourceCreator {
+	if proto == nil {
+		return nil
+	}
+	t := reflect.TypeOf(proto)
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return func() config.OptionSource {
+		return reflect.New(t).Interface().(config.OptionSource)
 	}
 }
 
@@ -112,6 +126,7 @@ type _Definition struct {
 	require_lease        bool
 	pools                map[string]PoolDefinition
 	configs              extension.OptionDefinitions
+	configsources        extension.OptionSourceDefinitions
 	finalizerName        string
 	finalizerDomain      string
 	crds                 map[string][]*CustomResourceDefinition
@@ -218,6 +233,14 @@ func (this *_Definition) ConfigOptions() map[string]OptionDefinition {
 	return cfgs
 }
 
+func (this *_Definition) ConfigOptionSources() extension.OptionSourceDefinitions {
+	cfgs := extension.OptionSourceDefinitions{}
+	for n, d := range this.configsources {
+		cfgs[n] = d
+	}
+	return cfgs
+}
+
 func (this *_Definition) ActivateExplicitly() bool {
 	return this.activateExplicitly
 }
@@ -233,10 +256,11 @@ type Configuration struct {
 func Configure(name string) Configuration {
 	return Configuration{
 		settings: _Definition{
-			name:        name,
-			reconcilers: map[string]ReconcilerType{},
-			pools:       map[string]PoolDefinition{},
-			configs:     extension.OptionDefinitions{},
+			name:          name,
+			reconcilers:   map[string]ReconcilerType{},
+			pools:         map[string]PoolDefinition{},
+			configs:       extension.OptionDefinitions{},
+			configsources: extension.OptionSourceDefinitions{},
 		},
 		cluster: CLUSTER_MAIN,
 		pool:    DEFAULT_POOL,
@@ -488,6 +512,14 @@ func (this Configuration) addOption(name string, t config.OptionType, def interf
 		panic(fmt.Sprintf("option %q already defined", name))
 	}
 	this.settings.configs[name] = extension.NewOptionDefinition(name, t, def, desc)
+	return this
+}
+
+func (this Configuration) OptionSource(name string, creator extension.OptionSourceCreator) Configuration {
+	if this.settings.configsources[name] != nil {
+		panic(fmt.Sprintf("option source %q already defined", name))
+	}
+	this.settings.configsources[name] = extension.NewOptionSourceDefinition(name, creator)
 	return this
 }
 

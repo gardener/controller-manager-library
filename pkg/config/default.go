@@ -84,12 +84,7 @@ func (this *DefaultOptionSet) GetOption(name string) *ArbitraryOption {
 }
 
 func (this *DefaultOptionSet) GetSource(key string) OptionSource {
-	for n, t := range this.nestedSources {
-		if n == key {
-			return t
-		}
-	}
-	return nil
+	return this.nestedSources[key]
 }
 
 func (this *DefaultOptionSet) VisitOptions(f OptionVisitor) {
@@ -100,7 +95,7 @@ func (this *DefaultOptionSet) VisitOptions(f OptionVisitor) {
 	}
 }
 
-func (this *DefaultOptionSet) VisitSources(f func(key string, src OptionSource) bool) {
+func (this *DefaultOptionSet) VisitSources(f OptionSourceVisitor) {
 	for n, t := range this.nestedSources {
 		if !f(n, t) {
 			return

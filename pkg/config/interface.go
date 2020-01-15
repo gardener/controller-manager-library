@@ -74,10 +74,13 @@ type OptionEvaluator interface {
 	Evaluate() error
 }
 
+// OptionSourceVisitor is used to visit sources in an OptionGroup
+type OptionSourceVisitor func(string, OptionSource) bool
+
 // OptionSourceSource is a group of OptionSource
 type OptionSourceSource interface {
 	Name() string
-	VisitSources(func(string, OptionSource) bool)
+	VisitSources(OptionSourceVisitor)
 	GetSource(key string) OptionSource
 }
 
@@ -96,6 +99,13 @@ type Options interface {
 	GetOption(name string) *ArbitraryOption
 
 	VisitOptions(OptionVisitor)
+}
+
+// OptionGroup is a group set of options and option sources
+// offering access to options
+type OptionGroup interface {
+	Options
+	OptionSourceSource
 }
 
 // OptionSet is an OptionSource that can be used to add arbitrary options,

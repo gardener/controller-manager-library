@@ -31,6 +31,8 @@ type SharedOptionSet struct {
 	descriptionMapper StringMapper
 }
 
+var _ OptionGroup = (*SharedOptionSet)(nil)
+
 func NewSharedOptionSet(name, prefix string, descMapper StringMapper) *SharedOptionSet {
 	if descMapper == nil {
 		descMapper = IdenityStringMapper

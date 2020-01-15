@@ -144,6 +144,7 @@ type Definition interface {
 	FinalizerName() string
 	ActivateExplicitly() bool
 	ConfigOptions() map[string]OptionDefinition
+	ConfigOptionSources() extension.OptionSourceDefinitions
 
 	Scheme() *runtime.Scheme
 

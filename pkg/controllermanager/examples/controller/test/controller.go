@@ -19,6 +19,7 @@
 package test
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
@@ -35,8 +36,17 @@ func init() {
 		DefaultWorkerPool(10, 0*time.Second).
 		Commands("poll").
 		StringOption("test", "Controller argument").
+		OptionSource("test", controller.OptionSourceCreator(&Config{})).
 		MainResource("core", "ConfigMap", controller.NamespaceSelection("default")).
 		MustRegister()
+}
+
+type Config struct {
+	option string
+}
+
+func (this *Config) AddOptionsToSet(set config.OptionSet) {
+	set.AddStringOption(&this.option, "option", "", "", "2nd controller argument")
 }
 
 type reconciler struct {
@@ -53,6 +63,11 @@ func Create(controller controller.Interface) (reconcile.Interface, error) {
 	val, err := controller.GetStringOption("test")
 	if err == nil {
 		controller.Infof("found option test: %s", val)
+	}
+
+	config, err := controller.GetOptionSource("test")
+	if err == nil {
+		controller.Infof("found option option: %s", config.(*Config).option)
 	}
 
 	return &reconciler{controller: controller}, nil

@@ -208,6 +208,7 @@ type ElementBase interface {
 
 	GetContext() context.Context
 
+	GetOptionSource(name string) (config.OptionSource, error)
 	GetOption(name string) (*config.ArbitraryOption, error)
 	GetBoolOption(name string) (bool, error)
 	GetStringOption(name string) (string, error)
@@ -221,10 +222,10 @@ type elementBase struct {
 	name     string
 	typeName string
 	context  context.Context
-	options  config.Options
+	options  config.OptionGroup
 }
 
-func NewElementBase(ctx context.Context, valueType ctxutil.ValueKey, element interface{}, name string, set config.Options) ElementBase {
+func NewElementBase(ctx context.Context, valueType ctxutil.ValueKey, element interface{}, name string, set config.OptionGroup) ElementBase {
 	ctx = valueType.WithValue(ctx, name)
 	ctx, logctx := logger.WithLogger(ctx, valueType.Name(), name)
 	return &elementBase{
@@ -254,6 +255,14 @@ func (this *elementBase) GetOption(name string) (*config.ArbitraryOption, error)
 		return nil, fmt.Errorf("unknown option %q for %s %q", name, this.GetType(), this.GetName())
 	}
 	return opt, nil
+}
+
+func (this *elementBase) GetOptionSource(name string) (config.OptionSource, error) {
+	src := this.options.GetSource(name)
+	if src == nil {
+		return nil, fmt.Errorf("unknown option source %q for %s %q", name, this.GetType(), this.GetName())
+	}
+	return src, nil
 }
 
 func (this *elementBase) GetBoolOption(name string) (bool, error) {
@@ -307,6 +316,17 @@ type OptionDefinition interface {
 
 type OptionDefinitions map[string]OptionDefinition
 
+////////////////////////////////////////////////////////////////////////////////
+
+type OptionSourceCreator func() config.OptionSource
+
+type OptionSourceDefinition interface {
+	GetName() string
+	Create() config.OptionSource
+}
+
+type OptionSourceDefinitions map[string]OptionSourceDefinition
+
 ///////////////////////////////////////////////////////////////////////////////
 
 type DefaultOptionDefinition struct {
@@ -337,3 +357,22 @@ func (this *DefaultOptionDefinition) Description() string {
 }
 
 var _ OptionDefinition = &DefaultOptionDefinition{}
+
+///////////////////////////////////////////////////////////////////////////////
+
+type DefaultOptionSourceSefinition struct {
+	name    string
+	creator OptionSourceCreator
+}
+
+func NewOptionSourceDefinition(name string, creator OptionSourceCreator) OptionSourceDefinition {
+	return &DefaultOptionSourceSefinition{name, creator}
+}
+
+func (this *DefaultOptionSourceSefinition) GetName() string {
+	return this.name
+}
+
+func (this *DefaultOptionSourceSefinition) Create() config.OptionSource {
+	return this.creator()
+}

@@ -38,6 +38,8 @@ func NewControllerConfig(controller string) *ControllerConfig {
 const POOL_SIZE_OPTION = "pool.size"
 const POOL_RESYNC_PERIOD_OPTION = "pool.resync-period"
 
+const CONTROLLER_SET_PREFIX = "controller."
+
 func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 
 	for name, def := range this.definitions {
@@ -60,6 +62,9 @@ func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 
 		for oname, o := range def.ConfigOptions() {
 			set.AddOption(o.Type(), nil, oname, "", o.Default(), o.Description())
+		}
+		for oname, o := range def.ConfigOptionSources() {
+			set.AddSource(CONTROLLER_SET_PREFIX+oname, o.Create())
 		}
 	}
 }

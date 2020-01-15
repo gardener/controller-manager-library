@@ -289,6 +289,14 @@ func (this *controller) GetDefinition() Definition {
 	return this.definition
 }
 
+func (this *controller) GetOptionSource(name string) (config.OptionSource, error) {
+	src := this.options.PrefixedShared().GetSource(CONTROLLER_SET_PREFIX + name)
+	if src == nil {
+		return nil, fmt.Errorf("option source %s not found for controller %s", name, this.GetName())
+	}
+	return src, nil
+}
+
 func (this *controller) GetClusterHandler(name string) (*ClusterHandler, error) {
 	cluster := this.GetCluster(name)
 

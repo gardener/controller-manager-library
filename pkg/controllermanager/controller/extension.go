@@ -129,7 +129,7 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 	groups := defs.Groups()
 	ext.Infof("configured groups: %s", groups.AllGroups())
 
-	active, err := groups.Activate(ext, strings.Split(cfg.Controllers, ","))
+	active, err := groups.Members(ext, strings.Split(cfg.Controllers, ","))
 	if err != nil {
 		return nil, err
 	}

@@ -79,6 +79,7 @@ type GenericOptionSource struct {
 var _ Options = (*GenericOptionSource)(nil)
 var _ OptionSource = (*GenericOptionSource)(nil)
 var _ OptionSourceSource = (*GenericOptionSource)(nil)
+var _ OptionGroup = (*GenericOptionSource)(nil)
 
 func NewGenericOptionSource(name, prefix string, descmapper StringMapper) *GenericOptionSource {
 	return &GenericOptionSource{
@@ -174,7 +175,7 @@ func (this *GenericOptionSource) PrefixedShared() OptionSet {
 	})
 }
 
-func (this *GenericOptionSource) VisitSources(f func(string, OptionSource) bool) {
+func (this *GenericOptionSource) VisitSources(f OptionSourceVisitor) {
 	this.call(func(set OptionSet) interface{} {
 		if !f(set.Name(), set) {
 			return false
