@@ -68,7 +68,9 @@ func Failed(logger logger.LogContext, err error) Status {
 }
 
 func Recheck(logger logger.LogContext, err error, interval ...time.Duration) Status {
-	logger.Error(err)
+	if err != nil {
+		logger.Error(err)
+	}
 	i := 30 * time.Minute
 	if len(interval) > 0 {
 		i = interval[0]
