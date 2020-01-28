@@ -29,6 +29,24 @@ import (
 
 type controllers []*controller
 
+func (this controllers) deps() map[string]controllers {
+	deps := map[string]controllers{}
+
+	for _, c := range this {
+		n := c.GetName()
+		def := c.GetDefinition()
+		for _, a := range def.After() {
+			if d := this.Get(a); d != nil {
+				deps[n] = append(deps[n], d)
+			}
+		}
+		for _, b := range def.Before() {
+			deps[b] = append(deps[b], c)
+		}
+	}
+	return deps
+}
+
 func (this controllers) Contains(cntr *controller) bool {
 	for _, c := range this {
 		if c == cntr {
@@ -51,7 +69,7 @@ func (this controllers) getOrder(logger logger.LogContext) (controllers, error) 
 	order := controllers{}
 	stack := controllers{}
 	for _, c := range this {
-		err := this._orderAdd(logger, &order, stack, c)
+		err := this._orderAdd(logger, this.deps(), &order, stack, c)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +77,7 @@ func (this controllers) getOrder(logger logger.LogContext) (controllers, error) 
 	return order, nil
 }
 
-func (this controllers) _orderAdd(logger logger.LogContext, order *controllers, stack controllers, c *controller) error {
+func (this controllers) _orderAdd(logger logger.LogContext, depsmap map[string]controllers, order *controllers, stack controllers, c *controller) error {
 	if stack.Contains(c) {
 		cycle := ""
 		for _, s := range stack {
@@ -74,16 +92,14 @@ func (this controllers) _orderAdd(logger logger.LogContext, order *controllers, 
 	}
 	if !(*order).Contains(c) {
 		stack = append(stack, c)
-		after := c.GetDefinition().After()
-		if len(after) > 0 {
+		deps := depsmap[c.GetName()]
+		if len(deps) > 0 {
 			preferred := []string{}
-			for _, a := range after {
-				if dep := this.Get(a); dep != nil {
-					preferred = append(preferred, a)
-					err := this._orderAdd(logger, order, stack, dep)
-					if err != nil {
-						return err
-					}
+			for _, dep := range deps {
+				preferred = append(preferred, dep.GetName())
+				err := this._orderAdd(logger, depsmap, order, stack, dep)
+				if err != nil {
+					return err
 				}
 			}
 			if len(preferred) > 0 {

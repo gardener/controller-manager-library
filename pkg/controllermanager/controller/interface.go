@@ -36,9 +36,9 @@ type ReconcilerType func(Interface) (reconcile.Interface, error)
 
 type Environment interface {
 	extension.Environment
+	SharedAttributes
+
 	GetConfig() *areacfg.Config
-	GetSharedValue(key interface{}) interface{}
-	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
 }
 
 type Pool interface {
@@ -51,6 +51,7 @@ type Pool interface {
 
 type Interface interface {
 	extension.ElementBase
+	SharedAttributes
 
 	IsReady() bool
 	Owning() ResourceKey
@@ -62,9 +63,6 @@ type Interface interface {
 	GetCluster(name string) cluster.Interface
 	GetClusterAliases(eff string) utils.StringSet
 	GetDefinition() Definition
-
-	GetSharedValue(key interface{}) interface{}
-	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
 
 	HasFinalizer(obj resources.Object) bool
 	SetFinalizer(obj resources.Object) error
@@ -137,6 +135,7 @@ type Definition interface {
 	Pools() map[string]PoolDefinition
 	ResourceFilters() []ResourceFilter
 	After() []string
+	Before() []string
 	RequiredClusters() []string
 	RequiredControllers() []string
 	CustomResourceDefinitions() map[string][]*CustomResourceDefinition

@@ -33,6 +33,7 @@ type ObjectMatcher = abstract.ObjectMatcher
 type ObjectNameProvider = abstract.ObjectNameProvider
 type ObjectName = abstract.ObjectName
 type ObjectDataName = abstract.ObjectDataName
+type GenericObjectName = abstract.GenericObjectName
 type ObjectData = abstract.ObjectData
 type Decoder = abstract.Decoder
 

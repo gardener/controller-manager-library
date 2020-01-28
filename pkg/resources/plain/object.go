@@ -29,13 +29,13 @@ type _object struct {
 
 var _ Object = &_object{}
 
-func NewObject(data ObjectData, resource Interface) Object {
+func newObject(data ObjectData, resource Interface) Object {
 	return &_object{abstract.NewAbstractObject(data, resource)}
 }
 
 func (this *_object) DeepCopy() Object {
 	data := this.ObjectData.DeepCopyObject().(ObjectData)
-	return NewObject(data, this.GetResource())
+	return newObject(data, this.GetResource())
 }
 
 /////////////////////////////////////////////////////////////////////////////////

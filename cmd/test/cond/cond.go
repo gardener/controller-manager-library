@@ -17,10 +17,11 @@
 package cond
 
 import (
+	"context"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile/conditions"
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
-	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/conditions"
+	"github.com/gardener/controller-manager-library/pkg/resources/plain"
 	"k8s.io/api/core/v1"
 	"time"
 )
@@ -64,7 +65,7 @@ func CondMain() {
 
 	my2 = &My{}
 
-	cd := ctype.GetCondition(my2)
+	cd := ctype.Get(my2)
 	cd.AssureInterface().(*MyCondition).Message = "It works"
 
 	cd.SetStatus("done")
@@ -79,7 +80,7 @@ func CondMain() {
 	}
 	fmt.Printf("%t: %#v\n", cd.IsModified(), my2)
 
-	cd = ctype.GetCondition(my2)
+	cd = ctype.Get(my2)
 	cd.SetStatus("done")
 	fmt.Printf("modified %t\n", cd.IsModified())
 
@@ -95,7 +96,9 @@ func CondMain() {
 	podt := conditions.NewConditionLayout(conditions.TransitionTimeField("LastTransitionTime"))
 	podc := conditions.NewConditionType("Test", podt)
 	pod := &v1.Pod{}
-	mod := resources.NewModificationState(resources.NewObject(pod, nil))
+	resc := plain.NewResourceContext(context.TODO(), nil).Resources()
+	obj, err := resc.Wrap(pod)
+	mod := plain.NewModificationState(obj)
 	cd = mod.Condition(podc)
 	cd.SetMessage("test")
 	err = cd.SetTransitionTime(time.Now())

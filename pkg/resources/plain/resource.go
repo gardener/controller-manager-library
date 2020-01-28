@@ -62,5 +62,5 @@ func (this *_resource) Wrap(obj ObjectData) (Object, error) {
 }
 
 func (this *_resource) objectAsResource(obj ObjectData) Object {
-	return NewObject(obj, this)
+	return newObject(obj, this)
 }

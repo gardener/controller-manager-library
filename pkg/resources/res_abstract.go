@@ -73,7 +73,7 @@ func (this *AbstractResource) Namespace(namespace string) Namespaced {
 // Resource Helper
 
 func (this *ResourceHelper) ObjectAsResource(obj ObjectData) Object {
-	return NewObject(obj, this.Internal)
+	return newObject(obj, this.Internal)
 }
 
 func (this *ResourceHelper) Get(namespace, name string, result ObjectData) (Object, error) {

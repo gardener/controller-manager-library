@@ -82,7 +82,8 @@ func (this *ReadyFlag) start() {
 type controller struct {
 	extension.ElementBase
 	record.EventRecorder
-	SharedAttributes
+
+	sharedAttributes
 
 	ready       ReadyFlag
 	definition  Definition
@@ -125,6 +126,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 
 	ctx := ctxutil.WaitGroupContext(env.GetContext())
 	this.ElementBase = extension.NewElementBase(ctx, ctx_controller, this, def.GetName(), options)
+	this.sharedAttributes.LogContext = this.ElementBase
 	this.ready.start()
 
 	required := cluster.Canonical(def.RequiredClusters())

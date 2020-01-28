@@ -25,10 +25,10 @@ import (
 )
 
 type ModificationHandler interface {
-	Modified(interface{})
+	Modified(*Condition)
 }
 
-////////////////////////////////////////////////////////////////////////////////
+type ModificationHandlers []ModificationHandler
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -40,11 +40,11 @@ type Condition struct {
 	conds    *reflect.Value
 	cond     *reflect.Value
 	modified bool
-	handlers []ModificationHandler
+	handlers ModificationHandlers
 }
 
 func newCondition(o interface{}, ctype *ConditionType, conds *reflect.Value, cond *reflect.Value) *Condition {
-	return &Condition{reflect.TypeOf(o), ctype, conds, cond, false, []ModificationHandler{}}
+	return &Condition{reflect.TypeOf(o), ctype, conds, cond, false, ModificationHandlers{}}
 }
 
 func (this *Condition) Name() string {
@@ -99,6 +99,18 @@ func (this *Condition) Has() bool {
 	return this != nil && this.cond != nil
 }
 
+func (this *Condition) Delete() (bool, error) {
+	if this == nil || this.conds == nil {
+		return false, fmt.Errorf("no conditions fields in %s", this.otype)
+	}
+	if this.conds.IsNil() {
+		return false, nil
+	}
+	mod := this.ctype._delete(this.conds)
+	this.Modify(mod)
+	return mod, nil
+}
+
 func (this *Condition) Assure() error {
 	if this == nil || this.conds == nil {
 		return fmt.Errorf("no conditions fields in %s", this.otype)
@@ -116,7 +128,7 @@ func (this *Condition) Assure() error {
 
 	err := utils.SetValue(t, this.ctype.name)
 	if err != nil {
-		return fmt.Errorf("cannot set type value for new condition %s in %s: s", this.ctype.name, this.otype, err)
+		return fmt.Errorf("cannot set type value for new condition %s in %s: %s", this.ctype.name, this.otype, err)
 	}
 	this.conds.Set(reflect.Append(*this.conds, v.Elem()))
 
@@ -333,6 +345,51 @@ func NewConditionLayout(cfg ...TweakFunction) *ConditionLayout {
 	return c
 }
 
+func (this *ConditionLayout) For(o interface{}) (*Conditions, error) {
+	return newConditions(this, o)
+}
+
+func (this *ConditionLayout) conditions(o interface{}) *reflect.Value {
+	v := reflect.ValueOf(o)
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	if v.Kind() == reflect.Struct {
+		f := v.FieldByName(this.statusField)
+		if f.Kind() != reflect.Invalid {
+			v = f
+		}
+	}
+	v = v.FieldByName(this.conditionsField)
+	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
+		return nil
+	}
+	return &v
+}
+
+func (this *ConditionLayout) Types(o interface{}) utils.StringSet {
+	v := this.conditions(o)
+	if v == nil {
+		return nil
+	}
+	return this._types(v)
+}
+
+func (this *ConditionLayout) _types(conds *reflect.Value) utils.StringSet {
+	set := utils.StringSet{}
+	for i := 0; i < conds.Len(); i++ {
+		c := conds.Index(i)
+		if c.Kind() == reflect.Struct {
+			f := c.FieldByName(this.cTypeField)
+			if f.Kind() == reflect.String {
+				set.Add(f.String())
+			}
+		}
+	}
+	return set
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 // ConditionType represents a dedicated kind of condition for a dedicated
@@ -361,42 +418,45 @@ func (this *ConditionType) Name() string {
 	return this.name
 }
 
-func (this *ConditionType) conditions(o interface{}) *reflect.Value {
-	v := reflect.ValueOf(o)
-	for v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if v.Kind() == reflect.Struct {
-		f := v.FieldByName(this.statusField)
-		if f.Kind() != reflect.Invalid {
-			v = f
-		}
-	}
-	v = v.FieldByName(this.conditionsField)
-	if v.Kind() != reflect.Array && v.Kind() != reflect.Slice {
-		return nil
-	}
-	return &v
+func (this *ConditionType) get(o interface{}) *Condition {
+	return this._get(o, this.conditions(o))
 }
 
-func (this *ConditionType) get(o interface{}) *Condition {
-	v := this.conditions(o)
-	if v == nil {
+func (this *ConditionType) _get(o interface{}, conds *reflect.Value) *Condition {
+	if conds == nil {
 		return nil
 	}
-	for i := 0; i < v.Len(); i++ {
-		c := v.Index(i)
+	for i := 0; i < conds.Len(); i++ {
+		c := conds.Index(i)
 		if c.Kind() == reflect.Struct {
 			f := c.FieldByName(this.cTypeField)
 			if f.Kind() == reflect.String {
 				if f.String() == this.name {
-					return newCondition(o, this, v, &c)
+					return newCondition(o, this, conds, &c)
 				}
 			}
 		}
 	}
-	return newCondition(o, this, v, nil)
+	return newCondition(o, this, conds, nil)
+}
+
+func (this *ConditionType) _delete(conds *reflect.Value) bool {
+	if conds == nil {
+		return false
+	}
+	for i := 0; i < conds.Len(); i++ {
+		c := conds.Index(i)
+		if c.Kind() == reflect.Struct {
+			f := c.FieldByName(this.cTypeField)
+			if f.Kind() == reflect.String {
+				if f.String() == this.name {
+					conds.Set(reflect.AppendSlice(conds.Slice(0, i), conds.Slice(i+1, conds.Len())))
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func (this *ConditionType) Has(o interface{}) bool {
@@ -407,8 +467,16 @@ func (this *ConditionType) GetInterface(o interface{}) interface{} {
 	return this.get(o).Interface()
 }
 
-func (this *ConditionType) GetCondition(o interface{}) *Condition {
+func (this *ConditionType) Get(o interface{}) *Condition {
 	return this.get(o)
+}
+
+func (this *ConditionType) DeleteCondition(o interface{}) bool {
+	conds := this.conditions(o)
+	if conds == nil {
+		return false
+	}
+	return this._delete(conds)
 }
 
 func (this *ConditionType) AssureInterface(o interface{}) interface{} {
@@ -427,8 +495,8 @@ func (this *ConditionType) Assure(o interface{}) *Condition {
 	return c
 }
 
-func (this *ConditionType) Set(o interface{}, name string, value interface{}) error {
-	c := this.GetCondition(o)
+func (this *ConditionType) SetValue(o interface{}, name string, value interface{}) error {
+	c := this.Get(o)
 	if c == nil {
 		return fmt.Errorf("no conditions for %s", reflect.TypeOf(o))
 	}
@@ -439,41 +507,41 @@ func (this *ConditionType) SetMessage(o interface{}, v string) error {
 	if this.cMessageField == "" {
 		return fmt.Errorf("message field not defined for conditions of %s", reflect.TypeOf(o))
 	}
-	return this.Set(o, this.cMessageField, v)
+	return this.SetValue(o, this.cMessageField, v)
 }
 
 func (this *ConditionType) SetStatus(o interface{}, v string) error {
 	if this.cStatusField == "" {
 		return fmt.Errorf("status field not defined for conditions of %s", reflect.TypeOf(o))
 	}
-	return this.Set(o, this.cStatusField, v)
+	return this.SetValue(o, this.cStatusField, v)
 }
 
 func (this *ConditionType) SetReason(o interface{}, v string) error {
 	if this.cReasonField == "" {
 		return fmt.Errorf("reason field not defined for conditions of %s", reflect.TypeOf(o))
 	}
-	return this.Set(o, this.cReasonField, v)
+	return this.SetValue(o, this.cReasonField, v)
 }
 
 func (this *ConditionType) SetTransitionTime(o interface{}, v time.Time) error {
 	if this.cTransitionField == "" {
 		return fmt.Errorf("transition time field not defined for conditions of %s", reflect.TypeOf(o))
 	}
-	return this.Set(o, this.cTransitionField, v)
+	return this.SetValue(o, this.cTransitionField, v)
 }
 
 func (this *ConditionType) SetLastUpdateTime(o interface{}, v time.Time) error {
 	if this.cUpdateField == "" {
 		return fmt.Errorf("last update time field not defined for conditions of %s", reflect.TypeOf(o))
 	}
-	return this.Set(o, this.cUpdateField, v)
+	return this.SetValue(o, this.cUpdateField, v)
 }
 
 ////////
 
-func (this *ConditionType) Get(o interface{}, name string) interface{} {
-	c := this.GetCondition(o)
+func (this *ConditionType) GetValue(o interface{}, name string) interface{} {
+	c := this.Get(o)
 	if c == nil {
 		return nil
 	}
@@ -484,14 +552,14 @@ func (this *ConditionType) GetStringField(o interface{}, name string) string {
 	if name == "" {
 		return ""
 	}
-	return this.GetCondition(o).GetStringField(name)
+	return this.Get(o).GetStringField(name)
 }
 
 func (this *ConditionType) GetTimeField(o interface{}, name string) time.Time {
 	if name == "" {
 		return time.Time{}
 	}
-	return this.GetCondition(o).GetTimeField(name)
+	return this.Get(o).GetTimeField(name)
 }
 
 func (this *ConditionType) GetMessage(o interface{}) string {
@@ -512,6 +580,177 @@ func (this *ConditionType) GetTransitionTime(o interface{}) time.Time {
 
 func (this *ConditionType) GetLastUpdateTime(o interface{}) time.Time {
 	return this.GetTimeField(o, this.cUpdateField)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+type Conditions struct {
+	layout     *ConditionLayout
+	object     interface{}
+	conds      *reflect.Value
+	conditions map[string]*Condition
+	modified   bool
+	handler    ModificationHandler
+	handlers   ModificationHandlers
+}
+
+type modhandler struct {
+	conditions *Conditions
+}
+
+func (this *modhandler) Modified(c *Condition) {
+	this.conditions.modify(c)
+}
+
+func newConditions(layout *ConditionLayout, o interface{}) (*Conditions, error) {
+	conds := layout.conditions(o)
+	if conds == nil {
+		return nil, fmt.Errorf("no conditions field %q in %T", layout.conditionsField, reflect.TypeOf(o))
+	}
+	c := &Conditions{layout, o, conds, map[string]*Condition{}, false, nil, nil}
+	c.handler = &modhandler{c}
+	return c, nil
+}
+
+func (this *Conditions) IsModified() bool {
+	return this.modified
+}
+
+func (this *Conditions) ResetModified() bool {
+	defer func() { this.modified = false }()
+	return this.modified
+}
+
+func (this *Conditions) AddModificationHandler(h ModificationHandler) {
+	this.handlers = append(this.handlers, h)
+	if this.modified {
+		h.Modified(nil)
+	}
+}
+
+func (this *Conditions) modify(c *Condition) {
+	this.modified = true
+	for _, h := range this.handlers {
+		h.Modified(c)
+	}
+}
+
+func (this *Conditions) RemoveModificationHandler(h ModificationHandler) {
+	for i, e := range this.handlers {
+		if e == h {
+			this.handlers = append(this.handlers[:i], this.handlers[i+1:]...)
+			return
+		}
+	}
+}
+
+func (this *Conditions) Types() utils.StringSet {
+	return this.layout._types(this.conds)
+}
+
+func (this *Conditions) Get(name string) *Condition {
+	if c, ok := this.conditions[name]; ok {
+		return c
+	}
+	c := NewConditionType(name, this.layout)._get(this.object, this.conds)
+	c.AddModificationHandler(this.handler)
+	this.conditions[name] = c
+	return c
+}
+
+func (this *Conditions) Delete(name string) bool {
+	c, ok := this.conditions[name]
+	if !ok {
+		c := NewConditionType(name, this.layout)._get(this.object, this.conds)
+		c.AddModificationHandler(this.handler)
+		this.conditions[name] = c
+	}
+	mod, _ := c.Delete()
+	return mod
+}
+
+func (this *Conditions) Modify(m bool) bool {
+	if !this.modified && m {
+		defer this.modify(nil)
+	}
+	this.modified = this.modified || m
+	return this.modified
+}
+
+func (this *Conditions) SetValue(ctype, name string, value interface{}) error {
+	c := this.Get(ctype)
+	return c.Set(name, value)
+}
+
+func (this *Conditions) SetMessage(ctype, v string) error {
+	c := this.Get(ctype)
+	return c.SetMessage(v)
+}
+
+func (this *Conditions) SetStatus(ctype, v string) error {
+	c := this.Get(ctype)
+	return c.SetStatus(v)
+}
+
+func (this *Conditions) SetReason(ctype, v string) error {
+	c := this.Get(ctype)
+	return c.SetReason(v)
+}
+
+func (this *Conditions) SetTransitionTime(ctype string, v time.Time) error {
+	c := this.Get(ctype)
+	return c.SetTransitionTime(v)
+}
+
+func (this *Conditions) SetLastUpdateTime(ctype string, v time.Time) error {
+	c := this.Get(ctype)
+	return c.SetLastUpdateTime(v)
+}
+
+////////
+
+func (this *Conditions) GetValue(ctype, name string) interface{} {
+	c := this.Get(ctype)
+	return c.Get(name)
+}
+
+func (this *Conditions) GetStringField(ctype, name string) string {
+	if name == "" {
+		return ""
+	}
+	return this.Get(ctype).GetStringField(name)
+}
+
+func (this *Conditions) GetTimeField(ctype string, name string) time.Time {
+	if name == "" {
+		return time.Time{}
+	}
+	return this.Get(ctype).GetTimeField(name)
+}
+
+func (this *Conditions) GetMessage(ctype string) string {
+	c := this.Get(ctype)
+	return c.GetMessage()
+}
+
+func (this *Conditions) GetStatus(ctype string) string {
+	c := this.Get(ctype)
+	return c.GetMessage()
+}
+
+func (this *Conditions) GetReason(ctype string) string {
+	c := this.Get(ctype)
+	return c.GetReason()
+}
+
+func (this *Conditions) GetTransitionTime(ctype string) time.Time {
+	c := this.Get(ctype)
+	return c.GetTransitionTime()
+}
+
+func (this *Conditions) GetLastUpdateTime(ctype string) time.Time {
+	c := this.Get(ctype)
+	return c.GetLastUpdateTime()
 }
 
 ////////////////////////////////////////////////////////////////////////////////

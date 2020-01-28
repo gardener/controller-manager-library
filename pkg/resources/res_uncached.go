@@ -155,6 +155,9 @@ func (this *AbstractResource) GetInto(name ObjectName, obj ObjectData) (Object, 
 }
 
 func (this *AbstractResource) Get_(obj interface{}) (Object, error) {
+	return this.Get(obj)
+}
+func (this *AbstractResource) Get(obj interface{}) (Object, error) {
 	gvk := this.GroupVersionKind()
 	switch o := obj.(type) {
 	case string:

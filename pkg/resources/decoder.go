@@ -76,5 +76,8 @@ func (d *Decoder) DecodeFromMap(data map[string]interface{}, into runtime.Object
 
 // DecodeRaw decodes a RawExtension object into the passed-in runtime.Object.
 func (d *Decoder) DecodeRaw(rawObj runtime.RawExtension, into interface{}) error {
-	return d.Decode(rawObj.Raw, into)
+	if rawObj.Size() > 0 {
+		return d.Decode(rawObj.Raw, into)
+	}
+	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
+	"os"
 	"reflect"
 )
 
@@ -28,6 +29,11 @@ type S3 struct {
 	FieldB string
 }
 
+type S4 struct {
+	FieldA []string
+	FieldB *[]string
+}
+
 type Config struct {
 	Users map[string]*User `json:"users,omitempty"`
 }
@@ -35,7 +41,34 @@ type User struct {
 	Token *string `json:"token,omitempty"`
 }
 
+func assert(err error) {
+	if err != nil {
+		panic(err.Error())
+	}
+}
+
+func t1() {
+	A, err := fieldpath.NewField(&S4{}, ".FieldA")
+	assert(err)
+	B, err := fieldpath.NewField(&S4{}, ".FieldB")
+	assert(err)
+
+	s4 := &S4{}
+	assert(A.Set(s4, []string{}))
+	//assert(A.Set(s4,nil))
+	if s4.FieldA == nil {
+		fmt.Printf("A NIL\n")
+	}
+	assert(B.Set(s4, &[]string{}))
+	//assert(B.Set(s4,nil))
+	if s4.FieldA == nil {
+		fmt.Printf("B NIL\n")
+	}
+	os.Exit(1)
+}
+
 func FieldMain() {
+	t1()
 	data, err := ioutil.ReadFile("local/test.yaml")
 	if err == nil {
 

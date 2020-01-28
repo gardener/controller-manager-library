@@ -105,13 +105,14 @@ func (this *ExtensionDefinition) CreateExtension(cm extension.ControllerManager)
 
 type Extension struct {
 	extension.Environment
-	SharedAttributes
+	sharedAttributes
 
 	config        *areacfg.Config
 	definitions   Definitions
 	registrations Registrations
 
 	controllers controllers
+	after       map[string][]string
 
 	plain_groups map[string]StartupGroup
 	lease_groups map[string]StartupGroup
@@ -156,9 +157,23 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		return nil, err
 	}
 
+	after := map[string][]string{}
+
+	for n, d := range registrations {
+		for _, a := range d.After() {
+			if registrations[a] != nil {
+				after[n] = append(after[n], a)
+			}
+		}
+		for _, b := range d.Before() {
+			if registrations[b] != nil {
+				after[b] = append(after[b], n)
+			}
+		}
+	}
 	return &Extension{
 		Environment: ext,
-		SharedAttributes: SharedAttributes{
+		sharedAttributes: sharedAttributes{
 			LogContext: ext,
 		},
 		config:        cfg,
@@ -166,6 +181,7 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		registrations: registrations,
 		prepared:      map[string]*sync.SyncPoint{},
 
+		after:        after,
 		plain_groups: map[string]StartupGroup{},
 		lease_groups: map[string]StartupGroup{},
 	}, nil
@@ -244,9 +260,9 @@ func (this *Extension) checkController(cntr *controller) error {
 // in checkController, so after a successful checkController
 // startController MUST not return an error.
 func (this *Extension) startController(cntr *controller) error {
-	for i, a := range cntr.GetDefinition().After() {
+	for i, a := range this.after[cntr.GetName()] {
 		if i == 0 {
-			cntr.Infof("observing initialization requirements: %s", utils.Strings(cntr.GetDefinition().After()...))
+			cntr.Infof("observing initialization requirements: %s", utils.Strings(this.after[cntr.GetName()]...))
 		}
 		after := this.prepared[a]
 		if after != nil {

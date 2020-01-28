@@ -36,6 +36,7 @@ type ObjectMatcher func(Object) bool
 type ObjectNameProvider = abstract.ObjectNameProvider
 type ObjectName = abstract.ObjectName
 type ObjectDataName = abstract.ObjectDataName
+type GenericObjectName = abstract.GenericObjectName
 type ObjectData = abstract.ObjectData
 
 // TweakListOptionsFunc defines the signature of a helper function
@@ -132,7 +133,9 @@ type Interface interface {
 	GetInto(ObjectName, ObjectData) (Object, error)
 
 	GetCached(interface{}) (Object, error)
+	// GET_ deprecrated: use Get
 	Get_(obj interface{}) (Object, error)
+	Get(obj interface{}) (Object, error)
 	ListCached(selector labels.Selector) ([]Object, error)
 	List(opts metav1.ListOptions) (ret []Object, err error)
 	Create(ObjectData) (Object, error)

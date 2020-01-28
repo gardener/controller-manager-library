@@ -121,6 +121,7 @@ type _Definition struct {
 	commands             Commands
 	resource_filters     []ResourceFilter
 	after                []string
+	before               []string
 	required_clusters    []string
 	required_controllers []string
 	require_lease        bool
@@ -142,6 +143,7 @@ func (this *_Definition) String() string {
 	s += fmt.Sprintf("  clusters:    %s\n", utils.Strings(this.RequiredClusters()...))
 	s += fmt.Sprintf("  required:    %s\n", utils.Strings(this.RequiredControllers()...))
 	s += fmt.Sprintf("  after:       %s\n", utils.Strings(this.After()...))
+	s += fmt.Sprintf("  before:       %s\n", utils.Strings(this.Before()...))
 	s += fmt.Sprintf("  reconcilers: %s\n", toString(this.reconcilers))
 	s += fmt.Sprintf("  watches:     %s\n", toString(this.watches))
 	s += fmt.Sprintf("  commands:    %s\n", toString(this.commands))
@@ -177,6 +179,9 @@ func (this *_Definition) ResourceFilters() []ResourceFilter {
 }
 func (this *_Definition) After() []string {
 	return this.after
+}
+func (this *_Definition) Before() []string {
+	return this.before
 }
 func (this *_Definition) RequiredClusters() []string {
 	if len(this.required_clusters) > 0 {
@@ -248,9 +253,10 @@ func (this *_Definition) ActivateExplicitly() bool {
 ////////////////////////////////////////////////////////////////////////////////
 
 type Configuration struct {
-	settings _Definition
-	cluster  string
-	pool     string
+	settings   _Definition
+	cluster    string
+	pool       string
+	reconciler string
 }
 
 func Configure(name string) Configuration {
@@ -262,8 +268,9 @@ func Configure(name string) Configuration {
 			configs:       extension.OptionDefinitions{},
 			configsources: extension.OptionSourceDefinitions{},
 		},
-		cluster: CLUSTER_MAIN,
-		pool:    DEFAULT_POOL,
+		cluster:    CLUSTER_MAIN,
+		pool:       DEFAULT_POOL,
+		reconciler: DEFAULT_RECONCILER,
 	}
 }
 
@@ -274,6 +281,11 @@ func (this Configuration) Name(name string) Configuration {
 
 func (this Configuration) After(names ...string) Configuration {
 	utils.StringArrayAddUnique(&this.settings.after, names...)
+	return this
+}
+
+func (this Configuration) Before(names ...string) Configuration {
+	utils.StringArrayAddUnique(&this.settings.before, names...)
 	return this
 }
 
@@ -386,6 +398,20 @@ func (this Configuration) SelectedWatch(sel WatchSelectionFunction, group, kind 
 	return this.ReconcilerSelectedWatches(DEFAULT_RECONCILER, sel, NewResourceKey(group, kind))
 }
 
+func (this Configuration) ForWatches(keys ...ResourceKey) Configuration {
+	return this.ReconcilerWatches(this.reconciler, keys...)
+}
+func (this Configuration) ForSelectedWatches(sel WatchSelectionFunction, keys ...ResourceKey) Configuration {
+	return this.ReconcilerSelectedWatches(this.reconciler, sel, keys...)
+}
+
+func (this Configuration) ForWatch(group, kind string) Configuration {
+	return this.ReconcilerWatches(this.reconciler, NewResourceKey(group, kind))
+}
+func (this Configuration) ForSelectedWatch(sel WatchSelectionFunction, group, kind string) Configuration {
+	return this.ReconcilerSelectedWatches(this.reconciler, sel, NewResourceKey(group, kind))
+}
+
 func (this Configuration) ReconcilerWatch(reconciler, group, kind string) Configuration {
 	return this.ReconcilerWatches(reconciler, NewResourceKey(group, kind))
 }
@@ -427,6 +453,14 @@ func (this Configuration) CommandMatchers(cmd ...utils.Matcher) Configuration {
 	return this.ReconcilerCommandMatchers(DEFAULT_RECONCILER, cmd...)
 }
 
+func (this Configuration) ForCommands(cmd ...string) Configuration {
+	return this.ReconcilerCommands(this.reconciler, cmd...)
+}
+
+func (this Configuration) ForCommandMatchers(cmd ...utils.Matcher) Configuration {
+	return this.ReconcilerCommandMatchers(this.reconciler, cmd...)
+}
+
 func (this Configuration) ReconcilerCommands(reconciler string, cmd ...string) Configuration {
 	this.assureCommands()
 	for _, cmd := range cmd {
@@ -445,9 +479,11 @@ func (this Configuration) ReconcilerCommandMatchers(reconciler string, cmd ...ut
 func (this Configuration) Reconciler(t ReconcilerType, name ...string) Configuration {
 	if len(name) == 0 {
 		this.settings.reconcilers[DEFAULT_RECONCILER] = t
+		this.reconciler = DEFAULT_RECONCILER
 	} else {
 		for _, n := range name {
 			this.settings.reconcilers[n] = t
+			this.reconciler = n
 		}
 	}
 	return this

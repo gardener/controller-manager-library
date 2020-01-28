@@ -183,7 +183,7 @@ func (this *_resources) GetObject(spec interface{}) (Object, error) {
 		return nil, err
 	}
 
-	return h.Get_(spec)
+	return h.Get(spec)
 }
 
 func (this *_resources) GetObjectInto(name ObjectName, obj ObjectData) (Object, error) {

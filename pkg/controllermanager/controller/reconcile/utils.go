@@ -87,18 +87,23 @@ func FailedOnError(logger logger.LogContext, err error) Status {
 
 func FinalUpdate(logger logger.LogContext, modified bool, obj resources.Object) Status {
 	if modified {
-		return UpdateStatus(logger, obj.Update())
+		err := obj.Update()
+		if err != nil {
+			if errors.IsConflict(err) {
+				return Repeat(logger, err)
+			}
+		}
+		return DelayOnError(logger, err)
 	}
 	return Succeeded(logger)
 }
 
-func UpdateStatus(logger logger.LogContext, err error) Status {
-	if err != nil {
-		if errors.IsConflict(err) {
-			return Repeat(logger, err)
-		}
-	}
-	return DelayOnError(logger, err)
+func UpdateStatus(logger logger.LogContext, upd resources.ObjectUpdater) Status {
+	return DelayOnError(logger, upd.UpdateStatus())
+}
+
+func Update(logger logger.LogContext, upd resources.ObjectUpdater) Status {
+	return DelayOnError(logger, upd.Update())
 }
 
 ////////////////////////////////////////////////////////////////////////////////

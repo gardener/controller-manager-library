@@ -61,6 +61,10 @@ func (this StringSet) Clear() {
 	}
 }
 
+func (this StringSet) IsEmpty() bool {
+	return len(this) == 0
+}
+
 func (this StringSet) Contains(n string) bool {
 	_, ok := this[n]
 	return ok

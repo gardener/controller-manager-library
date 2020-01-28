@@ -37,7 +37,7 @@ type _object struct {
 
 var _ Object = &_object{}
 
-func NewObject(data ObjectData, resource Internal) Object {
+func newObject(data ObjectData, resource Internal) Object {
 	o := &_object{AbstractObject{}, resource}
 	o.AbstractObject = NewAbstractObject(&_i_object{o}, data, resource.Resource())
 	return o
@@ -45,5 +45,5 @@ func NewObject(data ObjectData, resource Internal) Object {
 
 func (this *_object) DeepCopy() Object {
 	data := this.ObjectData.DeepCopyObject().(ObjectData)
-	return NewObject(data, this.resource)
+	return newObject(data, this.resource)
 }

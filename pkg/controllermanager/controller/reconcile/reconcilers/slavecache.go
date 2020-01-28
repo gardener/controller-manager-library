@@ -36,6 +36,10 @@ type Resources func(c controller.Interface) []resources.Interface
 // requiring slave access
 ////////////////////////////////////////////////////////////////////////////////
 
+type SlaveAccessSink interface {
+	InjectSlaveAccess(*SlaveAccess)
+}
+
 type _resources struct {
 	kinds     []schema.GroupKind
 	resources []resources.Interface
@@ -76,6 +80,10 @@ func newResources(c controller.Interface, f Resources) *_resources {
 		clusters:  clusters,
 	}
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// SlaveAccess used to access a shared slave cache
+////////////////////////////////////////////////////////////////////////////////
 
 type SlaveAccess struct {
 	controller.Interface
@@ -155,6 +163,10 @@ func (this *SlaveAccess) MasterResoures() []resources.Interface {
 
 func (this *SlaveAccess) CreateSlave(obj resources.Object, slave resources.Object) error {
 	return this.slaves.CreateSlave(obj, slave)
+}
+
+func (this *SlaveAccess) CreateOrModifySlave(obj resources.Object, slave resources.Object, mod resources.Modifier) (bool, error) {
+	return this.slaves.CreateOrModifySlave(obj, slave, mod)
 }
 
 func (this *SlaveAccess) UpdateSlave(slave resources.Object) error {
@@ -285,6 +297,9 @@ func NewSlaveReconcilerBySpec(c controller.Interface, reconciler controller.Reco
 	nested, err := NewNestedReconciler(reconciler, r)
 	if err != nil {
 		return nil, err
+	}
+	if s, ok := nested.nested.(SlaveAccessSink); ok {
+		s.InjectSlaveAccess(r.SlaveAccess)
 	}
 	r.NestedReconciler = nested
 	return r, nil
