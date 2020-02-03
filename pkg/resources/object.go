@@ -17,8 +17,9 @@
 package resources
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/utils"
 	"reflect"
+
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 var cluster_key reflect.Type

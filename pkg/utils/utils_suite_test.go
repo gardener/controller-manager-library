@@ -16,13 +16,13 @@
  *
  */
 
-package conditions_test
+package utils
 
 import (
 	"testing"
 )
 
-func TestConfigSuite(t *testing.T) {
+func TestUtilsSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Config Suite")
+	RunSpecs(t, "Utils Suite")
 }

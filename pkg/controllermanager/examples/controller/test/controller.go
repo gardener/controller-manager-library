@@ -19,8 +19,9 @@
 package test
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/config"
 	"time"
+
+	"github.com/gardener/controller-manager-library/pkg/config"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
@@ -94,13 +95,13 @@ func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) r
 }
 
 func (h *reconciler) Delete(logger logger.LogContext, obj resources.Object) reconcile.Status {
-	//logger.Infof("delete infrastructure %s", resources.Description(obj))
+	// logger.Infof("delete infrastructure %s", resources.Description(obj))
 	logger.Infof("should delete")
 	return reconcile.Succeeded(logger)
 }
 
 func (h *reconciler) Deleted(logger logger.LogContext, key resources.ClusterObjectKey) reconcile.Status {
-	//logger.Infof("delete infrastructure %s", resources.Description(obj))
+	// logger.Infof("delete infrastructure %s", resources.Description(obj))
 	logger.Infof("is deleted")
 	return reconcile.Succeeded(logger)
 }
@@ -108,8 +109,8 @@ func (h *reconciler) Deleted(logger logger.LogContext, key resources.ClusterObje
 func (h *reconciler) reconcileConfigMap(logger logger.LogContext, configMap *corev1.ConfigMap) reconcile.Status {
 	logger.Infof("should reconcile configmap")
 	// Example how to add to workqueue
-	//resources, _ := h.controller.Data(configMap)
-	//key, _ := controller.ObjectKeyFunc(resources)
+	// resources, _ := h.controller.Data(configMap)
+	// key, _ := controller.ObjectKeyFunc(resources)
 	//	h.controller.GetWorkqueue().Add(key)
 
 	return reconcile.Succeeded(logger)

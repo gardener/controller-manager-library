@@ -21,11 +21,10 @@ package file
 import (
 	"context"
 	"crypto/tls"
+
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/logger"
-
-	"gopkg.in/fsnotify.v1"
 )
 
 // CertWatcher watches certificate and key files for changes.  When either file

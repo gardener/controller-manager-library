@@ -20,12 +20,13 @@ package run
 
 import (
 	"context"
-	"github.com/gardener/controller-manager-library/pkg/configmain"
-	"github.com/gardener/controller-manager-library/pkg/ctxutil"
-	"github.com/gardener/controller-manager-library/pkg/logger"
 	"log"
 	"os"
 	"runtime/pprof"
+
+	"github.com/gardener/controller-manager-library/pkg/configmain"
+	"github.com/gardener/controller-manager-library/pkg/ctxutil"
+	"github.com/gardener/controller-manager-library/pkg/logger"
 )
 
 type Runner func() error

@@ -17,10 +17,11 @@
 package resources
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
-	"github.com/gardener/controller-manager-library/pkg/utils"
 	api "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 type SecretObject struct {

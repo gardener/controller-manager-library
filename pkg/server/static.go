@@ -17,8 +17,9 @@
 package server
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/logger"
 	"net/http"
+
+	"github.com/gardener/controller-manager-library/pkg/logger"
 )
 
 var servMux = http.NewServeMux()

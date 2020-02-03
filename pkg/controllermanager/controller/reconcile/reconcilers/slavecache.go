@@ -19,14 +19,15 @@ package reconcilers
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/utils"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type Resources func(c controller.Interface) []resources.Interface
@@ -97,9 +98,10 @@ type SlaveAccess struct {
 }
 
 type SlaveAccessSpec struct {
-	Name    string
-	Slaves  Resources
-	Masters Resources
+	Name            string
+	Slaves          Resources
+	Masters         Resources
+	RequeueDeleting bool
 }
 
 func NewSlaveAccess(c controller.Interface, name string, slave_func Resources, master_func Resources) *SlaveAccess {
@@ -335,7 +337,7 @@ func (this *SlaveReconciler) requeueMasters(logger logger.LogContext, masters re
 	for key := range masters {
 		m, err := this.GetObject(key)
 		if err == nil || errors.IsNotFound(err) {
-			if m.IsDeleting() {
+			if !this.spec.RequeueDeleting && m.IsDeleting() {
 				logger.Infof("skipping requeue of deleting master %s", key)
 				continue
 			}

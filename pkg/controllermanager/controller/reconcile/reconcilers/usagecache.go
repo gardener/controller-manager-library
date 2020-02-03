@@ -17,18 +17,19 @@
 package reconcilers
 
 import (
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
-// SlaveAccess to be used as common nested base for all reconcilers
-// requiring slave access
+// UsageAccess to be used as common nested base for all reconcilers
+// requiring usage access
 ////////////////////////////////////////////////////////////////////////////////
 
 type UsageAccess struct {
@@ -48,6 +49,7 @@ type UsageAccessSpec struct {
 	MasterResources  Resources
 	Extractor        resources.UsedExtractor
 	ExtractorFactory UsedExtractorFactory
+	RequeueDeleting  bool
 }
 
 func NewUsageAccessBySpec(c controller.Interface, spec UsageAccessSpec) *UsageAccess {
@@ -207,7 +209,7 @@ func (this *UsageReconciler) requeueMasters(logger logger.LogContext, masters re
 	for key := range masters {
 		m, err := this.GetObject(key)
 		if err == nil || errors.IsNotFound(err) {
-			if m.IsDeleting() {
+			if !this.spec.RequeueDeleting && m.IsDeleting() {
 				logger.Infof("skipping requeue of deleting master %s", key)
 				continue
 			}

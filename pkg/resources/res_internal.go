@@ -17,8 +17,9 @@
 package resources
 
 import (
-	"k8s.io/apimachinery/pkg/api/errors"
 	"sync"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/gardener/controller-manager-library/pkg/informerfactories"
 

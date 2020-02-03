@@ -20,10 +20,11 @@ package config
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
-	"strings"
 )
 
 const OPTION_SOURCE = "webhooks"

@@ -18,10 +18,12 @@ package cluster
 
 import (
 	"fmt"
+	"sync"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/utils"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sync"
 )
 
 ///////////////////////////////////////////////////////////////////////////////

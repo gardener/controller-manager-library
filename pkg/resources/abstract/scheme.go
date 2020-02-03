@@ -20,6 +20,7 @@ package abstract
 
 import (
 	"encoding/json"
+
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -49,7 +50,7 @@ func NewDecoder(scheme *runtime.Scheme) *Decoder {
 		codecfactory:   serializer.NewCodecFactory(scheme),
 		parametercodec: runtime.NewParameterCodec(scheme),
 	}
-	//decoder.decoder=decoder.codecfactory.CodecForVersions(nil, decoder.codecfactory.UniversalDeserializer(), nil, acceptGroupVersioner{})
+	// decoder.decoder=decoder.codecfactory.CodecForVersions(nil, decoder.codecfactory.UniversalDeserializer(), nil, acceptGroupVersioner{})
 	decoder.decoder = decoder.codecfactory.UniversalDeserializer()
 	return decoder
 }

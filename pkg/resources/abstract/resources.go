@@ -22,8 +22,9 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 
 	"github.com/gardener/controller-manager-library/pkg/kutil"
 

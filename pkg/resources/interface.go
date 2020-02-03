@@ -17,7 +17,6 @@
 package resources
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,6 +24,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
 type KeyFilter func(key ClusterObjectKey) bool
@@ -88,7 +89,7 @@ type Modifier func(ObjectData) (bool, error)
 
 type Object interface {
 	abstract.Object
-	//runtime.ObjectData
+	// runtime.ObjectData
 	EventRecorder
 	ResourcesSource
 	ClusterSource

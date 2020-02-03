@@ -19,9 +19,10 @@ package cluster
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime"
 	"os"
 	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/Masterminds/semver"
 

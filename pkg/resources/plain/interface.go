@@ -19,11 +19,13 @@
 package plain
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources"
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
+	"reflect"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"reflect"
+
+	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
 type GroupKindProvider = abstract.GroupKindProvider
@@ -43,7 +45,7 @@ type ResourcesSource interface {
 
 type Object interface {
 	abstract.Object
-	//runtime.ObjectData
+	// runtime.ObjectData
 	ResourcesSource
 
 	DeepCopy() Object

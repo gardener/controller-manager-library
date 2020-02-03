@@ -45,8 +45,9 @@
 package config
 
 import (
-	"github.com/spf13/pflag"
 	"time"
+
+	"github.com/spf13/pflag"
 )
 
 // OptionSource is the interface used to add arbitrary options to an OptionSet.

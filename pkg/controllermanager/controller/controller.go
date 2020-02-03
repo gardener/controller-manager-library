@@ -18,9 +18,15 @@ package controller
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gardener/controller-manager-library/pkg/logger"
+
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/client-go/tools/record"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
@@ -31,23 +37,22 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 	"github.com/gardener/controller-manager-library/pkg/utils"
-	"k8s.io/client-go/tools/record"
 )
 
-type ResourceFilter func(owning ResourceKey, resc resources.Object) bool
+const A_MAINTAINER = "crds.gardener.cloud/maintainer"
 
 type EventRecorder interface {
 	// The resulting event will be created in the same namespace as the reference object.
-	//Event(object runtime.ObjectData, eventtype, reason, message string)
+	// Event(object runtime.ObjectData, eventtype, reason, message string)
 
 	// Eventf is just like Event, but with Sprintf for the message field.
-	//Eventf(object runtime.ObjectData, eventtype, reason, messageFmt string, args ...interface{})
+	// Eventf(object runtime.ObjectData, eventtype, reason, messageFmt string, args ...interface{})
 
 	// PastEventf is just like Eventf, but with an option to specify the event's 'timestamp' field.
-	//PastEventf(object runtime.ObjectData, timestamp metav1.Time, eventtype, reason, messageFmt string, args ...interface{})
+	// PastEventf(object runtime.ObjectData, timestamp metav1.Time, eventtype, reason, messageFmt string, args ...interface{})
 
 	// AnnotatedEventf is just like eventf, but with annotations attached
-	//AnnotatedEventf(object runtime.ObjectData, annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{})
+	// AnnotatedEventf(object runtime.ObjectData, annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{})
 }
 
 type _ReconcilerMapping struct {
@@ -157,15 +162,36 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 			this.Infof("deployment of required crds is disabled for cluster %q (used for %q)", cluster.GetName(), n)
 			continue
 		}
-		this.Infof("create required crds for cluster %q (used for %q)", cluster.GetName(), n)
+		this.Infof("ensure required crds for cluster %q (used for %q)", cluster.GetName(), n)
 		for _, v := range crds {
 			crd := v.GetFor(cluster)
 			if crd != nil {
-				this.Infof("   %s", crd.Name)
-				err := apiextensions.CreateCRDFromObject(cluster, crd)
+				var err error
+
+				msg := logger.NewOptionalSingletonMessage(this.Infof, "  foreign %s", crd.Name)
+				resources.SetAnnotation(crd, A_MAINTAINER, env.ControllerManager().GetName())
+				found, err := cluster.Resources().GetObject(crd)
+				if err == nil {
+					if found.GetAnnotation(A_MAINTAINER) == env.ControllerManager().GetName() {
+						msg.ResetWith("  uptodate %s", crd.Name)
+						found.Modify(func(data resources.ObjectData) (bool, error) {
+							spec := &(data.(*v1beta1.CustomResourceDefinition).Spec)
+							if !reflect.DeepEqual(spec, &crd.Spec) {
+								msg.Default("  updating %s", crd.Name)
+								*spec = crd.Spec
+								return true, nil
+							}
+							return false, nil
+						})
+					}
+				} else {
+					msg.Default("  creating %s", crd.Name)
+					err = apiextensions.CreateCRDFromObject(cluster, crd)
+				}
 				if err != nil {
 					return nil, fmt.Errorf("creating CRD for %s failed: %s", crd.Name, err)
 				}
+				msg.Once()
 			}
 		}
 	}
@@ -494,7 +520,7 @@ func (this *controller) Run() {
 func (this *controller) mustHandle(r resources.Object) bool {
 	for _, f := range this.filters {
 		if !f(this.owning.ResourceType(), r) {
-			this.Infof("%s rejected by filter %v", r.Description(), f)
+			this.Debugf("%s rejected by filter", r.Description())
 			return false
 		}
 	}

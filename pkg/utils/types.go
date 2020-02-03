@@ -28,7 +28,11 @@ func IsNil(o interface{}) bool {
 		return true
 	}
 	v := reflect.ValueOf(o)
-	return v.Kind() == reflect.Ptr && v.IsNil()
+	switch v.Kind() {
+	case reflect.Chan, reflect.Func, reflect.Map, reflect.Slice, reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
+		return v.IsNil()
+	}
+	return false
 }
 
 func SetValue(f reflect.Value, v interface{}) error {

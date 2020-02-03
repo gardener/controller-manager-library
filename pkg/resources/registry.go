@@ -17,9 +17,10 @@
 package resources
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
 func DeclareDefaultVersion(gv schema.GroupVersion) {

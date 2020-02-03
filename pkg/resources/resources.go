@@ -17,10 +17,11 @@
 package resources
 
 import (
+	"reflect"
+
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 	"github.com/gardener/controller-manager-library/pkg/resources/errors"
-	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"

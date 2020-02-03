@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
@@ -54,6 +55,16 @@ func t1() {
 	assert(err)
 
 	s4 := &S4{}
+
+	v,err:= A.Get(s4)
+	assert(err)
+	if v!=nil {
+		fmt.Printf("Got value instead of nil\n")
+		if utils.IsNil(v) {
+			fmt.Printf("...but got nil pointer in interface\n")
+		}
+	}
+
 	assert(A.Set(s4, []string{}))
 	//assert(A.Set(s4,nil))
 	if s4.FieldA == nil {

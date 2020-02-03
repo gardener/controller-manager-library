@@ -196,7 +196,7 @@ func (this *ResourceInfos) update() error {
 		logger.Infof("found %d resources", len(list))
 	}
 	for _, rl := range list {
-		//fmt.Printf("# PREFERRED: %s\n", rl.GroupVersion)
+		// fmt.Printf("# PREFERRED: %s\n", rl.GroupVersion)
 		gv, _ := schema.ParseGroupVersion(rl.GroupVersion)
 		for _, r := range rl.APIResources {
 			this.preferredVersions[NewGroupKind(gv.Group, r.Kind)] = gv.Version

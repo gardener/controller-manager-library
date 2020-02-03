@@ -21,12 +21,14 @@ package extension
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sync"
-	"time"
 
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -141,6 +143,7 @@ type ControllerManager interface {
 
 type Environment interface {
 	logger.LogContext
+	ControllerManager() ControllerManager
 	Name() string
 	Namespace() string
 	GetContext() context.Context
@@ -168,6 +171,10 @@ func NewDefaultEnvironment(ctx context.Context, name string, manager ControllerM
 		context:    logger.Set(ctx, logctx),
 		manager:    manager,
 	}
+}
+
+func (this *environment) ControllerManager() ControllerManager {
+	return this.manager
 }
 
 func (this *environment) Name() string {

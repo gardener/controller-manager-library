@@ -20,8 +20,10 @@ package plain
 
 import (
 	"context"
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
+
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
 type ResourceContext interface {

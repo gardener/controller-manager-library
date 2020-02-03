@@ -76,7 +76,7 @@ type Resource interface {
 type Object interface {
 	metav1.Object
 	GroupKindProvider
-	//runtime.ObjectData
+	// runtime.ObjectData
 
 	GroupVersionKind() schema.GroupVersionKind
 	ObjectName() ObjectName
@@ -91,6 +91,7 @@ type Object interface {
 	RemoveFinalizer(key string) error
 
 	GetLabel(name string) string
+	GetAnnotation(name string) string
 
 	IsDeleting() bool
 

@@ -18,6 +18,7 @@ package mappings
 
 import (
 	"fmt"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/groups"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )

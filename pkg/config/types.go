@@ -19,9 +19,11 @@
 package config
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/utils"
-	"github.com/spf13/pflag"
 	"time"
+
+	"github.com/spf13/pflag"
+
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 type OptionType interface {

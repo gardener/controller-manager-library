@@ -147,7 +147,7 @@ func (l *rwlock) TestAndLock() bool {
 	if l.locked > 0 {
 		return false
 	}
-	//fmt.Printf("- test lock\n")
+	// fmt.Printf("- test lock\n")
 	l.locked = 1
 	l.writelock = true
 	return true
@@ -158,7 +158,7 @@ func (l *rwlock) LockN(notify chan<- struct{}) {
 	if l.locked > 0 {
 		l.wait(true, notify)
 	}
-	//fmt.Printf("- lock\n")
+	// fmt.Printf("- lock\n")
 	l.locked = 1
 	l.writelock = true
 	l.lock.Unlock()
@@ -179,7 +179,7 @@ func (l *rwlock) TestAndRLock() bool {
 	if !l.queue.empty() || l.writelock {
 		return false
 	}
-	//fmt.Printf("- test read lock\n")
+	// fmt.Printf("- test read lock\n")
 	l.locked++
 	l.writelock = false
 	return true
@@ -190,7 +190,7 @@ func (l *rwlock) RLockN(notify chan<- struct{}) {
 	if !l.queue.empty() || l.writelock {
 		l.wait(false, notify)
 	}
-	//fmt.Printf("- read lock\n")
+	// fmt.Printf("- read lock\n")
 	l.locked++
 	l.writelock = false
 	l.next(false)
@@ -204,7 +204,7 @@ func (l *rwlock) wait(writer bool, notify chan<- struct{}) {
 	b := l.queue.enqueue(writer)
 	l.lock.Unlock()
 	if notify != nil {
-		//fmt.Printf("- notify block\n")
+		// fmt.Printf("- notify block\n")
 		notify <- struct{}{}
 	}
 	b.wait()
@@ -218,7 +218,7 @@ func (l *rwlock) unlock(writer bool) {
 	if l.writelock != writer {
 		panic("Unlock for wrong lock type")
 	}
-	//fmt.Printf("- unlock %t (%d)\n", writer, l.locked)
+	// fmt.Printf("- unlock %t (%d)\n", writer, l.locked)
 	l.writelock = false
 	l.locked--
 	l.next(writer || l.locked == 0)
@@ -226,7 +226,7 @@ func (l *rwlock) unlock(writer bool) {
 
 func (l *rwlock) next(allkinds bool) {
 	if !l.queue.empty() && (l.queue.next.writer == allkinds || allkinds) {
-		//fmt.Printf("- wakeup\n")
+		// fmt.Printf("- wakeup\n")
 		l.queue.dequeue().wakeup()
 	} else {
 		l.lock.Unlock()

@@ -17,9 +17,10 @@
 package resources
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	api "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 )
 
 type ServiceObject struct {

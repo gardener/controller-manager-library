@@ -19,8 +19,9 @@
 package plain
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 	"reflect"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )

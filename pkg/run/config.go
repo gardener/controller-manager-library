@@ -19,11 +19,12 @@
 package run
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/config"
-	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"io/ioutil"
 	"os"
 	"strings"
+
+	"github.com/gardener/controller-manager-library/pkg/config"
+	"github.com/gardener/controller-manager-library/pkg/configmain"
 )
 
 const OPTION_SOURCE = "run"

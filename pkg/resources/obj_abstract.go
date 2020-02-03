@@ -18,8 +18,10 @@ package resources
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
 type AbstractObject struct {

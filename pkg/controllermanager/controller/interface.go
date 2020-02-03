@@ -17,8 +17,9 @@
 package controller
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/Masterminds/semver"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -126,7 +127,7 @@ type OptionDefinition extension.OptionDefinition
 
 type Definition interface {
 	GetName() string
-	//Create(Object) (Reconciler, error)
+	// Create(Object) (Reconciler, error)
 	Reconcilers() map[string]ReconcilerType
 	MainResource() ResourceKey
 	MainWatchResource() WatchResource

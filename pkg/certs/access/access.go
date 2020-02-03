@@ -21,10 +21,11 @@ package access
 import (
 	"context"
 	"crypto/tls"
+	"time"
+
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/logger"
-	"time"
 )
 
 type AccessSource struct {

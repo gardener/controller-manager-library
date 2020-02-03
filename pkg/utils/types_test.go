@@ -16,13 +16,53 @@
  *
  */
 
-package conditions_test
+package utils
 
-import (
-	"testing"
-)
+type Struct struct{}
 
-func TestConfigSuite(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Config Suite")
-}
+var _ = Describe("Types", func() {
+
+	Context("Nil interface", func() {
+
+		It("should handle nil", func() {
+			var i interface{}
+
+			Expect(i).To(BeNil())
+
+			Expect(IsNil(i)).To(BeTrue())
+		})
+
+		It("should handle pointers", func() {
+			var i interface{}
+
+			var p *Struct
+			i = p
+			if i == nil {
+				panic("NIL")
+			}
+			Expect(IsNil(i)).To(BeTrue())
+		})
+
+		It("should handle slice", func() {
+			var i interface{}
+
+			var p []Struct
+			i = p
+			if i == nil {
+				panic("NIL")
+			}
+			Expect(IsNil(i)).To(BeTrue())
+		})
+
+		It("should handle map", func() {
+			var i interface{}
+
+			var p map[string]Struct
+			i = p
+			if i == nil {
+				panic("NIL")
+			}
+			Expect(IsNil(i)).To(BeTrue())
+		})
+	})
+})

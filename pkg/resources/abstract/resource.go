@@ -19,9 +19,11 @@
 package abstract
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"

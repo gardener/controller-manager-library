@@ -22,7 +22,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
-	resources "github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 // Request describes the admission.Attributes for the admission request.

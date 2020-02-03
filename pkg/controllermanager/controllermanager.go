@@ -19,12 +19,14 @@ package controllermanager
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/server"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sync"
-	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"

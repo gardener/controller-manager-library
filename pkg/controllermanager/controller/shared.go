@@ -19,8 +19,9 @@
 package controller
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/logger"
 	"sync"
+
+	"github.com/gardener/controller-manager-library/pkg/logger"
 )
 
 type SharedAttributes interface {

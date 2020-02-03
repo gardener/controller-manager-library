@@ -23,8 +23,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/gardener/controller-manager-library/pkg/resources"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 // ResourceKey implementations are used as key and MUST therefore be value types

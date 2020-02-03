@@ -20,9 +20,11 @@ package abstract
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"strings"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 )
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -19,8 +19,9 @@
 package cluster
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	"sync"
+
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 type SchemeCache interface {

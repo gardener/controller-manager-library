@@ -30,11 +30,12 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/utils"
-	"github.com/gardener/controller-manager-library/pkg/utils/pkiutil"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
+
+	"github.com/gardener/controller-manager-library/pkg/utils"
+	"github.com/gardener/controller-manager-library/pkg/utils/pkiutil"
 )
 
 type info struct {
@@ -112,16 +113,16 @@ func UpdateCertificate(old CertificateInfo, cfg *Config) (CertificateInfo, error
 	var err error
 	var ok bool
 
-	//var test string
-	//names:=cfg.Hosts.GetDNSNames()
-	//if len(names)>0 {
+	// var test string
+	// names:=cfg.Hosts.GetDNSNames()
+	// if len(names)>0 {
 	//	test=names[0]
-	//} else {
+	// } else {
 	//	ips:=cfg.Hosts.GetIPs()
 	//	if len(ips)>0 {
 	//		test="["+ips[0].String()+"]"
 	//	}
-	//}
+	// }
 
 	valid := IsValid(new, cfg.Rest, "")
 	if valid {
@@ -214,30 +215,30 @@ func IsValid(info CertificateInfo, duration time.Duration, name ...string) bool 
 func Valid(key []byte, cert []byte, cacert []byte, duration time.Duration, name ...string) bool {
 
 	if len(cert) == 0 || len(key) == 0 || len(cacert) == 0 {
-		//fmt.Printf("something empty\n")
+		// fmt.Printf("something empty\n")
 		return false
 	}
 
-	//fmt.Printf("val for: %s\n", dnsname)
+	// fmt.Printf("val for: %s\n", dnsname)
 	_, err := tls.X509KeyPair(cert, key)
 	if err != nil {
-		//fmt.Printf("key does not match certmgmt\n")
+		// fmt.Printf("key does not match certmgmt\n")
 		return false
 	}
 
 	pool := x509.NewCertPool()
 	if !pool.AppendCertsFromPEM(cacert) {
-		//fmt.Printf("cannot create pool\n")
+		// fmt.Printf("cannot create pool\n")
 		return false
 	}
 	block, _ := pem.Decode([]byte(cert))
 	if block == nil {
-		//fmt.Printf("cannot decode certmgmt\n")
+		// fmt.Printf("cannot decode certmgmt\n")
 		return false
 	}
 	c, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		//fmt.Printf("cannot parse certmgmt\n")
+		// fmt.Printf("cannot parse certmgmt\n")
 		return false
 	}
 	ops := x509.VerifyOptions{

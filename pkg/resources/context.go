@@ -18,11 +18,13 @@ package resources
 
 import (
 	"context"
-	"github.com/Masterminds/semver"
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"reflect"
 	"time"
+
+	"github.com/Masterminds/semver"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"

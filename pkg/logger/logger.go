@@ -23,6 +23,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type FormattingFunction func(msgfmt string, args ...interface{})
+
 type LogContext interface {
 	NewContext(key, value string) LogContext
 

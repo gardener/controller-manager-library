@@ -20,8 +20,9 @@ package groups
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/utils"
 	"sync"
+
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 ///////////////////////////////////////////////////////////////////////////////

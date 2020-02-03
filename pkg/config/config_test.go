@@ -20,11 +20,11 @@ package config_test
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/config"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/spf13/pflag"
 	"time"
+
+	"github.com/spf13/pflag"
+
+	"github.com/gardener/controller-manager-library/pkg/config"
 )
 
 var _ = Describe("Config", func() {

@@ -21,9 +21,10 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/sync"
 	"strings"
 	"time"
+
+	"github.com/gardener/controller-manager-library/pkg/sync"
 
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/config"

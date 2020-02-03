@@ -19,10 +19,11 @@
 package abstract
 
 import (
+	"reflect"
+
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
 	"github.com/gardener/controller-manager-library/pkg/resources/conditions"
 	"github.com/gardener/controller-manager-library/pkg/utils"
-	"reflect"
 )
 
 type ModificationState struct {

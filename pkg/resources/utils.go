@@ -18,6 +18,7 @@ package resources
 
 import (
 	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -146,4 +147,13 @@ func ObjectArrayToString(objs ...Object) string {
 		sep = ", "
 	}
 	return s + "]"
+}
+
+func AddLabel(labels map[string]string, key, value string) map[string]string {
+	new := map[string]string{}
+	for k, v := range labels {
+		new[k] = v
+	}
+	new[key] = value
+	return new
 }

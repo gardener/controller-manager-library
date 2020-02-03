@@ -19,11 +19,12 @@
 package webhook
 
 import (
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var defaultDecoder = admission.NewDecoder(resources.DefaultScheme())

@@ -20,9 +20,10 @@ package config
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
-	"sync"
 )
 
 type OptionValidator func(name string, set OptionSet)
@@ -230,10 +231,10 @@ func (this *DefaultOptionSet) Complete() {
 func (this *DefaultOptionSet) complete() {
 	if !this.completed {
 		for _, nested := range this.nestedSources {
-			//fmt.Printf("adding nested %q <- %q\n", this.name, n)
+			// fmt.Printf("adding nested %q <- %q\n", this.name, n)
 			nested.AddOptionsToSet(this)
 		}
-		//fmt.Printf("%q completed\n", this.name)
+		// fmt.Printf("%q completed\n", this.name)
 		this.completed = true
 	}
 }
@@ -257,9 +258,9 @@ func (this *DefaultOptionSet) evalNested() error {
 	defer this.nested.Unlock()
 
 	for _, nested := range this.nestedSources {
-		//fmt.Printf("try eval nested\n")
+		// fmt.Printf("try eval nested\n")
 		if e, ok := nested.(OptionEvaluator); ok {
-			//fmt.Printf("eval nested\n")
+			// fmt.Printf("eval nested\n")
 			err := e.Evaluate()
 			if err != nil {
 				return err

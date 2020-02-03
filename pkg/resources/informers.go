@@ -18,10 +18,11 @@ package resources
 
 import (
 	"context"
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
 

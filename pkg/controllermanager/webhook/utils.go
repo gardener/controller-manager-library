@@ -20,6 +20,7 @@ package webhook
 
 import (
 	"fmt"
+
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/server"
 
@@ -168,15 +169,6 @@ func NewAdmissionRegistration(resources resources.ResourcesSource, spec interfac
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-func AddLabel(labels map[string]string, key, value string) map[string]string {
-	new := map[string]string{}
-	for k, v := range labels {
-		new[k] = v
-	}
-	new[key] = value
-	return new
-}
 
 func CreateOrUpdateMutatingWebhookRegistration(labels map[string]string, cluster resources.Cluster, name string, webhooks ...*WebhookDeclaration) (int, error) {
 	config := &adminreg.MutatingWebhookConfiguration{

@@ -20,9 +20,10 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 func Succeeded(logger logger.LogContext, msg ...interface{}) Status {
@@ -62,6 +63,17 @@ func DelayOnError(logger logger.LogContext, err error) Status {
 	return Delay(logger, err)
 }
 
+func DelayOnErrorOrReschedule(logger logger.LogContext, err error, d time.Duration) Status {
+	if err == nil {
+		return Succeeded(logger).RescheduleAfter(d)
+	}
+	return Delay(logger, err)
+}
+
+func RescheduleAfter(logger logger.LogContext, d time.Duration) Status {
+	return Succeeded(logger).RescheduleAfter(d)
+}
+
 func Failed(logger logger.LogContext, err error) Status {
 	logger.Error(err)
 	return Status{false, err, -1}
@@ -98,12 +110,26 @@ func FinalUpdate(logger logger.LogContext, modified bool, obj resources.Object) 
 	return Succeeded(logger)
 }
 
-func UpdateStatus(logger logger.LogContext, upd resources.ObjectUpdater) Status {
-	return DelayOnError(logger, upd.UpdateStatus())
+func UpdateStatus(logger logger.LogContext, upd resources.ObjectUpdater, d ...time.Duration) Status {
+	err := upd.UpdateStatus()
+	if err != nil {
+		return Delay(logger, err)
+	}
+	if len(d) == 0 {
+		return Succeeded(logger)
+	}
+	return RescheduleAfter(logger, d[0])
 }
 
-func Update(logger logger.LogContext, upd resources.ObjectUpdater) Status {
-	return DelayOnError(logger, upd.Update())
+func Update(logger logger.LogContext, upd resources.ObjectUpdater, d ...time.Duration) Status {
+	err := upd.Update()
+	if err != nil {
+		return Delay(logger, err)
+	}
+	if len(d) == 0 {
+		return Succeeded(logger)
+	}
+	return RescheduleAfter(logger, d[0])
 }
 
 ////////////////////////////////////////////////////////////////////////////////

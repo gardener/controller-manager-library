@@ -19,13 +19,14 @@
 package webhook
 
 import (
+	adminreg "k8s.io/api/admissionregistration/v1beta1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
-	adminreg "k8s.io/api/admissionregistration/v1beta1"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -18,13 +18,15 @@ package controller
 
 import (
 	"fmt"
+	"reflect"
+	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
+
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-	"k8s.io/apimachinery/pkg/runtime"
-	"reflect"
-	"time"
 
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 
@@ -419,7 +421,7 @@ func (this Configuration) ReconcilerWatch(reconciler, group, kind string) Config
 func (this Configuration) ReconcilerWatches(reconciler string, keys ...ResourceKey) Configuration {
 	this.assureWatches()
 	for _, key := range keys {
-		//logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
+		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
 		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil}, reconciler, this.pool})
 	}
 	return this
@@ -428,7 +430,7 @@ func (this Configuration) ReconcilerWatches(reconciler string, keys ...ResourceK
 func (this Configuration) ReconcilerSelectedWatches(reconciler string, sel WatchSelectionFunction, keys ...ResourceKey) Configuration {
 	this.assureWatches()
 	for _, key := range keys {
-		//logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
+		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
 		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel}, reconciler, this.pool})
 	}
 	return this

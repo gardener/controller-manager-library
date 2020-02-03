@@ -20,6 +20,7 @@ package server
 
 import (
 	"context"
+
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/configmain"
 	"github.com/gardener/controller-manager-library/pkg/logger"

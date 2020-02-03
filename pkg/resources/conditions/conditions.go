@@ -18,10 +18,11 @@ package conditions
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/utils"
 	"reflect"
 	"time"
 	"unsafe"
+
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 type ModificationHandler interface {
@@ -735,7 +736,7 @@ func (this *Conditions) GetMessage(ctype string) string {
 
 func (this *Conditions) GetStatus(ctype string) string {
 	c := this.Get(ctype)
-	return c.GetMessage()
+	return c.GetStatus()
 }
 
 func (this *Conditions) GetReason(ctype string) string {

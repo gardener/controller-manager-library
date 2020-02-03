@@ -24,7 +24,18 @@ import (
 
 func (this *AbstractObject) GetLabel(name string) string {
 	labels := this.ObjectData.GetLabels()
+	if labels == nil {
+		return ""
+	}
 	return labels[name]
+}
+
+func (this *AbstractObject) GetAnnotation(name string) string {
+	annos := this.ObjectData.GetAnnotations()
+	if annos == nil {
+		return ""
+	}
+	return annos[name]
 }
 
 func (this *AbstractObject) GetOwnerReference() *metav1.OwnerReference {

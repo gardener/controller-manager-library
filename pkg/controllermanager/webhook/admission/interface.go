@@ -19,16 +19,15 @@
 package admission
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/logger"
-	"net/http"
-)
-
-import (
 	"errors"
+	"net/http"
+
 	"github.com/appscode/jsonpatch"
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/json"
+
+	"github.com/gardener/controller-manager-library/pkg/logger"
 )
 
 var (

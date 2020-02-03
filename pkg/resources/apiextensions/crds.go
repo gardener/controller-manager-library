@@ -17,14 +17,16 @@
 package apiextensions
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
+
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 func init() {

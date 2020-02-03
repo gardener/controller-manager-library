@@ -19,8 +19,9 @@
 package plain
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
 func NewKey(groupKind schema.GroupKind, namespace, name string) ObjectKey {

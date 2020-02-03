@@ -20,10 +20,9 @@ package conditions_test
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/resources/conditions"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"time"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/conditions"
 )
 
 type My struct {
@@ -202,6 +201,46 @@ var _ = Describe("Conditions", func() {
 			)
 		})
 
+	})
+	Context("Timestamps", func() {
+		It("update on state change", func() {
+			my := &My{}
+			conds, _ := layout.For(my)
+
+			cond := conds.Get(type1.Name())
+			cond.SetStatus("A")
+
+			ts := my.Status.Conditions[0].TransitionTime
+
+			cond.SetStatus("B")
+			Expect(my.Status.Conditions[0].TransitionTime.Nanosecond()).To(BeNumerically(">", ts.Nanosecond()))
+		})
+
+		It("no update on no state change", func() {
+			my := &My{}
+			conds, _ := layout.For(my)
+
+			cond := conds.Get(type1.Name())
+			cond.SetStatus("A")
+
+			ts := my.Status.Conditions[0].TransitionTime
+
+			cond.SetStatus("A")
+			Expect(my.Status.Conditions[0].TransitionTime).To(Equal(ts))
+		})
+
+		It("no update on other change", func() {
+			my := &My{}
+			conds, _ := layout.For(my)
+
+			cond := conds.Get(type1.Name())
+			cond.SetStatus("A")
+
+			ts := my.Status.Conditions[0].TransitionTime
+
+			cond.SetReason("x")
+			Expect(my.Status.Conditions[0].TransitionTime).To(Equal(ts))
+		})
 	})
 
 })

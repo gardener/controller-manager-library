@@ -99,7 +99,7 @@ func (c *ClusterHandler) GetEventHandlerFuncs() resources.ResourceEventHandlerFu
 ///////////////////////////////////////////////////////////////////////////////
 
 func (c *ClusterHandler) EnqueueKey(key resources.ClusterObjectKey) error {
-	//c.Infof("enqueue %s", obj.Description())
+	// c.Infof("enqueue %s", obj.Description())
 	gk := key.GroupKind()
 	rk := NewResourceKey(gk.Group, gk.Kind)
 	i := c.resources[rk]
@@ -119,14 +119,14 @@ func (c *ClusterHandler) EnqueueKey(key resources.ClusterObjectKey) error {
 
 func (c *ClusterHandler) enqueue(obj resources.Object, e func(p *pool, r resources.Object)) error {
 	c.whenReady()
-	//c.Infof("enqueue %s", obj.Description())
+	// c.Infof("enqueue %s", obj.Description())
 	i := c.resources[GetResourceKey(obj)]
 	if i.pools == nil || len(i.pools) == 0 {
 		c.Warnf("no worker pool for type %s", obj.GroupKind())
 		return fmt.Errorf("no worker pool for type %s", obj.GroupKind())
 	}
 	for _, p := range i.pools {
-		//p.Infof("enqueue %s", resources.ObjectrKey(obj))
+		// p.Infof("enqueue %s", resources.ObjectrKey(obj))
 		e(p, obj)
 	}
 	return nil

@@ -20,8 +20,9 @@ package abstract
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"reflect"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 type AbstractObject struct {

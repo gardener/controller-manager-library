@@ -17,9 +17,11 @@
 package resources
 
 import (
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"runtime/debug"
+
+	"k8s.io/apimachinery/pkg/labels"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 )
 
 func (this *_resource) getCached(namespace, name string) (Object, error) {
