@@ -5,6 +5,7 @@ test-controller
 /tmp/*
 /local/
 /dev
+/.godev
 
 *.coverprofile
 *.html
