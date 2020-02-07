@@ -22,7 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/gardener/controller-manager-library/pkg/infodata"
+	"github.com/gardener/controller-manager-library/pkg/types/infodata"
 )
 
 const T_CERTIFICATE = infodata.TypeVersion("Certificate") // "Certificate/v1"

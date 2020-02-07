@@ -27,8 +27,9 @@ import (
 
 	"k8s.io/client-go/util/cert"
 
-	"github.com/gardener/controller-manager-library/pkg/infodata"
-	"github.com/gardener/controller-manager-library/pkg/infodata/certdata"
+	"github.com/gardener/controller-manager-library/pkg/types/infodata"
+	"github.com/gardener/controller-manager-library/pkg/types/infodata/certdata"
+	"github.com/gardener/controller-manager-library/pkg/types/infodata/simple"
 	"github.com/gardener/controller-manager-library/pkg/utils/pkiutil"
 )
 
@@ -88,8 +89,10 @@ var _ = Describe("InfoData test", func() {
 			Expect(err).To(BeNil())
 			c2, err := certdata.NewCertificate(key2, cert2)
 			Expect(err).To(BeNil())
-			list.Set("cert1", c1)
-			list.Set("cert2", c2)
+			err = list.Set("cert1", c1)
+			Expect(err).To(BeNil())
+			err = list.Set("cert2", c2)
+			Expect(err).To(BeNil())
 			Expect(len(list)).To(Equal(2))
 
 			info, err := list.Get("cert2")
@@ -99,5 +102,31 @@ var _ = Describe("InfoData test", func() {
 			Expect(info.(certdata.Certificate).Certificates()).To(Equal(c2.Certificates()))
 		})
 
+	})
+	Context("strings", func() {
+		It("adds and reads strings", func() {
+			list := infodata.InfoDataList{}
+			err := list.Set("test", simple.String("bla"))
+			Expect(err).To(BeNil())
+			err = list.Set("other", simple.String("blub"))
+			Expect(err).To(BeNil())
+
+			Expect(list.Get("test")).To(Equal(simple.String(("bla"))))
+		})
+
+		It("adds and reads string arrays", func() {
+			list := infodata.InfoDataList{}
+			err := list.Set("test", simple.StringArray([]string{"bla", "blub"}))
+			Expect(err).To(BeNil())
+			err = list.Set("other", simple.StringArray([]string{"alice", "bob"}))
+			Expect(err).To(BeNil())
+
+			Expect(list.Get("test")).To(Equal(simple.StringArray([]string{"bla", "blub"})))
+
+			s, err := json.Marshal(list)
+			Expect(err).To(BeNil())
+			fmt.Printf("%s\n", s)
+
+		})
 	})
 })

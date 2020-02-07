@@ -28,7 +28,7 @@ import (
 	"k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 
-	"github.com/gardener/controller-manager-library/pkg/infodata"
+	"github.com/gardener/controller-manager-library/pkg/types/infodata"
 )
 
 // certificate is the actual implementation for a Certificate object

@@ -189,8 +189,8 @@ func (this *UsageReconciler) Reconcile(logger logger.LogContext, obj resources.O
 		this.usages.RenewOwner(obj)
 	} else {
 		logger.Infof("reconcile used %s", obj.ClusterKey())
-		this.requeueMasters(logger, this.GetOwnersFor(obj.ClusterKey(), false))
 	}
+	this.requeueMasters(logger, this.GetOwnersFor(obj.ClusterKey(), false))
 	return this.NestedReconciler.Reconcile(logger, obj)
 }
 

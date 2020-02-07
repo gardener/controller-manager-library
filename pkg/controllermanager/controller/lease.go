@@ -73,8 +73,8 @@ func (g *leasestartupgroup) Startup() error {
 			OnStartedLeading: func(ctx context.Context) {
 				go func() {
 					<-ctx.Done()
-					g.manager.Infof("lease group %s stopped -> shutdown controller manager", g.cluster.GetName())
-					ctxutil.Cancel(g.manager.ctx)
+					g.extension.Infof("lease group %s stopped -> shutdown controller manager", g.cluster.GetName())
+					ctxutil.Cancel(g.extension.ControllerManager().GetContext())
 				}()
 				runit()
 			},

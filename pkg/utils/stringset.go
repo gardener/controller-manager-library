@@ -18,6 +18,7 @@ package utils
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -167,4 +168,41 @@ func (this StringSet) AsArray() []string {
 		a = append(a, n)
 	}
 	return a
+}
+
+func StringKeySet(anystringkeymap interface{}) StringSet {
+	ret := StringSet{}
+	if anystringkeymap == nil {
+		return ret
+	}
+	v := reflect.ValueOf(anystringkeymap)
+
+	for _, keyValue := range v.MapKeys() {
+		ret.Add(keyValue.Interface().(string))
+	}
+	return ret
+}
+
+func StringKeyArray(anystringkeymap interface{}) []string {
+	if anystringkeymap == nil {
+		return nil
+	}
+	v := reflect.ValueOf(anystringkeymap)
+	keys := v.MapKeys()
+	ret := make([]string, len(keys))
+
+	for i, keyValue := range keys {
+		ret[i] = keyValue.Interface().(string)
+	}
+	return ret
+}
+
+func StringValueSet(anystringvaluemap interface{}) StringSet {
+	v := reflect.ValueOf(anystringvaluemap)
+	ret := StringSet{}
+
+	for i := v.MapRange(); i.Next(); {
+		ret.Add(i.Value().Interface().(string))
+	}
+	return ret
 }

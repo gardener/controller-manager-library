@@ -25,6 +25,9 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Config", func() {

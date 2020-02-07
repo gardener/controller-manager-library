@@ -16,32 +16,26 @@
  *
  */
 
-// This package implements a InfoData type for storing certificate sdata in a
-// InfoDataList.
-// It provided an access interface plus functions to create such a
-// Certificate object
-//
-
-package certdata
+package simple
 
 import (
-	"crypto/rsa"
-	"crypto/tls"
-	"crypto/x509"
+	"encoding/json"
 
-	"github.com/gardener/controller-manager-library/pkg/infodata"
+	"github.com/gardener/controller-manager-library/pkg/types/infodata"
 )
 
-// Certificate ins the InfoData type to storing Certificates in an InfoDataList
-// It implements the InfoData interface plus type specific access functions
-type Certificate interface {
-	infodata.InfoData
+const T_BOOL = infodata.TypeVersion("Boolean")
 
-	KeyPair() (tls.Certificate, error)
+func init() {
+	infodata.Register(T_BOOL, infodata.UnmarshalFunc((*Bool)(nil)))
+}
 
-	Certificates() []*x509.Certificate
-	PrivateKey() *rsa.PrivateKey
+type Bool string
 
-	CertData() []byte
-	KeyData() []byte
+func (this Bool) TypeVersion() infodata.TypeVersion {
+	return T_BOOL
+}
+
+func (this Bool) Marshal() ([]byte, error) {
+	return json.Marshal(&this)
 }

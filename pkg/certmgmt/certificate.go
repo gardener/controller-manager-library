@@ -88,7 +88,7 @@ func newPrivateKey() (*rsa.PrivateKey, error) {
 	return pkiutil.NewPrivateKey()
 }
 
-// EncodePrivateKeyPEM returns PEM-encoded private key data
+// encodePrivateKeyPEM returns PEM-encoded private key data
 func encodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
 	block := pem.Block{
 		Type:  pkiutil.RSAPrivateKeyBlockType,
