@@ -24,7 +24,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"k8s.io/client-go/util/cert"
 
 	"github.com/gardener/controller-manager-library/pkg/types/infodata"
@@ -128,5 +127,38 @@ var _ = Describe("InfoData test", func() {
 			fmt.Printf("%s\n", s)
 
 		})
+	})
+	Context("values", func() {
+		It("adds and reads values", func() {
+			list := infodata.InfoDataList{}
+			v := simple.Values{
+				"alice": 25.0,
+				"bob": []interface{}{
+					26.0,
+					27.0,
+				},
+			}
+			err := list.Set("test", v)
+			Expect(err).To(BeNil())
+
+			Expect(list.Get("test")).To(Equal(v))
+
+			s, err := json.Marshal(list)
+			Expect(err).To(BeNil())
+			fmt.Printf("%s\n", s)
+
+		})
+		It("adds and reads list values", func() {
+			list := infodata.InfoDataList{}
+			v := simple.ValueList{
+				26.0,
+				27.0,
+			}
+			err := list.Set("test", v)
+			Expect(err).To(BeNil())
+
+			Expect(list.Get("test")).To(Equal(v))
+		})
+
 	})
 })
