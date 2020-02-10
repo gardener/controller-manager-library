@@ -16,6 +16,7 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/preferred"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
 	"github.com/gardener/controller-manager-library/pkg/sync"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 
@@ -38,6 +39,12 @@ func main() {
 		panic("shit")
 	}
 
+	y := map[int]string{
+		1: "a",
+		2: "b",
+		3: "a",
+	}
+	fmt.Printf("values: %s\n", utils.StringValueSet(y))
 	//doit()
 	for i := 1; i < len(os.Args); i++ {
 		fmt.Printf("*** %s ***\n", os.Args[i])

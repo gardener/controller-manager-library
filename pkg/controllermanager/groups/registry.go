@@ -111,7 +111,10 @@ func (this *_Registry) GetDefinitions() Definitions {
 func (this *_Definitions) Get(name string) Definition {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	return this.definitions[name]
+	if g, ok := this.definitions[name]; ok {
+		return g
+	}
+	return nil
 }
 
 func (this *_Definition) Definition() Definition {

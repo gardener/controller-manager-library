@@ -100,6 +100,10 @@ func (this ClusterObjectKey) Cluster() string {
 	return this.cluster
 }
 
+func (this ClusterObjectKey) ClusterGroupKind() ClusterGroupKind {
+	return NewClusterGroupKind(this.cluster, this.GroupKind())
+}
+
 func (this ClusterObjectKey) ObjectKey() ObjectKey {
 	return this.objectKey.ObjectKey
 }
@@ -349,6 +353,120 @@ func (this GroupKindSet) Copy() GroupKindSet {
 
 func (this GroupKindSet) AsArray() []schema.GroupKind {
 	a := []schema.GroupKind{}
+	for n := range this {
+		a = append(a, n)
+	}
+	return a
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Cluster Group Kind Set
+////////////////////////////////////////////////////////////////////////////////
+
+type ClusterGroupKindSet map[ClusterGroupKind]struct{}
+
+func NewClusterGroupKindSet(a ...ClusterGroupKind) ClusterGroupKindSet {
+	return ClusterGroupKindSet{}.Add(a...)
+}
+
+func NewClusterGroupKindSetByArray(a []ClusterGroupKind) ClusterGroupKindSet {
+	s := ClusterGroupKindSet{}
+	if a != nil {
+		s.Add(a...)
+	}
+	return s
+}
+
+func NewClusterGroupKindSetBySets(sets ...ClusterGroupKindSet) ClusterGroupKindSet {
+	s := ClusterGroupKindSet{}
+	for _, set := range sets {
+		for a := range set {
+			s.Add(a)
+		}
+	}
+	return s
+}
+
+func (this ClusterGroupKindSet) String() string {
+	sep := ""
+	data := "["
+	for k := range this {
+		data = fmt.Sprintf("%s%s'%s'", data, sep, k)
+		sep = ", "
+	}
+	return data + "]"
+}
+
+func (this ClusterGroupKindSet) Contains(n ClusterGroupKind) bool {
+	_, ok := this[n]
+	return ok
+}
+
+func (this ClusterGroupKindSet) Remove(n ClusterGroupKind) ClusterGroupKindSet {
+	delete(this, n)
+	return this
+}
+
+func (this ClusterGroupKindSet) AddAll(n []ClusterGroupKind) ClusterGroupKindSet {
+	return this.Add(n...)
+}
+
+func (this ClusterGroupKindSet) Add(n ...ClusterGroupKind) ClusterGroupKindSet {
+	for _, p := range n {
+		this[p] = struct{}{}
+	}
+	return this
+}
+
+func (this ClusterGroupKindSet) AddSet(sets ...ClusterGroupKindSet) ClusterGroupKindSet {
+	for _, s := range sets {
+		for e := range s {
+			this.Add(e)
+		}
+	}
+	return this
+}
+
+func (this ClusterGroupKindSet) Equals(set ClusterGroupKindSet) bool {
+	for n := range set {
+		if !this.Contains(n) {
+			return false
+		}
+	}
+	for n := range this {
+		if !set.Contains(n) {
+			return false
+		}
+	}
+	return true
+}
+
+func (this ClusterGroupKindSet) DiffFrom(set ClusterGroupKindSet) (add, del ClusterGroupKindSet) {
+	add = ClusterGroupKindSet{}
+	del = ClusterGroupKindSet{}
+	for n := range set {
+		if !this.Contains(n) {
+			add.Add(n)
+		}
+	}
+	for n := range this {
+		if !set.Contains(n) {
+			del.Add(n)
+		}
+	}
+	return
+}
+
+func (this ClusterGroupKindSet) Copy() ClusterGroupKindSet {
+	set := ClusterGroupKindSet{}
+	for n := range this {
+		set[n] = struct{}{}
+	}
+	return set
+}
+
+func (this ClusterGroupKindSet) AsArray() []ClusterGroupKind {
+	a := []ClusterGroupKind{}
 	for n := range this {
 		a = append(a, n)
 	}

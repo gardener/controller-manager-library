@@ -31,6 +31,7 @@ import (
 type KeyFilter func(key ClusterObjectKey) bool
 type ObjectFilter func(obj Object) bool
 type GroupKindProvider = abstract.GroupKindProvider
+type ClusterGroupKind = abstract.ClusterGroupKind
 type ClusterObjectKey = abstract.ClusterObjectKey
 type ObjectKey = abstract.ObjectKey
 type ObjectMatcher func(Object) bool

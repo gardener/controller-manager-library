@@ -56,9 +56,9 @@ func t1() {
 
 	s4 := &S4{}
 
-	v,err:= A.Get(s4)
+	v, err := A.Get(s4)
 	assert(err)
-	if v!=nil {
+	if v != nil {
 		fmt.Printf("Got value instead of nil\n")
 		if utils.IsNil(v) {
 			fmt.Printf("...but got nil pointer in interface\n")

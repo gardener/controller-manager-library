@@ -45,11 +45,13 @@ type UsageAccess struct {
 type UsedExtractorFactory func(controller.Interface) resources.UsedExtractor
 
 type UsageAccessSpec struct {
-	Name             string
-	MasterResources  Resources
-	Extractor        resources.UsedExtractor
-	ExtractorFactory UsedExtractorFactory
-	RequeueDeleting  bool
+	Name                string
+	MasterResources     Resources
+	Extractor           resources.UsedExtractor
+	ExtractorFactory    UsedExtractorFactory
+	RequeueDeleting     bool
+	RequeueMaster       resources.KeyFilter // master resources to trigger for used updated
+	RequeueMasterByUsed resources.KeyFilter // used resources to trigger masters on update
 }
 
 func NewUsageAccessBySpec(c controller.Interface, spec UsageAccessSpec) *UsageAccess {
@@ -184,13 +186,17 @@ func (this *UsageReconciler) Setup() {
 }
 
 func (this *UsageReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
+	key := obj.ClusterKey()
 	if this.master_resources.Contains(obj.GroupKind()) {
-		logger.Infof("reconcile owner %s", obj.ClusterKey())
+		logger.Infof("reconcile owner %s", key)
 		this.usages.RenewOwner(obj)
 	} else {
-		logger.Infof("reconcile used %s", obj.ClusterKey())
+		logger.Infof("reconcile used %s", key)
 	}
-	this.requeueMasters(logger, this.GetOwnersFor(obj.ClusterKey(), false))
+
+	if this.spec.RequeueMasterByUsed == nil || this.spec.RequeueMasterByUsed(key) {
+		this.requeueMasters(logger, this.GetOwnersFor(key, false))
+	}
 	return this.NestedReconciler.Reconcile(logger, obj)
 }
 
@@ -200,6 +206,8 @@ func (this *UsageReconciler) Deleted(logger logger.LogContext, key resources.Clu
 		this.usages.DeleteOwner(key)
 	} else {
 		logger.Infof("deleted used %s", key)
+	}
+	if this.spec.RequeueMasterByUsed == nil || this.spec.RequeueMasterByUsed(key) {
 		this.requeueMasters(logger, this.GetOwnersFor(key, false))
 	}
 	return this.NestedReconciler.Deleted(logger, key)
@@ -207,14 +215,16 @@ func (this *UsageReconciler) Deleted(logger logger.LogContext, key resources.Clu
 
 func (this *UsageReconciler) requeueMasters(logger logger.LogContext, masters resources.ClusterObjectKeySet) {
 	for key := range masters {
-		m, err := this.GetObject(key)
-		if err == nil || errors.IsNotFound(err) {
-			if !this.spec.RequeueDeleting && m.IsDeleting() {
-				logger.Infof("skipping requeue of deleting master %s", key)
-				continue
+		if this.spec.RequeueMaster == nil || this.spec.RequeueMaster(key) {
+			m, err := this.GetObject(key)
+			if err == nil || errors.IsNotFound(err) {
+				if !this.spec.RequeueDeleting && m.IsDeleting() {
+					logger.Infof("skipping requeue of deleting master %s", key)
+					continue
+				}
 			}
+			logger.Infof("requeue master %s", key)
+			this.EnqueueKey(key)
 		}
-		logger.Infof("requeue master %s", key)
-		this.EnqueueKey(key)
 	}
 }

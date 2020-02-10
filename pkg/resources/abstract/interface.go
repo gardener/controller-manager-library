@@ -27,6 +27,23 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+type ClusterGroupKind struct {
+	Cluster string
+	schema.GroupKind
+}
+
+func NewClusterGroupKind(cluster string, gk schema.GroupKind) ClusterGroupKind {
+	return ClusterGroupKind{cluster, gk}
+}
+
+func (cgk ClusterGroupKind) Empty() bool {
+	return len(cgk.Cluster) == 0 && cgk.GroupKind.Empty()
+}
+
+func (cgk ClusterGroupKind) String() string {
+	return cgk.Cluster + "/" + cgk.GroupKind.String()
+}
+
 type GroupKindProvider interface {
 	GroupKind() schema.GroupKind
 }

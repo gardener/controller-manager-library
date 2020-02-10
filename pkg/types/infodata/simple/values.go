@@ -143,3 +143,15 @@ func (this ValueList) List(i int) (ValueList, bool) {
 	v, ok := m.([]interface{})
 	return ValueList(v), ok
 }
+
+func (this ValueList) StringValue(i int) (string, bool) {
+	if this == nil {
+		return "", false
+	}
+	if i >= len(this) || i < 0 {
+		return "", false
+	}
+	m := this[i]
+	v, ok := m.(string)
+	return v, ok
+}

@@ -83,6 +83,24 @@ func NewGroupKindSetBySets(sets ...GroupKindSet) GroupKindSet {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Cluster Group Kind Set
+////////////////////////////////////////////////////////////////////////////////
+
+type ClusterGroupKindSet = abstract.ClusterGroupKindSet
+
+func NewClusterGroupKindSet(a ...ClusterGroupKind) ClusterGroupKindSet {
+	return abstract.NewClusterGroupKindSet(a...)
+}
+
+func NewClusterGroupKindSetByArray(a []ClusterGroupKind) ClusterGroupKindSet {
+	return abstract.NewClusterGroupKindSetByArray(a)
+}
+
+func NewClusterGroupKindSetBySets(sets ...ClusterGroupKindSet) ClusterGroupKindSet {
+	return abstract.NewClusterGroupKindSetBySets(sets...)
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Object Name
 ////////////////////////////////////////////////////////////////////////////////
 
