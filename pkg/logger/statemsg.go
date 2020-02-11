@@ -34,7 +34,7 @@ func NewOptionalSingletonMessage(function FormattingFunction, msg string, args .
 
 // Once outputs the configured message the first time it is called
 func (this *OptionalSingletonMessage) Once() {
-	this.Default(this.msg, this.args)
+	this.Default(this.msg, this.args...)
 }
 
 // Out outputs a message after calling Once to ensure a header/section message

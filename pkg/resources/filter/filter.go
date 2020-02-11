@@ -26,11 +26,11 @@ import (
 
 /////////////////////////////////////////////////////////////////////////////////
 
-func AllObjects(key ClusterObjectKey) bool {
+func All(key ClusterObjectKey) bool {
 	return true
 }
 
-func NoObjects(key ClusterObjectKey) bool {
+func None(key ClusterObjectKey) bool {
 	return false
 }
 
@@ -76,5 +76,11 @@ func And(filters ...KeyFilter) KeyFilter {
 			}
 		}
 		return true
+	}
+}
+
+func Not(filter KeyFilter) KeyFilter {
+	return func(key ClusterObjectKey) bool {
+		return !filter(key)
 	}
 }

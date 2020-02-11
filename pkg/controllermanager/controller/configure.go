@@ -327,6 +327,10 @@ func (this Configuration) Pool(name string) Configuration {
 	return this
 }
 
+func (this Configuration) DefaultCluster() Configuration {
+	return this.Cluster(cluster.DEFAULT)
+}
+
 func (this Configuration) Cluster(name string) Configuration {
 	this.cluster = name
 	this.pool = DEFAULT_POOL

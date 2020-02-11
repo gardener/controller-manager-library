@@ -32,6 +32,10 @@ import (
 // requiring usage access
 ////////////////////////////////////////////////////////////////////////////////
 
+type UsageAccessSink interface {
+	InjectUsageAccess(*UsageAccess)
+}
+
 type UsageAccess struct {
 	controller.Interface
 	reconcile.DefaultReconciler
@@ -170,6 +174,9 @@ func NewUsageReconcilerBySpec(c controller.Interface, reconciler controller.Reco
 		return nil, err
 	}
 	r.NestedReconciler = nested
+	if s, ok := nested.nested.(UsageAccessSink); ok {
+		s.InjectUsageAccess(r.UsageAccess)
+	}
 	return r, nil
 }
 
