@@ -31,7 +31,7 @@ require (
 	k8s.io/code-generator v0.0.0-20190912054826-cd179ad6a269
 	k8s.io/helm v2.11.0+incompatible
 	k8s.io/kube-openapi v0.0.0 // indirect
-	k8s.io/utils v0.0.0-20190801114015-581e00157fb1
+	sigs.k8s.io/controller-tools v0.2.4
 )
 
 replace (

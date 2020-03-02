@@ -22,4 +22,5 @@ import (
 	_ "github.com/onsi/gomega"
 	_ "golang.org/x/lint/golint"
 	_ "k8s.io/code-generator"
+	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 )

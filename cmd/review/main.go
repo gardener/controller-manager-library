@@ -64,7 +64,7 @@ request:
 
 func main() {
 
-	versions := &runtime.VersionedObjects{}
+	versions := &resources.VersionedObjects{}
 
 	if err := decoder.DecodeInto([]byte(manifest), versions); err != nil {
 		fmt.Printf("err: %s\n", err)

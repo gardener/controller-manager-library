@@ -29,6 +29,7 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/conversion/api"
 	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 var _ http.Handler = &HTTPHandler{}
@@ -123,7 +124,7 @@ func (this *HTTPHandler) serveHTTP(r *http.Request) (runtime.Object, *Response) 
 		return nil, ErrorResponse(nil, http.StatusBadRequest, err)
 	}
 
-	versions := &runtime.VersionedObjects{}
+	versions := &resources.VersionedObjects{}
 
 	if err := reviewDecoder.DecodeInto(body, versions); err != nil {
 		this.Errorf("unable to decode the request", err)

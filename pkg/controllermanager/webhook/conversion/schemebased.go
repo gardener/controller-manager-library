@@ -62,7 +62,7 @@ func schemetype(wh webhook.Interface) (Interface, error) {
 var _ ConversionHandlerType = schemetype
 
 func (this *schemehandler) Handle(log logger.LogContext, version string, obj runtime.RawExtension) (runtime.Object, error) {
-	versions := runtime.VersionedObjects{}
+	versions := resources.VersionedObjects{}
 	err := this.decoder.DecodeInto(obj.Raw, &versions)
 	if err != nil {
 		return nil, err

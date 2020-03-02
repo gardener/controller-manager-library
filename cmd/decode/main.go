@@ -78,7 +78,7 @@ func main() {
 	}
 	fmt.Printf("url: %s\n", into.Spec.URL)
 
-	vers := &runtime.VersionedObjects{}
+	vers := &resources.VersionedObjects{}
 	err = decoder.DecodeInto([]byte(manifest), vers)
 	if err != nil {
 		fmt.Printf("vers err: %s\n", err)

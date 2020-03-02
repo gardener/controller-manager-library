@@ -26,9 +26,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/json"
 )
 
+////////////////////////////////////////////////////////////////////////////////
+
 // Decoder knows how to decode the contents of an admission
 // request into a concrete object.
 type Decoder struct {
+	scheme  *runtime.Scheme
 	codecs  serializer.CodecFactory
 	decoder runtime.Decoder
 }
@@ -36,7 +39,7 @@ type Decoder struct {
 // NewDecoder creates a Decoder given the runtime.Scheme
 func NewDecoder(scheme *runtime.Scheme) *Decoder {
 	codecs := serializer.NewCodecFactory(scheme)
-	return &Decoder{codecs: codecs, decoder: codecs.UniversalDecoder()}
+	return &Decoder{scheme: scheme, codecs: codecs, decoder: UniversalDecoder(scheme, codecs.UniversalDeserializer())}
 }
 
 func (d *Decoder) CodecFactory() serializer.CodecFactory {
@@ -45,8 +48,7 @@ func (d *Decoder) CodecFactory() serializer.CodecFactory {
 
 // Decode decodes the inlined object.
 func (d *Decoder) Decode(content []byte) (runtime.Object, *schema.GroupVersionKind, error) {
-	deserializer := d.codecs.UniversalDeserializer()
-	return deserializer.Decode(content, nil, nil)
+	return d.decoder.Decode(content, nil, nil)
 }
 
 // Decode decodes on object given as byte stream into a runtimeObject or
@@ -59,7 +61,7 @@ func (d *Decoder) DecodeInto(data []byte, into interface{}) error {
 			return err
 		}
 		return nil
-	case *runtime.VersionedObjects:
+	case versionedObjects:
 		_, _, err := d.decoder.Decode(data, nil, target)
 		return err
 	case runtime.Object:
