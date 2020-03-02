@@ -21,6 +21,7 @@ package resources
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/json"
 )
@@ -28,17 +29,29 @@ import (
 // Decoder knows how to decode the contents of an admission
 // request into a concrete object.
 type Decoder struct {
-	codecs serializer.CodecFactory
+	codecs  serializer.CodecFactory
+	decoder runtime.Decoder
 }
 
 // NewDecoder creates a Decoder given the runtime.Scheme
 func NewDecoder(scheme *runtime.Scheme) *Decoder {
-	return &Decoder{codecs: serializer.NewCodecFactory(scheme)}
+	codecs := serializer.NewCodecFactory(scheme)
+	return &Decoder{codecs: codecs, decoder: codecs.UniversalDecoder()}
+}
+
+func (d *Decoder) CodecFactory() serializer.CodecFactory {
+	return d.codecs
+}
+
+// Decode decodes the inlined object.
+func (d *Decoder) Decode(content []byte) (runtime.Object, *schema.GroupVersionKind, error) {
+	deserializer := d.codecs.UniversalDeserializer()
+	return deserializer.Decode(content, nil, nil)
 }
 
 // Decode decodes on object given as byte stream into a runtimeObject or
 // similar Object
-func (d *Decoder) Decode(data []byte, into interface{}) error {
+func (d *Decoder) DecodeInto(data []byte, into interface{}) error {
 	switch target := into.(type) {
 	case *unstructured.Unstructured:
 		// unmarshal into unstructured's underlying object to avoid calling the decoder
@@ -46,9 +59,12 @@ func (d *Decoder) Decode(data []byte, into interface{}) error {
 			return err
 		}
 		return nil
+	case *runtime.VersionedObjects:
+		_, _, err := d.decoder.Decode(data, nil, target)
+		return err
 	case runtime.Object:
-		deserializer := d.codecs.UniversalDeserializer()
-		return runtime.DecodeInto(deserializer, data, target)
+		_, _, err := d.decoder.Decode(data, nil, target)
+		return err
 	default:
 		if err := json.Unmarshal(data, &target); err != nil {
 			return err
@@ -71,13 +87,13 @@ func (d *Decoder) DecodeFromMap(data map[string]interface{}, into runtime.Object
 	if err != nil {
 		return err
 	}
-	return d.Decode(bytes, into)
+	return d.DecodeInto(bytes, into)
 }
 
 // DecodeRaw decodes a RawExtension object into the passed-in runtime.Object.
 func (d *Decoder) DecodeRaw(rawObj runtime.RawExtension, into interface{}) error {
 	if rawObj.Size() > 0 {
-		return d.Decode(rawObj.Raw, into)
+		return d.DecodeInto(rawObj.Raw, into)
 	}
 	return nil
 }

@@ -25,8 +25,6 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 
-	adminreg "k8s.io/api/admissionregistration/v1beta1"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -35,11 +33,7 @@ type _Definition struct {
 	keys               []extension.ResourceKey
 	cluster            string
 	scheme             *runtime.Scheme
-	kind               WebhookKind
-	handler            AdmissionHandlerType
-	namespaces         *meta.LabelSelector
-	operations         []adminreg.OperationType
-	policy             adminreg.FailurePolicyType
+	handler            WebhookHandler
 	configs            extension.OptionDefinitions
 	activateExplicitly bool
 }
@@ -59,28 +53,12 @@ func (this *_Definition) GetScheme() *runtime.Scheme {
 	return this.scheme
 }
 func (this *_Definition) GetKind() WebhookKind {
-	if this.kind == "" {
-		return MUTATING
-	}
-	return this.kind
+	return this.handler.GetKind()
 }
-func (this *_Definition) GetHandlerType() AdmissionHandlerType {
+func (this *_Definition) GetHandler() WebhookHandler {
 	return this.handler
 }
-func (this *_Definition) GetNamespaces() *meta.LabelSelector {
-	return this.namespaces
-}
-func (this *_Definition) GetFailurePolicy() adminreg.FailurePolicyType {
-	if this.policy == "" {
-		return adminreg.Fail
-	}
-	return this.policy
-}
-func (this *_Definition) GetOperations() []adminreg.OperationType {
-	result := this.operations[:0:0]
-	copy(result, this.operations)
-	return result
-}
+
 func (this *_Definition) ConfigOptions() map[string]OptionDefinition {
 	cfgs := map[string]OptionDefinition{}
 	for n, d := range this.configs {
@@ -99,15 +77,15 @@ func (this *_Definition) String() string {
 	for _, k := range this.keys {
 		s += fmt.Sprintf("  - %s\n", k)
 	}
-	s += fmt.Sprintf("  namespaces: %+v\n", this.namespaces)
 	if this.scheme != nil {
 		s += "  scheme set\n"
 	}
+	s += this.handler.String()
 	return s
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Confihuration
+// Configuration
 ////////////////////////////////////////////////////////////////////////////////
 
 type Configuration struct {
@@ -128,11 +106,6 @@ func (this Configuration) Name(name string) Configuration {
 	return this
 }
 
-func (this Configuration) Kind(kind WebhookKind) Configuration {
-	this.settings.kind = kind
-	return this
-}
-
 func (this Configuration) Cluster(name string) Configuration {
 	this.settings.cluster = name
 	return this
@@ -148,23 +121,8 @@ func (this Configuration) Resource(group, kind string) Configuration {
 	return this
 }
 
-func (this Configuration) IgnoreFailures() Configuration {
-	this.settings.policy = adminreg.Ignore
-	return this
-}
-
-func (this Configuration) Operation(op ...adminreg.OperationType) Configuration {
-	this.settings.operations = append(this.settings.operations, op...)
-	return this
-}
-
-func (this Configuration) Namespaces(selector *meta.LabelSelector) Configuration {
-	this.settings.namespaces = selector
-	return this
-}
-
-func (this Configuration) Handler(htype AdmissionHandlerType) Configuration {
-	this.settings.handler = htype
+func (this Configuration) Kind(factory HandlerFactory) Configuration {
+	this.settings.handler = factory.CreateHandler()
 	return this
 }
 

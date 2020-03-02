@@ -29,17 +29,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/resources"
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
-
-var admissionScheme = runtime.NewScheme()
-var admissionCodecs = serializer.NewCodecFactory(admissionScheme)
-
-func init() {
-	utilruntime.Must(admissionv1beta1.AddToScheme(admissionScheme))
-}
 
 var _ http.Handler = &HTTPHandler{}
 
@@ -50,10 +40,6 @@ type HTTPHandler struct {
 	webhook Interface
 
 	logger.LogContext
-}
-
-func New(logger logger.LogContext, scheme *runtime.Scheme, webhook Interface) *HTTPHandler {
-	return &HTTPHandler{webhook: webhook, LogContext: logger}
 }
 
 func (this *HTTPHandler) Webhook() Interface {

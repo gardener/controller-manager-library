@@ -23,21 +23,16 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
-var defaultDecoder = admission.NewDecoder(resources.DefaultScheme())
-
 type webhook struct {
 	extension.ElementBase
-	admission.Interface
 
 	config     *WebhookConfig
 	extension  *Extension
 	definition Definition
 	scheme     *runtime.Scheme
-	decoder    *admission.Decoder
 	cluster    cluster.Interface
 }
 
@@ -56,17 +51,14 @@ func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*web
 	} else {
 		scheme = cluster.ResourceContext().Scheme()
 	}
-	decoder := admission.NewDecoder(scheme)
 	this := &webhook{
 		extension:  ext,
 		definition: def,
 		config:     options,
 		cluster:    cluster,
 		scheme:     scheme,
-		decoder:    decoder,
 	}
 	this.ElementBase = extension.NewElementBase(ext.GetContext(), ctx_webhook, this, def.GetName(), options)
-	this.Interface, err = def.GetHandlerType()(this)
 	if err != nil {
 		return nil, err
 	}
@@ -94,10 +86,4 @@ func (this *webhook) GetCluster() cluster.Interface {
 
 func (this *webhook) GetScheme() *runtime.Scheme {
 	return this.scheme
-}
-
-// GetDecoder returns a decoder to decode the objects embedded in admission requests.
-// It may be nil if we haven't received a scheme to use to determine object types yet.
-func (this *webhook) GetDecoder() *admission.Decoder {
-	return this.decoder
 }

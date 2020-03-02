@@ -27,11 +27,10 @@ import (
 
 func init() {
 	webhook.Configure("test.gardener.cloud").
-		Kind(webhook.VALIDATING).
+		Kind(admission.Validating(MyHandlerType)).
 		Cluster(webhook.CLUSTER_MAIN).
 		Resource("core", "ResourceQuota").
 		DefaultedStringOption("message", "yepp", "response message").
-		Handler(MyHandlerType).
 		MustRegister()
 }
 

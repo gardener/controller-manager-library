@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/Masterminds/semver v1.4.2
 	github.com/Masterminds/sprig v2.16.0+incompatible // indirect
+	github.com/ahmetb/gen-crd-api-reference-docs v0.1.5
 	github.com/aokoli/goutils v1.0.1 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30
 	github.com/ghodss/yaml v1.0.0 // indirect
@@ -27,16 +28,19 @@ require (
 	k8s.io/apiextensions-apiserver v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v0.0.0
+	k8s.io/code-generator v0.0.0-20190912054826-cd179ad6a269
 	k8s.io/helm v2.11.0+incompatible
 	k8s.io/kube-openapi v0.0.0 // indirect
+	k8s.io/utils v0.0.0-20190801114015-581e00157fb1
 )
 
 replace (
-	gopkg.in/fsnotify.v1 v1.4.7 => github.com/fsnotify/fsnotify v1.4.7
+	//gopkg.in/fsnotify.v1 v1.4.7 => github.com/fsnotify/fsnotify v1.4.7
 	k8s.io/api => k8s.io/api v0.0.0-20190918155943-95b840bb6a1f // kubernetes-1.16.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190918161926-8f644eb6e783 // kubernetes-1.16.0
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655 // kubernetes-1.16.0
 	k8s.io/client-go => k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90 // kubernetes-1.16.0
+	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20190912054826-cd179ad6a269 // kubernetes-1.16.0
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20190816220812-743ec37842bf
 	k8s.io/metrics => k8s.io/metrics v0.0.0-20190918162108-227c654b2546 // kubernetes-1.16.0
 )

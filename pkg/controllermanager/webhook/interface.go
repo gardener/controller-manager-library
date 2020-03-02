@@ -19,14 +19,14 @@
 package webhook
 
 import (
-	adminreg "k8s.io/api/admissionregistration/v1beta1"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/http"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/admission"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
+	"github.com/gardener/controller-manager-library/pkg/logger"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -38,8 +38,7 @@ type WebhookKind string
 
 const MUTATING = WebhookKind("mutating")
 const VALIDATING = WebhookKind("validating")
-
-type AdmissionHandlerType func(Interface) (admission.Interface, error)
+const CONVERTING = WebhookKind("converting")
 
 type Environment interface {
 	extension.Environment
@@ -55,13 +54,12 @@ type Environment interface {
 
 type Interface interface {
 	extension.ElementBase
-	admission.Interface
+	//admission.Interface
 
 	GetEnvironment() Environment
 	GetDefinition() Definition
 	GetCluster() cluster.Interface
 	GetScheme() *runtime.Scheme
-	GetDecoder() *admission.Decoder
 }
 
 type OptionDefinition extension.OptionDefinition
@@ -69,16 +67,48 @@ type OptionDefinition extension.OptionDefinition
 type Definition interface {
 	GetName() string
 	GetResources() []extension.ResourceKey
-	GetCluster() string
 	GetScheme() *runtime.Scheme
 	GetKind() WebhookKind
-	GetOperations() []adminreg.OperationType
-	GetFailurePolicy() adminreg.FailurePolicyType
-	GetHandlerType() AdmissionHandlerType
-	GetNamespaces() *meta.LabelSelector
+	GetHandler() WebhookHandler
+	GetCluster() string
 	ActivateExplicitly() bool
 
 	ConfigOptions() map[string]OptionDefinition
 
 	Definition() Definition
+}
+
+type WebhookHandler interface {
+	GetKind() WebhookKind
+	GetHTTPHandler(wh Interface) (http.Handler, error)
+
+	String() string
+}
+
+type WebhookValidator interface {
+	Validate(Interface) error
+}
+
+type HandlerFactory interface {
+	CreateHandler() WebhookHandler
+}
+
+type RegistrationHandler interface {
+	Kind() WebhookKind
+	RegistrationResource() runtime.Object
+	CreateDeclaration(def Definition, target cluster.Interface, client WebhookClientConfigSource) (WebhookDeclaration, error)
+	Register(log logger.LogContext, labels map[string]string, cluster cluster.Interface, name string, declaration ...WebhookDeclaration) error
+	Delete(name string, cluster cluster.Interface) error
+}
+
+type WebhookDeclaration interface {
+	Kind() WebhookKind
+}
+
+type WebhookDeclarations []WebhookDeclaration
+
+type ValidatorFunc func(Interface) error
+
+func (this ValidatorFunc) Validate(wh Interface) error {
+	return this(wh)
 }

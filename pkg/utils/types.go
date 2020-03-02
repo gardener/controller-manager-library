@@ -44,8 +44,10 @@ func SetValue(f reflect.Value, v interface{}) error {
 			return fmt.Errorf("type %s cannot be converted to %s", vv.Type(), f.Type())
 		}
 	}
-	if !f.CanInterface() && f.CanAddr() {
-		f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
+	if !f.CanSet() {
+		if !f.CanInterface() && f.CanAddr() {
+			f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
+		}
 	}
 	f.Set(vv)
 	return nil

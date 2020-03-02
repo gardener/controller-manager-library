@@ -27,6 +27,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/json"
 
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 )
 
@@ -92,6 +93,8 @@ type Interface interface {
 	Handle(logger.LogContext, Request) Response
 }
 
+type AdmissionHandlerType func(wh webhook.Interface) (Interface, error)
+
 // WebhookFunc implements Handler interface using a single function.
 type WebhookFunc func(logger.LogContext, Request) Response
 
@@ -100,6 +103,10 @@ var _ Interface = WebhookFunc(nil)
 // Handle process the AdmissionRequest by invoking the underlying function.
 func (this WebhookFunc) Handle(logger logger.LogContext, req Request) Response {
 	return this(logger, req)
+}
+
+func (this WebhookFunc) Type() AdmissionHandlerType {
+	return func(webhook.Interface) (Interface, error) { return this, nil }
 }
 
 // DefaultHandler can be used for a default implementation of all interface

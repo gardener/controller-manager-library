@@ -22,7 +22,7 @@ import (
 	"github.com/appscode/jsonpatch"
 
 	admissionv1beta1 "k8s.io/api/admission/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Allowed constructs a response indicating that the given operation
@@ -52,7 +52,7 @@ func ErrorResponse(code int32, err error) Response {
 	return Response{
 		AdmissionResponse: admissionv1beta1.AdmissionResponse{
 			Allowed: false,
-			Result: &metav1.Status{
+			Result: &meta.Status{
 				Code:    code,
 				Message: err.Error(),
 			},
@@ -69,13 +69,13 @@ func ValidationResponse(allowed bool, reason string) Response {
 	resp := Response{
 		AdmissionResponse: admissionv1beta1.AdmissionResponse{
 			Allowed: allowed,
-			Result: &metav1.Status{
+			Result: &meta.Status{
 				Code: int32(code),
 			},
 		},
 	}
 	if len(reason) > 0 {
-		resp.Result.Reason = metav1.StatusReason(reason)
+		resp.Result.Reason = meta.StatusReason(reason)
 	}
 	return resp
 }

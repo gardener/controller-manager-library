@@ -29,8 +29,6 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
-type AdmissionHandlerType func(webhook.Interface) (Interface, error)
-
 type Adapter struct {
 	resources resources.Resources
 	webhook   webhook.Interface
@@ -39,7 +37,7 @@ type Adapter struct {
 
 var _ admission.Interface = &Adapter{}
 
-func Adapt(c AdmissionHandlerType) webhook.AdmissionHandlerType {
+func Adapt(c AdmissionHandlerType) admission.AdmissionHandlerType {
 
 	return func(webhook webhook.Interface) (admission.Interface, error) {
 		cluster := webhook.GetCluster()
