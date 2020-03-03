@@ -77,6 +77,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1alpha1_Example_To_example_Example(in *Example, out *example.Example, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_v1alpha1_ExampleSpec_To_example_ExampleSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
@@ -89,6 +90,7 @@ func Convert_v1alpha1_Example_To_example_Example(in *Example, out *example.Examp
 }
 
 func autoConvert_example_Example_To_v1alpha1_Example(in *example.Example, out *Example, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
 	if err := Convert_example_ExampleSpec_To_v1alpha1_ExampleSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}

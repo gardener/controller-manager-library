@@ -28,12 +28,17 @@ type ExampleList struct {
 	Items           []Example `json:"items"`
 }
 
+// +kubebuilder:storageversion
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:scope=namespaced,path=examples,shortName=exa,singular=example
+// +kubebuilder:printcolumn:name=URL,JSONPath=".spec.URL", type=string
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Example is an example for a custom resource.
 type Example struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec ExampleSpec `json:"spec"`
 }

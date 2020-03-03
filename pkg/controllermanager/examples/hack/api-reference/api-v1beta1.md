@@ -44,6 +44,20 @@ string
 </tr>
 <tr>
 <td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.16/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
 <code>spec</code></br>
 <em>
 <a href="#example.examples.gardener.cloud/v1beta1.ExampleSpec">

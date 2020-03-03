@@ -28,6 +28,7 @@ import (
 func (in *Example) DeepCopyInto(out *Example) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	out.Spec = in.Spec
 	return
 }
@@ -58,7 +59,9 @@ func (in *ExampleList) DeepCopyInto(out *ExampleList) {
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Example, len(*in))
-		copy(*out, *in)
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	return
 }
