@@ -80,6 +80,18 @@ string
 <p>URL is the address of the example</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Data contains any data stored for this url</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -111,6 +123,18 @@ string
 </td>
 <td>
 <p>URL is the address of the example</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Data contains any data stored for this url</p>
 </td>
 </tr>
 </tbody>

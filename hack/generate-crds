@@ -18,13 +18,12 @@ loop()
 {
   cd crds
   for f in *; do
-    if [ -f "$f" -a "$f" != "manifest.go" ]; then
-      i="$(basename "$f" .yaml)"
+    if [ -f "$f" -a "$f" != "crds.go" ]; then
       cat <<EOF
   data=\`
 $(cat "$f")
   \`
-  add("$i",data)
+  apiextensions.MustRegisterCRD(data)
 EOF
     fi
   done
@@ -35,38 +34,36 @@ PROJECT_ROOT=$(dirname $0)/..
 #echo "ROOT=$PROJECT_ROOT"
 #echo "DIR=$(pwd)"
 
+paths=
+sep=
+if [ -n "$*" ]; then
+  for d; do
+     paths="$paths${sep}./$d/."
+     sep=";"
+  done
+else
+  paths=.
+  for d in *; do
+    if [ "$d" != "install" -a "$d" != "crds" -a -d "$d" ]; then
+       paths="$paths;./$d/."
+    fi
+  done
+fi
 mkdir -p crds
 rm -f crds/*
 "${PROJECT_ROOT}/hack/controller-gen.sh"  \
-   "crd:crdVersions=v1;v1beta1,trivialVersions=true" \
-    paths="./..." \
+   "crd:crdVersions=v1,trivialVersions=false" \
+    paths="$paths" \
     output:crd:artifacts:config=crds
 
-cat >"crds/manifests.go" <<EOF
+cat >"crds/crds.go" <<EOF
 $(cat "$PROJECT_ROOT"/hack/LICENSE_BOILERPLATE.txt)
 
 package crds
 
 import (
-	"strings"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 )
-
-var CRDS = map[string]map[string]string{}
-
-func add(name, data string) {
-	path:= strings.Split(name,".")
-	version:=path[len(path)-1]
-	if version!="v1beta1" {
-		version="v1"
-	}
-
-	crds:=CRDS[version]
-	if crds==nil {
-		crds=map[string]string{}
-		CRDS[version]=crds
-	}
-	crds[path[0]]=data
-}
 
 func init() {
   var data string

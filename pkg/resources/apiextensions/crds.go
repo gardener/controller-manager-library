@@ -17,21 +17,120 @@
 package apiextensions
 
 import (
+	"fmt"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
+	"github.com/gardener/controller-manager-library/pkg/utils"
+
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
-func init() {
-	resources.Register(v1beta1.SchemeBuilder)
+type CRDSpecification interface{}
+
+type CustomResourceDefinition struct {
+	*apiextensions.CustomResourceDefinition
 }
+
+func (this *CustomResourceDefinition) DeepCopyObject() runtime.Object {
+	return this.DeepCopy()
+}
+
+func (this *CustomResourceDefinition) DeepCopy() *CustomResourceDefinition {
+	return &CustomResourceDefinition{this.CustomResourceDefinition.DeepCopyObject().(*apiextensions.CustomResourceDefinition)}
+}
+
+func (this *CustomResourceDefinition) CRDVersions() []string {
+	r := []string{}
+	for _, v := range this.Spec.Versions {
+		r = append(r, v.Name)
+	}
+	return r
+}
+
+func (this *CustomResourceDefinition) CRDGroupKind() schema.GroupKind {
+	return resources.NewGroupKind(this.Spec.Group, this.Spec.Names.Kind)
+}
+
+func (this *CustomResourceDefinition) ConvertTo(v string) (resources.ObjectData, error) {
+	gvk := schema.GroupVersionKind{
+		Group:   apiextensions.GroupName,
+		Version: v,
+		Kind:    "CustomResourceDefinition",
+	}
+
+	new, err := scheme.New(gvk)
+	if err != nil {
+		return nil, err
+	}
+	err = scheme.Convert(this.CustomResourceDefinition, new, nil)
+	if err != nil {
+		return nil, err
+	}
+	new.GetObjectKind().SetGroupVersionKind(gvk)
+	return new.(resources.ObjectData), nil
+}
+
+func (this *CustomResourceDefinition) CRDRestrict(versions ...string) (*CustomResourceDefinition, error) {
+	new := this.DeepCopy()
+
+	vers := []apiextensions.CustomResourceDefinitionVersion{}
+outer:
+	for _, v := range versions {
+		for _, e := range new.Spec.Versions {
+			if e.Name == v {
+				vers = append(vers, e)
+				continue outer
+			}
+		}
+		return nil, errors.ErrUnknown.New(v)
+	}
+	new.Spec.Versions = vers
+	return new, nil
+}
+
+func (this *CustomResourceDefinition) For(cluster resources.Cluster) resources.ObjectData {
+	if this == nil {
+		return nil
+	}
+	crd := this.DeepCopy()
+	if len(crd.Spec.Versions) > 1 {
+		fmt.Printf("==========%d\n", len(crd.Spec.Versions))
+		if crd.Spec.Conversion == nil || crd.Spec.Conversion.WebhookClientConfig == nil {
+			cfg := GetClientConfig(crd.CRDGroupKind(), cluster)
+			if cfg != nil {
+				if crd.Spec.Conversion == nil || crd.Spec.Conversion.Strategy == apiextensions.NoneConverter {
+					crd.Spec.Conversion = &apiextensions.CustomResourceConversion{
+						Strategy:                 apiextensions.WebhookConverter,
+						ConversionReviewVersions: []string{string(CRD_V1), string(CRD_V1BETA1)},
+					}
+				}
+				crd.Spec.Conversion.WebhookClientConfig = toClientConfig(cfg.WebhookClientConfig())
+			} else {
+				fmt.Printf("========== no client config\n")
+			}
+		}
+	}
+	if cluster.GetServerVersion().LessThan(v116) {
+		o, err := crd.ConvertTo(string(CRD_V1BETA1))
+		utils.Must(err)
+		return o
+	}
+	o, err := crd.ConvertTo(string(CRD_V1))
+	utils.Must(err)
+	return o
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 func CreateCRDObjectWithStatus(groupName, version, rkind, rplural, shortName string, namespaces bool, columns ...v1beta1.CustomResourceColumnDefinition) *v1beta1.CustomResourceDefinition {
 	return _CreateCRDObject(true, groupName, version, rkind, rplural, shortName, namespaces, columns...)
@@ -82,12 +181,19 @@ func CreateCRD(cluster resources.Cluster, groupName, version, rkind, rplural, sh
 	return CreateCRDFromObject(cluster, crd)
 }
 
-func CreateCRDFromObject(cluster resources.Cluster, crd *v1beta1.CustomResourceDefinition) error {
-	_, err := cluster.Resources().CreateObject(crd)
-	if err != nil && !k8serr.IsAlreadyExists(err) {
-		return errors.ErrFailed.Wrap(err, "create CRD", crd.Name)
+func CreateCRDFromObject(cluster resources.Cluster, crd resources.ObjectData) error {
+	resc, err := cluster.Resources().GetByExample(crd)
+	if err != nil {
+		return err
 	}
-	return WaitCRDReady(cluster, crd.Name)
+	if resc.GroupKind() != crdGK {
+		return errors.ErrUnexpectedResource.New("custom resource definition", resc.GroupKind())
+	}
+	_, err = resc.Create(crd)
+	if err != nil && !k8serr.IsAlreadyExists(err) {
+		return errors.ErrFailed.Wrap(err, "create CRD", crd.GetName())
+	}
+	return WaitCRDReady(cluster, crd.GetName())
 }
 
 func WaitCRDReady(cluster resources.Cluster, crdName string) error {

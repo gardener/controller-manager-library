@@ -25,7 +25,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/install"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
@@ -34,7 +33,7 @@ var decoder *resources.Decoder
 
 func init() {
 	scheme = runtime.NewScheme()
-	utilruntime.Must(install.AddToScheme(scheme))
+	utilruntime.Must(example.AddToScheme(scheme))
 	decoder = resources.NewDecoder(scheme)
 }
 

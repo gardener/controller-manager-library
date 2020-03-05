@@ -26,6 +26,8 @@ import (
 var lock sync.Mutex
 var registrationtypes = map[WebhookKind]RegistrationHandler{}
 
+type RegistrationResources map[WebhookKind]runtime.Object
+
 func RegisterRegistrationHandler(r RegistrationHandler) {
 	lock.Lock()
 	defer lock.Unlock()
@@ -38,15 +40,15 @@ func GetRegistrationHandler(kind WebhookKind) RegistrationHandler {
 	return registrationtypes[kind]
 }
 
-func RegistrationResources() []runtime.Object {
+func GetRegistrationResources() RegistrationResources {
 	lock.Lock()
 	defer lock.Unlock()
 
-	resources := []runtime.Object{}
+	resources := RegistrationResources{}
 	for _, r := range registrationtypes {
 		o := r.RegistrationResource()
 		if o != nil {
-			resources = append(resources, o)
+			resources[r.Kind()] = o
 		}
 	}
 	return resources
@@ -69,4 +71,12 @@ func (this *RegistrationHandlerBase) Kind() WebhookKind {
 
 func (this *RegistrationHandlerBase) RegistrationResource() runtime.Object {
 	return this.object
+}
+
+func (this *RegistrationHandlerBase) RequireDedicatedRegistrations() bool {
+	return false
+}
+
+func (this *RegistrationHandlerBase) RegistrationNames(def Definition) []string {
+	return []string{def.GetName()}
 }

@@ -15,7 +15,7 @@
  *
  */
 
-package webhook
+package apiextensions
 
 import (
 	"fmt"
@@ -138,7 +138,7 @@ func NewRuntimeServiceWebhookClientConfig(name resources.ObjectName, path string
 	return NewURLWebhookClientConfig(url, caBundle)
 }
 
-func NewServiceWebhookClientConfig(name resources.ObjectName, path string, caBundle []byte) WebhookClientConfigSource {
+func NewServiceWebhookClientConfig(name resources.ObjectName, port int, path string, caBundle []byte) WebhookClientConfigSource {
 	path = server.NormPath(path)
 	return &WebhookClientConfig{
 		CABundle: caBundle,
@@ -146,6 +146,7 @@ func NewServiceWebhookClientConfig(name resources.ObjectName, path string, caBun
 			Namespace: name.Namespace(),
 			Name:      name.Name(),
 			Path:      &path,
+			Port:      int32(port),
 		},
 	}
 }

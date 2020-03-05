@@ -22,7 +22,6 @@ import (
 
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
@@ -44,7 +43,7 @@ func (this *Extension) register(regs WebhookRegistrationGroups, name string, cle
 					if err != nil {
 						return err
 					}
-					g.AddRegistration(name, k)
+					g.AddRegistrations(k, name)
 					this.Infof("  found %d %s webhooks", len(declarations), k)
 				}
 			}
@@ -60,7 +59,7 @@ func (this *Extension) register(regs WebhookRegistrationGroups, name string, cle
 		this.Infof("looking for obsolete registrations: %s", selector.String())
 
 		if cleanup {
-			err := this.cleanup(g.cluster, selector, g.registrations, RegistrationResources()...)
+			err := this.cleanup(g.cluster, selector, g.registrations, GetRegistrationResources())
 			if err != nil {
 				return err
 			}
@@ -69,8 +68,8 @@ func (this *Extension) register(regs WebhookRegistrationGroups, name string, cle
 	return nil
 }
 
-func (this *Extension) cleanup(cluster cluster.Interface, selector labels.Selector, keep map[string]utils.StringSet, examples ...runtime.Object) error {
-	for _, example := range examples {
+func (this *Extension) cleanup(cluster cluster.Interface, selector labels.Selector, keep map[string]utils.StringSet, examples RegistrationResources) error {
+	for key, example := range examples {
 		r, err := cluster.Resources().GetByExample(example)
 		if err != nil {
 			return err
@@ -85,11 +84,9 @@ func (this *Extension) cleanup(cluster cluster.Interface, selector labels.Select
 			return err
 		}
 
-		key := string(kinds[kind])
-
 		this.Infof("found %d matching %ss  (%s)", len(list), kind, key)
 		for _, found := range list {
-			if !keep[found.GetName()].Contains(key) {
+			if !keep[found.GetName()].Contains(string(key)) {
 				this.Infof("found obsolete %s %q (%s) in cluster %q", kind, found.GetName(), keep[found.GetName()], cluster.GetName())
 				err := found.Delete()
 				if err != nil {

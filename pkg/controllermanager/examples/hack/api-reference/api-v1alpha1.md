@@ -99,6 +99,7 @@ int
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Port is a port name for the URL</p>
 </td>
 </tr>
@@ -110,7 +111,20 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path is a path for the URL</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Data contains any data stored for this url</p>
 </td>
 </tr>
 </table>
@@ -165,6 +179,7 @@ int
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Port is a port name for the URL</p>
 </td>
 </tr>
@@ -176,7 +191,20 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path is a path for the URL</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>data</code></br>
+<em>
+k8s.io/apimachinery/pkg/runtime.RawExtension
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Data contains any data stored for this url</p>
 </td>
 </tr>
 </tbody>

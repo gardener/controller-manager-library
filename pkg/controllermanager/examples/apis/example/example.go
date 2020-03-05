@@ -16,6 +16,7 @@ package example
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -52,4 +53,7 @@ type ExampleSpec struct {
 		// Path is a path for the URL
 		Path string
 	*/
+
+	// Data contains any data stored for this url
+	Data *runtime.RawExtension
 }

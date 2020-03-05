@@ -18,6 +18,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 // GroupName is the group name use in this package
@@ -44,6 +46,8 @@ func init() {
 	// generated functions takes place in the generated files. The separation
 	// makes the code compile even when the generated files are missing.
 	localSchemeBuilder.Register(addDefaultingFuncs, addKnownTypes)
+
+	resources.Register(SchemeBuilder)
 }
 
 // Adds the list of known types to api.Scheme.

@@ -56,6 +56,7 @@ type ExtensionDefinition interface {
 type Extension interface {
 	Name() string
 	RequiredClusters() (utils.StringSet, error)
+	Setup(ctx context.Context) error
 	Start(ctx context.Context) error
 }
 

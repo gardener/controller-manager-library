@@ -146,6 +146,13 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 
 	cm.clusters = clusters
 
+	for _, e := range cm.extensions {
+		err = e.Setup(cm.context)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return cm, nil
 }
 

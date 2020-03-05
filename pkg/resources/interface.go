@@ -17,6 +17,7 @@
 package resources
 
 import (
+	"github.com/Masterminds/semver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,6 +57,7 @@ type ClusterSource interface {
 type Cluster interface {
 	ResourcesSource
 	ClusterSource
+	GetServerVersion() *semver.Version
 
 	GetName() string
 	GetId() string

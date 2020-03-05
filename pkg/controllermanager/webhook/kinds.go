@@ -15,13 +15,27 @@
  *
  */
 
-package utils
+package webhook
 
-// Must panics on non-nil errors.  Useful to handling programmer level errors.
-func Must(args ...interface{}) {
-	if len(args) > 0 {
-		if !IsNil(args[len(args)-1]) {
-			panic(args[len(args)-1])
+var kindreg = map[WebhookKind]WebhookKindHandlerProvider{}
+
+func RegisterKindHandlerProvider(kind WebhookKind, p WebhookKindHandlerProvider) {
+	lock.Lock()
+	defer lock.Unlock()
+	kindreg[kind] = p
+}
+
+func createKindHandlers(ext Environment) (map[WebhookKind]WebhookKindHandler, error) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	handlers := map[WebhookKind]WebhookKindHandler{}
+	for kind, p := range kindreg {
+		h, err := p(ext, kind)
+		if err != nil {
+			return nil, err
 		}
+		handlers[kind] = h
 	}
+	return handlers, nil
 }

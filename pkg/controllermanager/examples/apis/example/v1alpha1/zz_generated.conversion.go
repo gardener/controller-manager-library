@@ -21,6 +21,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	unsafe "unsafe"
+
 	example "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -149,10 +151,12 @@ func autoConvert_v1alpha1_ExampleSpec_To_example_ExampleSpec(in *ExampleSpec, ou
 	// WARNING: in.URLScheme requires manual conversion: does not exist in peer-type
 	// WARNING: in.Port requires manual conversion: does not exist in peer-type
 	// WARNING: in.Path requires manual conversion: does not exist in peer-type
+	out.Data = (*runtime.RawExtension)(unsafe.Pointer(in.Data))
 	return nil
 }
 
 func autoConvert_example_ExampleSpec_To_v1alpha1_ExampleSpec(in *example.ExampleSpec, out *ExampleSpec, s conversion.Scope) error {
 	// WARNING: in.URL requires manual conversion: does not exist in peer-type
+	out.Data = (*runtime.RawExtension)(unsafe.Pointer(in.Data))
 	return nil
 }

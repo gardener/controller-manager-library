@@ -31,6 +31,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 	"github.com/gardener/controller-manager-library/pkg/server"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -110,6 +111,7 @@ type Extension struct {
 	certificate    certs.CertificateSource
 	hooks          map[string]Interface
 	labels         map[string]string
+	kindHandlers   map[WebhookKind]WebhookKindHandler
 }
 
 func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension, error) {
@@ -187,7 +189,7 @@ func (this *Extension) RequiredClusters() (utils.StringSet, error) {
 	return result, nil
 }
 
-func (this *Extension) Start(ctx context.Context) error {
+func (this *Extension) Setup(ctx context.Context) error {
 	var err error
 
 	this.defaultCluster = this.GetCluster(this.config.Cluster)
@@ -195,20 +197,10 @@ func (this *Extension) Start(ctx context.Context) error {
 		return fmt.Errorf("default cluster %q for webhook server not found", this.config.Cluster)
 	}
 
-	if this.config.CertFile != "" {
-		this.certificate, err = CreateFileCertificateSource(ctx, this)
-	} else {
-		this.certificate, err = CreateSecretCertificateSource(ctx, this)
-	}
+	this.kindHandlers, err = createKindHandlers(this)
 	if err != nil {
 		return err
 	}
-
-	if len(this.registrations) == 0 {
-		this.Infof("no webhooks activated")
-		return nil
-	}
-
 	for _, def := range this.registrations {
 		var target cluster.Interface
 
@@ -227,8 +219,37 @@ func (this *Extension) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+
 		this.RegisterHandler(w)
+		if kh := this.kindHandlers[def.GetKind()]; kh != nil {
+			err := kh.Register(w)
+			if err != nil {
+				return err
+			}
+		} else {
+			this.Infof("no handler for %s(%s)", w.GetName(), def.GetKind())
+		}
 	}
+	return nil
+}
+
+func (this *Extension) Start(ctx context.Context) error {
+	var err error
+
+	if this.config.CertFile != "" {
+		this.certificate, err = CreateFileCertificateSource(ctx, this)
+	} else {
+		this.certificate, err = CreateSecretCertificateSource(ctx, this)
+	}
+	if err != nil {
+		return err
+	}
+
+	if len(this.registrations) == 0 {
+		this.Infof("no webhooks activated")
+		return nil
+	}
+
 	this.server.Start(this.certificate, "", this.config.Port)
 
 	if !this.config.OmitRegistrations {
@@ -238,13 +259,15 @@ func (this *Extension) Start(ctx context.Context) error {
 			def := w.GetDefinition()
 			handler := GetRegistrationHandler(def.GetKind())
 			if handler == nil {
+				this.Infof("no registrations for %s(%s)", w.GetName(), w.GetKind())
 				continue
 			}
 			cn := this.getCluster(def)
 			if cn != "" { // use unmapped cluster here with default scheme
+				this.Infof("handle registration of %s(%s) on cluster %s", w.GetName(), w.GetKind(), cn)
 				target := this.GetCluster(cn)
 				reg := registrations.GetOrCreateGroup(target)
-				client, err := this.CreateWebhookClientConfig("registering", w.GetDefinition(), target)
+				client, err := this.CreateWebhookClientConfig("using ", def, target)
 				if err != nil {
 					return err
 				}
@@ -252,10 +275,14 @@ func (this *Extension) Start(ctx context.Context) error {
 				if err != nil {
 					return err
 				}
+			} else {
+				this.Infof("no cluster for registration of %s(%s)", w.GetName(), w.GetKind(), cn)
 			}
 		}
 		err = this.register(registrations, this.config.RegistrationName, true)
 
+	} else {
+		this.Infof("omit registrations")
 	}
 	return err
 }
@@ -273,8 +300,8 @@ func (this *Extension) RegisterHandler(wh Interface) error {
 	return nil
 }
 
-func (this *Extension) CreateWebhookClientConfig(msg string, def Definition, target cluster.Interface) (WebhookClientConfigSource, error) {
-	var client WebhookClientConfigSource
+func (this *Extension) CreateWebhookClientConfig(msg string, def Definition, target resources.Cluster) (apiextensions.WebhookClientConfigSource, error) {
+	var client apiextensions.WebhookClientConfigSource
 	cabundle := this.certificate.GetCertificateInfo().CACert()
 	if len(cabundle) == 0 {
 		return nil, fmt.Errorf("no cert authority given")
@@ -286,29 +313,31 @@ func (this *Extension) CreateWebhookClientConfig(msg string, def Definition, tar
 		if target == this.defaultCluster && this.config.Service != "" {
 			sn := resources.NewObjectName(this.Namespace(), this.config.Service)
 			this.Infof("%swebhook %q for cluster %q with service %q", msg, def.GetName(), target, sn)
-			client = NewServiceWebhookClientConfig(sn, def.GetName(), cabundle)
+			client = apiextensions.NewServiceWebhookClientConfig(sn, this.config.ServicePort, def.GetName(), cabundle)
 		} else {
 			url := fmt.Sprintf("https://%s/%s", this.config.Hostname, def.GetName())
 			if this.config.Port > 0 {
 				url = fmt.Sprintf("https://%s:%d/%s", this.config.Hostname, this.config.Port, def.GetName())
 			}
 			this.Infof("%swebhook %q for cluster %q with URL %q", msg, def.GetName(), target, url)
-			client = NewURLWebhookClientConfig(url, cabundle)
+			client = apiextensions.NewURLWebhookClientConfig(url, cabundle)
 		}
 	} else {
 		sn := resources.NewObjectName(this.Namespace(), this.config.Service)
 		if target == this.defaultCluster {
 			this.Infof("%swebhook %q for cluster %q with service %q", msg, def.GetName(), target, sn)
-			client = NewServiceWebhookClientConfig(sn, def.GetName(), cabundle)
+			client = apiextensions.NewServiceWebhookClientConfig(sn, this.config.ServicePort, def.GetName(), cabundle)
 		} else {
 			this.Infof("%swebhook %q for cluster %q with runtime service %q", msg, def.GetName(), target, sn)
-			client = NewRuntimeServiceWebhookClientConfig(sn, def.GetName(), cabundle)
+			client = apiextensions.NewRuntimeServiceWebhookClientConfig(sn, def.GetName(), cabundle)
 		}
 	}
 	return client, nil
 }
 
-func (this *Extension) RegisterWebhookGroup(name string, target cluster.Interface) error {
+func (this *Extension) RegisterWebhookGroup(name string, target cluster.Interface, client apiextensions.WebhookClientConfigSource) error {
+	var err error
+
 	g := this.definitions.Groups().Get(name)
 	if g == nil {
 		return fmt.Errorf("webhook group %q not found", name)
@@ -317,7 +346,6 @@ func (this *Extension) RegisterWebhookGroup(name string, target cluster.Interfac
 	set := g.Members()
 	registrations := WebhookRegistrationGroups{}
 	reg := registrations.GetOrCreateGroup(target)
-
 	grpname := this.RegistrationGroupName(name)
 	for n := range set {
 		w := this.hooks[n]
@@ -325,30 +353,32 @@ func (this *Extension) RegisterWebhookGroup(name string, target cluster.Interfac
 			this.Info("omitting inactive webhook %q", n)
 			continue
 		}
-		client, err := this.CreateWebhookClientConfig("registering", w.GetDefinition(), target)
-		if err != nil {
-			return err
+		if client == nil {
+			client, err = this.CreateWebhookClientConfig("using ", w.GetDefinition(), target)
+			if err != nil {
+				return err
+			}
 		}
 		this.addHook(w, target, client, reg)
 	}
 	return this.register(registrations, grpname, false)
 }
 
-func (this *Extension) addHook(w Interface, target cluster.Interface, client WebhookClientConfigSource, reg *WebhookRegistrationGroup) error {
+func (this *Extension) addHook(w Interface, target cluster.Interface, client apiextensions.WebhookClientConfigSource, reg *WebhookRegistrationGroup) error {
 	def := w.GetDefinition()
 	if handler := GetRegistrationHandler(def.GetKind()); handler != nil {
-		if this.config.DedicatedRegistrations {
-			reg.AddRegistration(def.GetName(), def.GetKind())
-			err := this.RegisterWebhook(def, target)
+		if this.config.DedicatedRegistrations || handler.RequireDedicatedRegistrations() {
+			reg.AddRegistrations(def.GetKind(), handler.RegistrationNames(def)...)
+			err := this.RegisterWebhook(def, target, client)
 			if err != nil {
 				return err
 			}
 		} else {
-			wh, err := handler.CreateDeclaration(def, target, client)
+			decls, err := handler.CreateDeclarations(this, def, target, client)
 			if err != nil {
 				return fmt.Errorf("webhook registration for %q failed: %s", def.GetName(), err)
 			}
-			reg.AddDeclaration(wh)
+			reg.AddDeclarations(decls...)
 		}
 	}
 	return nil
@@ -392,7 +422,7 @@ func (this *Extension) DeleteWebhookGroup(name string, target cluster.Interface)
 	return nil
 }
 
-func (this *Extension) RegisterWebhookByName(name string, target cluster.Interface) error {
+func (this *Extension) RegisterWebhookByName(name string, target cluster.Interface, client apiextensions.WebhookClientConfigSource) error {
 	hook := this.hooks[name]
 	if hook == nil {
 		if this.definitions.Get(name) == nil {
@@ -401,24 +431,28 @@ func (this *Extension) RegisterWebhookByName(name string, target cluster.Interfa
 		}
 		return fmt.Errorf("webhook %q not actice", name)
 	}
-	return this.RegisterWebhook(hook.GetDefinition(), target)
+	return this.RegisterWebhook(hook.GetDefinition(), target, client)
 }
 
-func (this *Extension) RegisterWebhook(def Definition, target cluster.Interface) error {
+func (this *Extension) RegisterWebhook(def Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) error {
+	var err error
+
 	handler := GetRegistrationHandler(def.GetKind())
 	if handler == nil {
 		return fmt.Errorf("reregistrations for kind %q for webhook %q not possible", def.GetKind(), def.GetName())
 	}
-	client, err := this.CreateWebhookClientConfig("registering", def, target)
-	if err != nil {
-		return err
+	if client == nil {
+		client, err = this.CreateWebhookClientConfig("using ", def, target)
+		if err != nil {
+			return err
+		}
 	}
-	wh, err := handler.CreateDeclaration(def, target, client)
+	decls, err := handler.CreateDeclarations(this, def, target, client)
 	if err != nil {
 		return fmt.Errorf("webhook registration for %q failed: %s", def.GetName(), err)
 	}
 	this.Infof("registering %s webhook %q for cluster %q", def.GetKind(), def.GetName(), target.GetName())
-	return handler.Register(this, this.labels, target, def.GetName(), wh)
+	return handler.Register(this, this.labels, target, def.GetName(), decls...)
 }
 
 func (this *Extension) DeleteWebhookByName(name string, target cluster.Interface) error {

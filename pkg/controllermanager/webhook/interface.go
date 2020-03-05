@@ -27,6 +27,8 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -44,9 +46,11 @@ type Environment interface {
 	extension.Environment
 	GetConfig() *areacfg.Config
 
-	RegisterWebhookByName(name string, target cluster.Interface) error
-	RegisterWebhook(def Definition, target cluster.Interface) error
-	RegisterWebhookGroup(name string, target cluster.Interface) error
+	CreateWebhookClientConfig(msg string, def Definition, target resources.Cluster) (apiextensions.WebhookClientConfigSource, error)
+
+	RegisterWebhookByName(name string, target cluster.Interface, client apiextensions.WebhookClientConfigSource) error
+	RegisterWebhook(def Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) error
+	RegisterWebhookGroup(name string, target cluster.Interface, client apiextensions.WebhookClientConfigSource) error
 
 	DeleteWebhookByName(name string, target cluster.Interface) error
 	DeleteWebhook(def Definition, target cluster.Interface) error
@@ -60,6 +64,7 @@ type Interface interface {
 	GetDefinition() Definition
 	GetCluster() cluster.Interface
 	GetScheme() *runtime.Scheme
+	GetKind() WebhookKind
 }
 
 type OptionDefinition extension.OptionDefinition
@@ -95,8 +100,10 @@ type HandlerFactory interface {
 
 type RegistrationHandler interface {
 	Kind() WebhookKind
+	RequireDedicatedRegistrations() bool
+	RegistrationNames(def Definition) []string
 	RegistrationResource() runtime.Object
-	CreateDeclaration(def Definition, target cluster.Interface, client WebhookClientConfigSource) (WebhookDeclaration, error)
+	CreateDeclarations(log logger.LogContext, def Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) (WebhookDeclarations, error)
 	Register(log logger.LogContext, labels map[string]string, cluster cluster.Interface, name string, declaration ...WebhookDeclaration) error
 	Delete(name string, cluster cluster.Interface) error
 }
@@ -111,4 +118,17 @@ type ValidatorFunc func(Interface) error
 
 func (this ValidatorFunc) Validate(wh Interface) error {
 	return this(wh)
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// WebhookKindHandlerProvider is registered for a dedicated kind and
+// is called to create a dedicated kind handler for a dedicated kind used in a dedicated
+// Webhook etension instance
+type WebhookKindHandlerProvider func(Environment, WebhookKind) (WebhookKindHandler, error)
+
+// WebhookKindHandler gets called by a webhook extension for every instance
+// of a dedicated webhook kind it is created for by a WebhookKindHandlerProvider
+type WebhookKindHandler interface {
+	Register(Interface) error
 }

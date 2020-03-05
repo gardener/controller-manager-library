@@ -43,8 +43,6 @@ type ResourceContext interface {
 
 	GetPreferred(gk schema.GroupKind) (*Info, error)
 	Get(gvk schema.GroupVersionKind) (*Info, error)
-
-	GetServerVersion() *semver.Version
 }
 
 type resourceContext struct {
@@ -71,7 +69,12 @@ func NewResourceContext(ctx context.Context, c Cluster, scheme *runtime.Scheme, 
 	}
 	rc.AbstractResourceContext = abstract.NewAbstractResourceContext(ctx, rc, scheme, factory{})
 	rc.Clients = NewClients(c.Config(), rc.Scheme())
+
 	return rc, nil
+}
+
+func (c *resourceContext) GetServerVersion() *semver.Version {
+	return c.ResourceInfos.GetServerVersion()
 }
 
 func (c *resourceContext) GetGroups() []schema.GroupVersion {

@@ -23,8 +23,8 @@ import (
 	adminreg "k8s.io/api/admissionregistration/v1beta1"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 )
 
 func toResourceSpecs(specs ...extension.ResourceKey) []interface{} {
@@ -35,7 +35,7 @@ func toResourceSpecs(specs ...extension.ResourceKey) []interface{} {
 	return result
 }
 
-func toClientConfig(cfg *webhook.WebhookClientConfig) adminreg.WebhookClientConfig {
+func toClientConfig(cfg *apiextensions.WebhookClientConfig) adminreg.WebhookClientConfig {
 	var svc *adminreg.ServiceReference
 	if cfg.Service != nil {
 		svc = &adminreg.ServiceReference{

@@ -17,97 +17,11 @@ limitations under the License.
 package crds
 
 import (
-	"strings"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 )
-
-var CRDS = map[string]map[string]string{}
-
-func add(name, data string) {
-	path := strings.Split(name, ".")
-	version := path[len(path)-1]
-	if version != "v1beta1" {
-		version = "v1"
-	}
-
-	crds := CRDS[version]
-	if crds == nil {
-		crds = map[string]string{}
-		CRDS[version] = crds
-	}
-	crds[path[0]] = data
-}
 
 func init() {
 	var data string
-	data = `
-
----
-apiVersion: apiextensions.k8s.io/v1beta1
-kind: CustomResourceDefinition
-metadata:
-  annotations:
-    controller-gen.kubebuilder.io/version: v0.2.4
-  creationTimestamp: null
-  name: examples.example.examples.gardener.cloud
-spec:
-  additionalPrinterColumns:
-  - JSONPath: .spec.URL
-    name: URL
-    type: string
-  group: example.examples.gardener.cloud
-  names:
-    kind: Example
-    listKind: ExampleList
-    plural: examples
-    shortNames:
-    - exa
-    singular: example
-  preserveUnknownFields: false
-  scope: namespaced
-  validation:
-    openAPIV3Schema:
-      description: Example is an example for a custom resource.
-      properties:
-        apiVersion:
-          description: 'APIVersion defines the versioned schema of this representation
-            of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-          type: string
-        kind:
-          description: 'Kind is a string value representing the REST resource this
-            object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-          type: string
-        metadata:
-          type: object
-        spec:
-          description: ExampleSpec is  the specification for an example object.
-          properties:
-            URL:
-              description: URL is the address of the example
-              type: string
-          required:
-          - URL
-          type: object
-      required:
-      - spec
-      type: object
-  version: v1alpha1
-  versions:
-  - name: v1alpha1
-    served: true
-    storage: false
-  - name: v1beta1
-    served: true
-    storage: true
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []
-  `
-	add("example.examples.gardener.cloud_examples.v1beta1", data)
 	data = `
 
 ---
@@ -127,7 +41,7 @@ spec:
     shortNames:
     - exa
     singular: example
-  scope: namespaced
+  scope: Namespaced
   versions:
   - additionalPrinterColumns:
     - jsonPath: .spec.hostname
@@ -162,6 +76,9 @@ spec:
           spec:
             description: ExampleSpec is  the specification for an example object.
             properties:
+              data:
+                description: Data contains any data stored for this url
+                type: object
               hostname:
                 description: Hostname is a host name
                 type: string
@@ -211,6 +128,9 @@ spec:
               URL:
                 description: URL is the address of the example
                 type: string
+              data:
+                description: Data contains any data stored for this url
+                type: object
             required:
             - URL
             type: object
@@ -227,9 +147,5 @@ status:
   conditions: []
   storedVersions: []
   `
-	add("example.examples.gardener.cloud_examples", data)
-	data = `
-
-  `
-	add("manifests.go", data)
+	apiextensions.MustRegisterCRD(data)
 }

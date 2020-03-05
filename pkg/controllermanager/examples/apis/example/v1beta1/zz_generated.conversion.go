@@ -118,6 +118,7 @@ func Convert_example_ExampleList_To_v1beta1_ExampleList(in *example.ExampleList,
 
 func autoConvert_v1beta1_ExampleSpec_To_example_ExampleSpec(in *ExampleSpec, out *example.ExampleSpec, s conversion.Scope) error {
 	out.URL = in.URL
+	out.Data = (*runtime.RawExtension)(unsafe.Pointer(in.Data))
 	return nil
 }
 
@@ -128,6 +129,7 @@ func Convert_v1beta1_ExampleSpec_To_example_ExampleSpec(in *ExampleSpec, out *ex
 
 func autoConvert_example_ExampleSpec_To_v1beta1_ExampleSpec(in *example.ExampleSpec, out *ExampleSpec, s conversion.Scope) error {
 	out.URL = in.URL
+	out.Data = (*runtime.RawExtension)(unsafe.Pointer(in.Data))
 	return nil
 }
 

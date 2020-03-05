@@ -16,7 +16,7 @@ spec:
     shortNames:
     - exa
     singular: example
-  scope: namespaced
+  scope: Namespaced
   versions:
   - additionalPrinterColumns:
     - jsonPath: .spec.hostname
@@ -51,6 +51,9 @@ spec:
           spec:
             description: ExampleSpec is  the specification for an example object.
             properties:
+              data:
+                description: Data contains any data stored for this url
+                type: object
               hostname:
                 description: Hostname is a host name
                 type: string
@@ -100,6 +103,9 @@ spec:
               URL:
                 description: URL is the address of the example
                 type: string
+              data:
+                description: Data contains any data stored for this url
+                type: object
             required:
             - URL
             type: object

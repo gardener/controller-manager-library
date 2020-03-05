@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -67,8 +68,12 @@ func (this *schemehandler) Handle(log logger.LogContext, version string, obj run
 	if err != nil {
 		return nil, err
 	}
-	gvk := versions.First().GetObjectKind().GroupVersionKind()
-	gvk.Version = version
+	first := versions.First().(resources.ObjectData)
+	gvk := first.GetObjectKind().GroupVersionKind()
+	gv, err := schema.ParseGroupVersion(version)
+	log.Infof("  converting %s/%s(%s)", first.GetName(), first.GetNamespace(), gvk)
+	gvk.Version = gv.Version
+	gvk.Group = gv.Group
 	conv, err := this.scheme.New(gvk)
 	if err != nil {
 		return nil, err

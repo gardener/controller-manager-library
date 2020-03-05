@@ -27,7 +27,7 @@ type Definition interface {
 	GetKind() webhook.WebhookKind
 	GetHTTPHandler(wh webhook.Interface) (http.Handler, error)
 
-	Validation(p webhook.Interface) error
+	Validate(p webhook.Interface) error
 }
 
 type _Definition struct {
@@ -76,5 +76,5 @@ func (this configuration) CreateHandler() webhook.WebhookHandler {
 }
 
 func Conversion(htype ConversionHandlerType) *configuration {
-	return &configuration{_Definition{htype}}
+	return &configuration{_Definition{htype, nil}}
 }

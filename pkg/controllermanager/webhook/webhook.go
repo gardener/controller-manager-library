@@ -48,7 +48,9 @@ func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*web
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	}
+
+	if scheme == nil && cluster != nil {
 		scheme = cluster.ResourceContext().Scheme()
 	}
 	this := &webhook{
@@ -74,6 +76,10 @@ func (this *webhook) GetResources() resources.Resources {
 
 func (this *webhook) GetEnvironment() Environment {
 	return this.extension
+}
+
+func (this *webhook) GetKind() WebhookKind {
+	return this.definition.GetKind()
 }
 
 func (this *webhook) GetDefinition() Definition {

@@ -196,6 +196,10 @@ func (this *Extension) GetConfig() *areacfg.Config {
 	return this.config
 }
 
+func (this *Extension) Setup(ctx context.Context) error {
+	return nil
+}
+
 func (this *Extension) Start(ctx context.Context) error {
 	var err error
 

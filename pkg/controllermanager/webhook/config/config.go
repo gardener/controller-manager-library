@@ -40,6 +40,7 @@ type Config struct {
 	CACertFile             string
 	CAKeyFile              string
 	Port                   int
+	ServicePort            int
 	RegistrationName       string
 	DedicatedRegistrations bool
 	OmitRegistrations      bool
@@ -64,6 +65,7 @@ func NewConfig() *Config {
 	cfg.AddStringOption(&cfg.CACertFile, "cacertfile", "", "", "webhook server ca certificate file")
 	cfg.AddStringOption(&cfg.CAKeyFile, "cakeyfile", "", "", "webhook server ca certificate key file")
 	cfg.AddIntOption(&cfg.Port, "port", "", 8443, "port to use for webhook server")
+	cfg.AddIntOption(&cfg.ServicePort, "service-port", "", 443, "port used on service")
 	cfg.AddStringOption(&cfg.RegistrationName, "registration-name", "", "", "webhook registration name for grouped registrations")
 	cfg.AddBoolOption(&cfg.OmitRegistrations, "omit-webhook-registration", "", false, "omit webhook registration")
 	cfg.AddBoolOption(&cfg.DedicatedRegistrations, "dedicated-webhook-registrations", "", false, "uses separate registrations for every configured webhook")

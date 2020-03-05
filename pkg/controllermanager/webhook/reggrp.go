@@ -22,11 +22,6 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
-var kinds = map[string]WebhookKind{
-	"MutatingWebhookConfiguration":   MUTATING,
-	"ValidatingWebhookConfiguration": VALIDATING,
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 
 type WebhookRegistrationGroup struct {
@@ -43,19 +38,23 @@ func NewWebhookRegistrationGroup(cluster cluster.Interface) *WebhookRegistration
 	}
 }
 
-func (this *WebhookRegistrationGroup) AddDeclaration(d WebhookDeclaration) {
-	declarations := this.declarations[d.Kind()]
-	declarations = append(declarations, d)
-	this.declarations[d.Kind()] = declarations
+func (this *WebhookRegistrationGroup) AddDeclarations(decls ...WebhookDeclaration) {
+	for _, d := range decls {
+		declarations := this.declarations[d.Kind()]
+		declarations = append(declarations, d)
+		this.declarations[d.Kind()] = declarations
+	}
 }
 
-func (this *WebhookRegistrationGroup) AddRegistration(name string, kind WebhookKind) {
-	set := this.registrations[name]
-	if set == nil {
-		set = utils.StringSet{}
-		this.registrations[name] = set
+func (this *WebhookRegistrationGroup) AddRegistrations(kind WebhookKind, names ...string) {
+	for _, name := range names {
+		set := this.registrations[name]
+		if set == nil {
+			set = utils.StringSet{}
+			this.registrations[name] = set
+		}
+		set.Add(string(kind))
 	}
-	set.Add(string(kind))
 }
 
 type WebhookRegistrationGroups map[string]*WebhookRegistrationGroup

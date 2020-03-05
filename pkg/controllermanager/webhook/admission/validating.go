@@ -25,6 +25,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 )
 
 func init() {
@@ -70,20 +71,20 @@ func newValidatingHandler() *validating {
 
 var _ webhook.RegistrationHandler = (*mutating)(nil)
 
-func (this *validating) CreateDeclaration(def webhook.Definition, target cluster.Interface, client webhook.WebhookClientConfigSource) (webhook.WebhookDeclaration, error) {
+func (this *validating) CreateDeclarations(log logger.LogContext, def webhook.Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) (webhook.WebhookDeclarations, error) {
 	admindef := def.GetHandler().(Definition)
 	rules, policy, err := NewAdmissionSpecData(target, admindef.GetFailurePolicy(), admindef.GetOperations(), def.GetResources()...)
 	if err != nil {
 		return nil, err
 	}
-	return &ValidatingWebhookDeclaration{
+	return webhook.WebhookDeclarations{&ValidatingWebhookDeclaration{
 		adminreg.ValidatingWebhook{
 			Name:              def.GetName(),
 			NamespaceSelector: admindef.GetNamespaces(),
 			FailurePolicy:     policy,
 			Rules:             rules,
 			ClientConfig:      toClientConfig(client.WebhookClientConfig()),
-		},
+		}},
 	}, nil
 }
 

@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -30,7 +31,7 @@ type ExampleList struct {
 
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=namespaced,path=examples,shortName=exa,singular=example
+// +kubebuilder:resource:scope=Namespaced,path=examples,shortName=exa,singular=example
 // +kubebuilder:printcolumn:name=URL,JSONPath=".spec.URL", type=string
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -47,4 +48,7 @@ type Example struct {
 type ExampleSpec struct {
 	// URL is the address of the example
 	URL string `json:"URL"`
+	// Data contains any data stored for this url
+	// +optional
+	Data *runtime.RawExtension `json:"data,omitempty"`
 }

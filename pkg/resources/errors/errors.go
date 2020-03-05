@@ -42,6 +42,12 @@ const (
 	// - unknown element
 	ERR_UNKNOWN_RESOURCE = "UNKNOWN_RESOURCE"
 
+	// ERR_UNEXPECTED_RESOURCE is an error for an unexpected resource given for a dedicated use case
+	// objs:
+	// - use case
+	// - object
+	ERR_UNEXPECTED_RESOURCE = "UNEXPECTED_RESOURCE"
+
 	// ERR_FAILED is returned if operation failed for object
 	// objs:
 	// - operation
@@ -114,6 +120,8 @@ var (
 	ErrUnexpectedType = errors.DeclareFormalType(GROUP, ERR_UNEXPECTED_TYPE, "unexpected type for %s: %T")
 	// ErrUnknownResource is an error for an unknown resource specification
 	ErrUnknownResource = errors.DeclareFormalType(GROUP, ERR_UNKNOWN_RESOURCE, "unknown resource for %s %q")
+	// ErrUnexpectedResource is an error for an unexpected resource given for a dedicated use case
+	ErrUnexpectedResource = errors.DeclareFormalType(GROUP, ERR_UNEXPECTED_RESOURCE, "unexpected resource for %s: %s")
 	// ErrUnknown is a generic error for an unknown element
 	ErrUnknown = errors.DeclareFormalType(GROUP, ERR_UNKNOWN, "unknown %s")
 	// ErrFailed is returned if operation failed for object
