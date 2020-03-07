@@ -62,9 +62,9 @@ func (g *leasestartupgroup) Startup() error {
 		ctxutil.WaitGroupRun(g.extension.GetContext(), runit)
 	} else {
 		g.extension.Infof("requesting lease %q for cluster %s in namespace %q",
-			g.extension.Name(), msg, g.extension.Namespace())
+			g.extension.config.LeaseName, msg, g.extension.Namespace())
 		leaderElectionConfig, err := makeLeaderElectionConfig(g.cluster,
-			g.extension.Namespace(), g.extension.Name())
+			g.extension.Namespace(), g.extension.config.LeaseName)
 		if err != nil {
 			return err
 		}

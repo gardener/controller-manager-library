@@ -27,8 +27,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-
-	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -132,7 +131,7 @@ type _Definition struct {
 	configsources        extension.OptionSourceDefinitions
 	finalizerName        string
 	finalizerDomain      string
-	crds                 map[string][]*CustomResourceDefinition
+	crds                 map[string][]*apiextensions.CustomResourceDefinitionVersions
 	activateExplicitly   bool
 	scheme               *runtime.Scheme
 }
@@ -207,10 +206,10 @@ func (this *_Definition) FinalizerName() string {
 	return this.finalizerName
 }
 
-func (this *_Definition) CustomResourceDefinitions() map[string][]*CustomResourceDefinition {
-	crds := map[string][]*CustomResourceDefinition{}
+func (this *_Definition) CustomResourceDefinitions() map[string][]*apiextensions.CustomResourceDefinitionVersions {
+	crds := map[string][]*apiextensions.CustomResourceDefinitionVersions{}
 	for n, l := range this.crds {
-		crds[n] = append([]*CustomResourceDefinition{}, l...)
+		crds[n] = append([]*apiextensions.CustomResourceDefinitionVersions{}, l...)
 	}
 	return this.crds
 }
@@ -349,18 +348,19 @@ func (this Configuration) Cluster(name string) Configuration {
 	return this
 }
 
-func (this Configuration) CustomResourceDefinitions(crds ...*apiext.CustomResourceDefinition) Configuration {
-	m := map[string][]*CustomResourceDefinition{}
+func (this Configuration) CustomResourceDefinitions(crds ...apiextensions.CRDSpecification) Configuration {
+	m := map[string][]*apiextensions.CustomResourceDefinitionVersions{}
 	for k, v := range this.settings.crds {
 		m[k] = v
 	}
 	list := m[this.cluster]
 	if list == nil {
-		list = []*CustomResourceDefinition{}
+		list = []*apiextensions.CustomResourceDefinitionVersions{}
 	}
-	list = append([]*CustomResourceDefinition{}, list...)
+	list = append([]*apiextensions.CustomResourceDefinitionVersions{}, list...)
 	for _, crd := range crds {
-		vers := NewCustomResourceDefinition(crd)
+		vers, err := apiextensions.NewDefaultedCustomResourceDefinitionVersions(crd)
+		utils.Must(err)
 		list = append(list, vers)
 	}
 	m[this.cluster] = list
@@ -369,17 +369,19 @@ func (this Configuration) CustomResourceDefinitions(crds ...*apiext.CustomResour
 }
 
 func (this Configuration) VersionedCustomResourceDefinitions(crds ...*CustomResourceDefinition) Configuration {
-	m := map[string][]*CustomResourceDefinition{}
+	m := map[string][]*apiextensions.CustomResourceDefinitionVersions{}
 	for k, v := range this.settings.crds {
 		m[k] = v
 	}
 	list := m[this.cluster]
 	if list == nil {
-		list = []*CustomResourceDefinition{}
+		list = []*apiextensions.CustomResourceDefinitionVersions{}
 	}
-	list = append([]*CustomResourceDefinition{}, list...)
+	list = append([]*apiextensions.CustomResourceDefinitionVersions{}, list...)
 
-	m[this.cluster] = append(list, crds...)
+	for _, crd := range crds {
+		m[this.cluster] = append(list, crd.GetVersions())
+	}
 	this.settings.crds = m
 	return this
 }

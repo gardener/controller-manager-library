@@ -18,14 +18,10 @@ package controller
 
 import (
 	"fmt"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/logger"
-
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/client-go/tools/record"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
@@ -164,34 +160,9 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		}
 		this.Infof("ensure required crds for cluster %q (used for %q)", cluster.GetName(), n)
 		for _, v := range crds {
-			crd := v.GetFor(cluster)
+			crd := v.GetFor(cluster.GetServerVersion())
 			if crd != nil {
-				var err error
-
-				msg := logger.NewOptionalSingletonMessage(this.Infof, "  foreign %s", crd.Name)
-				resources.SetAnnotation(crd, A_MAINTAINER, env.ControllerManager().GetName())
-				found, err := cluster.Resources().GetObject(crd)
-				if err == nil {
-					if found.GetAnnotation(A_MAINTAINER) == env.ControllerManager().GetName() {
-						msg.ResetWith("  uptodate %s", crd.Name)
-						found.Modify(func(data resources.ObjectData) (bool, error) {
-							spec := &(data.(*v1beta1.CustomResourceDefinition).Spec)
-							if !reflect.DeepEqual(spec, &crd.Spec) {
-								msg.Default("  updating %s", crd.Name)
-								*spec = crd.Spec
-								return true, nil
-							}
-							return false, nil
-						})
-					}
-				} else {
-					msg.Default("  creating %s", crd.Name)
-					err = apiextensions.CreateCRDFromObject(cluster, crd)
-				}
-				if err != nil {
-					return nil, fmt.Errorf("creating CRD for %s failed: %s", crd.Name, err)
-				}
-				msg.Once()
+				err = apiextensions.CreateCRDFromObject(this, cluster, crd, env.ControllerManager().GetMaintainer())
 			}
 		}
 	}

@@ -19,6 +19,8 @@ package webhook
 
 import (
 	"fmt"
+	"sync"
+	"time"
 
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -27,24 +29,154 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
+	"github.com/gardener/controller-manager-library/pkg/wait"
 )
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func (this *Extension) register(regs WebhookRegistrationGroups, name string, cleanup bool) error {
+type MaintainedRegistration struct {
+	name         string
+	def          Definition
+	handler      RegistrationHandler
+	cluster      cluster.Interface
+	declarations WebhookDeclarations
+}
+
+func (this *MaintainedRegistration) register(ext *Extension) error {
+	return this.handler.Register(ext, ext.labels, this.cluster, this.name, this.declarations...)
+}
+
+type MaintainedRegistrations struct {
+	lock          sync.Mutex
+	registrations []*MaintainedRegistration
+	pending       []*MaintainedRegistration
+	next          int
+}
+
+func (this *MaintainedRegistrations) addRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface, declarations ...WebhookDeclaration) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.registrations = append(this.registrations, &MaintainedRegistration{
+		name:         name,
+		def:          def,
+		handler:      handler,
+		cluster:      cluster,
+		declarations: declarations,
+	})
+}
+
+func (this *MaintainedRegistrations) removeRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	for i, m := range this.registrations {
+		if m.handler != handler {
+			continue
+		}
+		if m.cluster != cluster {
+			continue
+		}
+		if m.def != def {
+			continue
+		}
+		if m.name != name {
+			continue
+		}
+		this.registrations = append(this.registrations[:i], this.registrations[i+1:]...)
+		for i, p := range this.pending {
+			if p == m {
+				this.registrations = append(this.registrations[:i], this.registrations[i+1:]...)
+				break
+			}
+		}
+		break
+	}
+}
+
+func (this *MaintainedRegistrations) TriggerRegistrationUPdate(ext *Extension) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	if len(this.registrations) > 0 {
+		start := this.pending == nil
+		this.pending = append(this.registrations[:0:0], this.registrations...)
+		this.next = 0
+		ext.Info("update %d registrations", len(this.pending))
+		if start {
+			go func() {
+				ext.Info("starting registration update handler")
+				backoff := wait.Backoff{
+					Steps:    -1,
+					Duration: 1 * time.Second,
+					Factor:   1.1,
+					Cap:      10 * time.Minute,
+				}
+				err := wait.ExponentialBackoff(ext.GetContext(), backoff, func() (bool, error) {
+					return this._driveRegistrations(ext), nil
+				})
+				if err != nil {
+					ext.Info("registration update cancelled: %s", err)
+				} else {
+					ext.Info("registration update done")
+				}
+			}()
+		}
+	}
+}
+
+func (this *MaintainedRegistrations) _next() *MaintainedRegistration {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	if this.next >= len(this.pending) {
+		this.pending = nil
+		return nil
+	}
+	this.next++
+	return this.pending[this.next-1]
+}
+
+func (this *MaintainedRegistrations) _driveRegistrations(ext *Extension) bool {
+	failed := false
+	for {
+		m := this._next()
+		if m == nil {
+			return !failed
+		}
+		err := m.register(ext)
+		if err != nil {
+			ext.Errorf("error during registration update: %s", err)
+			failed = true
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+func (this *Extension) addRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface, declarations ...WebhookDeclaration) error {
+	this.maintained.addRegistration(handler, name, def, cluster, declarations...)
+	return handler.Register(this, this.labels, cluster, name, declarations...)
+}
+
+func (this *Extension) removeRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface) error {
+	this.maintained.removeRegistration(handler, name, def, cluster)
+	return handler.Delete(this, name, def, cluster)
+}
+
+func (this *Extension) handleRegistrationGroups(regs WebhookRegistrationGroups, name string, cleanup bool) error {
 	for n, g := range regs {
-		if len(g.declarations) > 0 {
-			msg := logger.NewOptionalSingletonMessage(this.Infof, "registering webhooks for cluster %q (%s)", n, name)
-			for k, declarations := range g.declarations {
+		if len(g.groupedDeclarations) > 0 {
+			msg := logger.NewOptionalSingletonMessage(this.Infof, "registering grouped webhooks for cluster %q with name %s", n, name)
+			for k, declarations := range g.groupedDeclarations {
 				handler := GetRegistrationHandler(k)
 				if handler != nil && len(declarations) > 0 {
 					msg.Once()
-					err := handler.Register(this, this.labels, g.cluster, name, declarations...)
+					err := this.addRegistration(handler, name, nil, g.cluster, declarations...)
 					if err != nil {
 						return err
 					}
 					g.AddRegistrations(k, name)
-					this.Infof("  found %d %s webhooks", len(declarations), k)
+					this.Infof("  found %d %s webhooks for cluster %q", len(declarations), k, n)
 				}
 			}
 		}
@@ -56,14 +188,15 @@ func (this *Extension) register(regs WebhookRegistrationGroups, name string, cle
 			}
 			selector = selector.Add(*r)
 		}
-		this.Infof("looking for obsolete registrations: %s", selector.String())
 
 		if cleanup {
+			this.Infof("looking for obsolete registrations: %s", selector.String())
 			err := this.cleanup(g.cluster, selector, g.registrations, GetRegistrationResources())
 			if err != nil {
 				return err
 			}
 		}
+		this.Infof("registrations done")
 	}
 	return nil
 }

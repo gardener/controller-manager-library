@@ -88,7 +88,7 @@ func (this *validating) CreateDeclarations(log logger.LogContext, def webhook.De
 	}, nil
 }
 
-func (this *validating) Register(log logger.LogContext, labels map[string]string, cluster cluster.Interface, name string, declarations ...webhook.WebhookDeclaration) error {
+func (this *validating) Register(ctx webhook.RegistrationContext, labels map[string]string, cluster cluster.Interface, name string, declarations ...webhook.WebhookDeclaration) error {
 	config := &adminreg.ValidatingWebhookConfiguration{
 		ObjectMeta: meta.ObjectMeta{
 			Name:   name,
@@ -98,16 +98,18 @@ func (this *validating) Register(log logger.LogContext, labels map[string]string
 	}
 	var err error
 	if len(config.Webhooks) > 0 {
-		_, err = cluster.Resources().CreateOrUpdateObject(config)
+		ctx.Infof("deleting validating webhook %s", name)
+		err = resources.FilterObjectDeletionError(cluster.Resources().CreateOrUpdateObject(config))
 	}
 	return err
 }
 
-func (this *validating) Delete(name string, cluster cluster.Interface) error {
+func (this *validating) Delete(log logger.LogContext, name string, def webhook.Definition, cluster cluster.Interface) error {
 	r, err := cluster.Resources().Get(&adminreg.ValidatingWebhookConfiguration{})
 	if err != nil {
 		return err
 	}
+	log.Infof("deleting validating webhook %s", name)
 	return r.DeleteByName(resources.NewObjectName(name))
 }
 

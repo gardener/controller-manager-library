@@ -98,14 +98,19 @@ type HandlerFactory interface {
 	CreateHandler() WebhookHandler
 }
 
+type RegistrationContext interface {
+	logger.LogContext
+	Maintainer() string
+}
+
 type RegistrationHandler interface {
 	Kind() WebhookKind
 	RequireDedicatedRegistrations() bool
 	RegistrationNames(def Definition) []string
 	RegistrationResource() runtime.Object
 	CreateDeclarations(log logger.LogContext, def Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) (WebhookDeclarations, error)
-	Register(log logger.LogContext, labels map[string]string, cluster cluster.Interface, name string, declaration ...WebhookDeclaration) error
-	Delete(name string, cluster cluster.Interface) error
+	Register(ctx RegistrationContext, labels map[string]string, cluster cluster.Interface, name string, declaration ...WebhookDeclaration) error
+	Delete(log logger.LogContext, name string, def Definition, cluster cluster.Interface) error
 }
 
 type WebhookDeclaration interface {

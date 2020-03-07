@@ -32,6 +32,7 @@ const OPTION_SOURCE = "controllermanager"
 
 type Config struct {
 	Name                        string
+	Maintainer                  string
 	DisableNamespaceRestriction bool
 	NamespaceRestriction        bool
 
@@ -48,6 +49,7 @@ func NewConfig() *Config {
 	cfg.AddStringOption(&cfg.Name, "name", "", "", "name used for controller manager")
 	cfg.AddBoolOption(&cfg.NamespaceRestriction, "namespace-local-access-only", "n", false, "enable access restriction for namespace local access only (deprecated)")
 	cfg.AddBoolOption(&cfg.DisableNamespaceRestriction, "disable-namespace-restriction", "", false, "disable access restriction for namespace local access only")
+	cfg.AddStringOption(&cfg.Maintainer, "maintainer", "", "", "maintainer key for crds (defaulted by manager name)")
 	return cfg
 }
 
@@ -59,6 +61,9 @@ func (this *Config) Evaluate() error {
 		this.NamespaceRestriction = true
 	}
 	this.DisableNamespaceRestriction = false
+	if this.Maintainer == "" {
+		this.Maintainer = this.Name
+	}
 	return this.OptionSet.Evaluate()
 }
 

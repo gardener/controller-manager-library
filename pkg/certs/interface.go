@@ -36,3 +36,9 @@ type CertificateConsumerUpdater interface {
 type CertificateWatch interface {
 	RegisterConsumer(h CertificateConsumerUpdater)
 }
+
+type CertificateUpdaterFunc func(info certmgmt.CertificateInfo)
+
+func (this CertificateUpdaterFunc) UpdateCertificate(info certmgmt.CertificateInfo) {
+	this(info)
+}

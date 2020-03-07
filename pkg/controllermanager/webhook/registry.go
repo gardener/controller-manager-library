@@ -111,7 +111,9 @@ func (this *_Registry) Register(reg Registerable, grps ...string) error {
 	logger.Infof("Registering webhook %s", def.GetName())
 
 	if len(grps) == 0 {
-		grps = []string{groups.DEFAULT}
+		grps = []string{groups.DEFAULT, string(def.GetKind())}
+	} else {
+		grps = append(grps, string(def.GetKind()))
 	}
 	for _, g := range grps {
 		err := this.addToGroup(def, g)

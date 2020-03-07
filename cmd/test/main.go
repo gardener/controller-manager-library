@@ -2,12 +2,9 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"time"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/gardener/controller-manager-library/cmd/test/certs"
 	"github.com/gardener/controller-manager-library/cmd/test/cond"
@@ -15,11 +12,10 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/errors"
 	"github.com/gardener/controller-manager-library/cmd/test/field"
 	"github.com/gardener/controller-manager-library/cmd/test/match"
+	"github.com/gardener/controller-manager-library/cmd/test/misc"
 	"github.com/gardener/controller-manager-library/cmd/test/plain"
 	"github.com/gardener/controller-manager-library/cmd/test/preferred"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example"
-	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 	"github.com/gardener/controller-manager-library/pkg/sync"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
@@ -33,14 +29,6 @@ var values = map[controller.ResourceKey]int{}
 
 func main() {
 
-	crd := apiextensions.GetCRD(schema.GroupKind{example.GroupName, "Example"})
-	crd, err := crd.CRDRestrict("v1alpha1")
-	o, err := crd.ConvertTo("v1beta1")
-	if err != nil {
-		panic(err)
-	}
-	s, _ := json.MarshalIndent(o, "", "  ")
-	fmt.Printf("%s\n", string(s))
 	x := map[string]map[string]string{}
 	x["a"] = map[string]string{}
 	x["a"]["b"] = "c"
@@ -82,6 +70,8 @@ func main() {
 			plain.PlainMain()
 		case "preferred":
 			preferred.PreferredMain()
+		case "misc":
+			misc.MiscMain()
 		}
 	}
 }

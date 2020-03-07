@@ -20,6 +20,8 @@ package apiextensions
 import (
 	"fmt"
 
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/server"
 )
@@ -148,5 +150,24 @@ func NewServiceWebhookClientConfig(name resources.ObjectName, port int, path str
 			Path:      &path,
 			Port:      int32(port),
 		},
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+func toClientConfig(cfg *WebhookClientConfig) *apiextensions.WebhookClientConfig {
+	var svc *apiextensions.ServiceReference
+	if cfg.Service != nil {
+		svc = &apiextensions.ServiceReference{
+			Namespace: cfg.Service.Namespace,
+			Name:      cfg.Service.Name,
+			Path:      cfg.Service.Path,
+			Port:      cfg.Service.Port,
+		}
+	}
+	return &apiextensions.WebhookClientConfig{
+		URL:      cfg.URL,
+		CABundle: append(cfg.CABundle[:0:0], cfg.CABundle...),
+		Service:  svc,
 	}
 }

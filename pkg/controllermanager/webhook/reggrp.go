@@ -25,24 +25,24 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 type WebhookRegistrationGroup struct {
-	cluster       cluster.Interface
-	registrations map[string]utils.StringSet
-	declarations  map[WebhookKind]WebhookDeclarations
+	cluster             cluster.Interface
+	registrations       map[string]utils.StringSet
+	groupedDeclarations map[WebhookKind]WebhookDeclarations
 }
 
 func NewWebhookRegistrationGroup(cluster cluster.Interface) *WebhookRegistrationGroup {
 	return &WebhookRegistrationGroup{
-		cluster:       cluster,
-		registrations: map[string]utils.StringSet{},
-		declarations:  map[WebhookKind]WebhookDeclarations{},
+		cluster:             cluster,
+		registrations:       map[string]utils.StringSet{},
+		groupedDeclarations: map[WebhookKind]WebhookDeclarations{},
 	}
 }
 
 func (this *WebhookRegistrationGroup) AddDeclarations(decls ...WebhookDeclaration) {
 	for _, d := range decls {
-		declarations := this.declarations[d.Kind()]
+		declarations := this.groupedDeclarations[d.Kind()]
 		declarations = append(declarations, d)
-		this.declarations[d.Kind()] = declarations
+		this.groupedDeclarations[d.Kind()] = declarations
 	}
 }
 
@@ -60,10 +60,10 @@ func (this *WebhookRegistrationGroup) AddRegistrations(kind WebhookKind, names .
 type WebhookRegistrationGroups map[string]*WebhookRegistrationGroup
 
 func (this WebhookRegistrationGroups) GetOrCreateGroup(cluster cluster.Interface) *WebhookRegistrationGroup {
-	g := this[cluster.GetName()]
+	g := this[cluster.GetId()]
 	if g == nil {
 		g = NewWebhookRegistrationGroup(cluster)
-		this[cluster.GetName()] = g
+		this[cluster.GetId()] = g
 	}
 	return g
 }

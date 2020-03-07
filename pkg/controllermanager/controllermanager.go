@@ -44,7 +44,6 @@ type ControllerManager struct {
 	lock       sync.Mutex
 	extensions extension.Extensions
 
-	name       string
 	namespace  string
 	definition *Definition
 
@@ -82,6 +81,11 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	name := def.GetName()
 	if cfg.Name != "" {
 		name = cfg.Name
+	} else {
+		cfg.Name = name
+	}
+	if cfg.Maintainer == "" {
+		cfg.Maintainer = cfg.Name
 	}
 
 	namespace := run.GetConfig(maincfg).Namespace
@@ -108,7 +112,6 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 
 	cm := &ControllerManager{
 		LogContext: lgr,
-		name:       name,
 		namespace:  namespace,
 		definition: def,
 		config:     cfg,
@@ -157,7 +160,11 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 }
 
 func (this *ControllerManager) GetName() string {
-	return this.name
+	return this.config.Name
+}
+
+func (this *ControllerManager) GetMaintainer() string {
+	return this.config.Maintainer
 }
 
 func (this *ControllerManager) GetNamespace() string {
@@ -194,7 +201,7 @@ func (this *ControllerManager) GetDefaultScheme() *runtime.Scheme {
 
 func (this *ControllerManager) Run() error {
 	var err error
-	this.Infof("run %s\n", this.name)
+	this.Infof("run %s\n", this.config.Name)
 
 	server.ServeFromMainConfig(this.context, "httpserver")
 

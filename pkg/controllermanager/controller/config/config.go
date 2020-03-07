@@ -28,6 +28,7 @@ const OPTION_SOURCE = "controllers"
 type Config struct {
 	Controllers string
 	OmitLease   bool
+	LeaseName   string
 
 	config.OptionSet
 }
@@ -39,6 +40,7 @@ func NewConfig() *Config {
 		OptionSet: config.NewDefaultOptionSet(OPTION_SOURCE, ""),
 	}
 	cfg.AddStringOption(&cfg.Controllers, "controllers", "c", "all", "comma separated list of controllers to start (<name>,<group>,all)")
+	cfg.AddStringOption(&cfg.LeaseName, "lease-name", "", "", "name for lease object")
 	cfg.AddBoolOption(&cfg.OmitLease, "omit-lease", "", false, "omit lease for development")
 	return cfg
 }

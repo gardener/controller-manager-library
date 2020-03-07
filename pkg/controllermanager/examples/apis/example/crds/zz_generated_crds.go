@@ -18,7 +18,10 @@ package crds
 
 import (
 	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
+
+var registry = apiextensions.NewRegistry()
 
 func init() {
 	var data string
@@ -147,5 +150,9 @@ status:
   conditions: []
   storedVersions: []
   `
-	apiextensions.MustRegisterCRD(data)
+	utils.Must(registry.RegisterCRD(data))
+}
+
+func AddToRegistry(r apiextensions.Registry) {
+	registry.AddToRegistry(r)
 }

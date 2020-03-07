@@ -169,7 +169,7 @@ func (this *AbstractResource) Get(obj interface{}) (Object, error) {
 		if err := this.CheckOType(o); err != nil {
 			return nil, err
 		}
-		return this.helper.Get(o.GetNamespace(), o.GetName(), o)
+		return this.helper.Get(o.GetNamespace(), o.GetName(), nil)
 	case ObjectKey:
 		if o.GroupKind() != this.GroupKind() {
 			return nil, errors.ErrResourceMismatch.New(gvk, o.GroupKind())

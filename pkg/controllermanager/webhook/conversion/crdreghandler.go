@@ -18,8 +18,12 @@
 package conversion
 
 import (
+	"fmt"
+
 	adminreg "k8s.io/api/admissionregistration/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
@@ -65,11 +69,14 @@ func (this *crdhandler) RequireDedicatedRegistrations() bool {
 func (this *crdhandler) RegistrationNames(def webhook.Definition) []string {
 	names := []string{}
 	for _, r := range def.GetResources() {
-		crd := apiextensions.GetCRD(r.GroupKind())
+		crd := apiextensions.GetCRDs(r.GroupKind())
 		if crd == nil {
 			continue
 		}
-		names = append(names, crd.Name)
+		name := crd.Name()
+		if name != "" {
+			names = append(names, name)
+		}
 	}
 	return names
 }
@@ -78,29 +85,25 @@ func (this *crdhandler) CreateDeclarations(log logger.LogContext, def webhook.De
 	result := webhook.WebhookDeclarations{}
 	log.Infof("creating crd manifests of %s(%s) for cluster %s(%s)", def.GetName(), def.GetKind(), target.GetId(), target.GetServerVersion())
 	for _, r := range def.GetResources() {
-		crd := apiextensions.GetCRD(r.GroupKind())
+		crd := apiextensions.GetCRDFor(r.GroupKind(), target)
 		if crd == nil {
-			log.Infof("  no crd for %s", r.GroupKind())
+			log.Infof("  no crd for %s and cluster version %s", r.GroupKind(), target.GetServerVersion())
 			continue
 		}
-		o := crd.For(target)
-		if o == nil {
-			log.Infof("  %s not available for cluster", r.GroupKind())
-			continue
-		}
-		log.Infof("  %s", o.GetName())
-		result = append(result, &CRDDeclaration{o})
+		log.Infof("  %s", crd.GetName())
+		result = append(result, &CRDDeclaration{crd})
 	}
+	log.Infof("done")
 	return result, nil
 }
 
-func (this *crdhandler) Register(log logger.LogContext, labels map[string]string, cluster cluster.Interface, name string, declarations ...webhook.WebhookDeclaration) error {
-	log.Infof("registering crds...")
+func (this *crdhandler) Register(ctx webhook.RegistrationContext, labels map[string]string, cluster cluster.Interface, name string, declarations ...webhook.WebhookDeclaration) error {
+	ctx.Infof("registering crds...")
 	for _, d := range declarations {
 		decl := d.(*CRDDeclaration).ObjectData
 		decl.SetLabels(labels)
-		log.Infof("   %s (%T)", decl.GetName(), decl)
-		err := apiextensions.CreateCRDFromObject(cluster, decl)
+		ctx.Infof("  %s (%T)", decl.GetName(), decl)
+		err := apiextensions.CreateCRDFromObject(ctx, cluster, decl, ctx.Maintainer())
 		if err != nil {
 			return err
 		}
@@ -108,10 +111,44 @@ func (this *crdhandler) Register(log logger.LogContext, labels map[string]string
 	return nil
 }
 
-func (this *crdhandler) Delete(name string, cluster cluster.Interface) error {
-	r, err := cluster.Resources().Get(&adminreg.MutatingWebhookConfiguration{})
+func (this *crdhandler) Delete(log logger.LogContext, name string, def webhook.Definition, cluster cluster.Interface) error {
+	resc, err := cluster.Resources().Get(&adminreg.MutatingWebhookConfiguration{})
 	if err != nil {
 		return err
 	}
-	return r.DeleteByName(resources.NewObjectName(name))
+	if def == nil {
+		err := resc.DeleteByName(resources.NewObjectName(name))
+		if err != nil && !errors.IsNotFound(err) {
+			return fmt.Errorf("error deleting crd %s: %s", name, err)
+		}
+		return nil
+	}
+
+	log.Infof("deleting crds...")
+	for _, r := range def.GetResources() {
+		crd := apiextensions.GetCRDFor(r.GroupKind(), cluster)
+		if crd == nil {
+			log.Infof("  no crd for %s and cluster version %s", r.GroupKind(), cluster.GetServerVersion())
+			continue
+		}
+		cust, err := cluster.Resources().Get(r)
+		if err != nil {
+			log.Infof("  resource %s not found: %s", r, err)
+			continue
+		}
+		list, err := cust.List(metav1.ListOptions{})
+		if err != nil {
+			log.Infof("  list failed for %s: %s", r, err)
+			return err
+		}
+		if len(list) > 0 {
+			log.Infof("  deletion os %s skipped because there are still %d objects", r, len(list))
+		}
+		log.Infof("  %s", crd.GetName())
+		err = resources.FilterObjectDeletionError(resc.DeleteByName(resources.NewObjectName(crd.GetName())))
+		if err != nil {
+			return fmt.Errorf("error deleting crd %s: %s", crd.GetName(), err)
+		}
+	}
+	return nil
 }

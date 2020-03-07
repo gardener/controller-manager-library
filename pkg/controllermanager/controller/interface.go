@@ -27,6 +27,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
@@ -136,7 +137,7 @@ type Definition interface {
 	Before() []string
 	RequiredClusters() []string
 	RequiredControllers() []string
-	CustomResourceDefinitions() map[string][]*CustomResourceDefinition
+	CustomResourceDefinitions() map[string][]*apiextensions.CustomResourceDefinitionVersions
 	RequireLease() bool
 	FinalizerName() string
 	ActivateExplicitly() bool

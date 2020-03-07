@@ -15,30 +15,42 @@
  *
  */
 
-package utils
+package misc
 
-// Must panics on non-nil errors.  Useful to handling programmer level errors.
-func Must(args ...interface{}) {
-	if len(args) > 0 {
-		if !IsNil(args[len(args)-1]) {
-			panic(args[len(args)-1])
-		}
-	}
-}
+import (
+	"context"
+	"fmt"
+	"time"
 
-func Error(args ...interface{}) error {
-	if len(args) == 0 {
-		return nil
-	}
-	if err, ok := args[len(args)-1].(error); ok {
-		return err
-	}
-	return nil
-}
+	"github.com/gardener/controller-manager-library/pkg/wait"
+)
 
-func FirstValue(args ...interface{}) interface{} {
-	if len(args) == 0 {
-		return nil
+func MiscMain() {
+
+	b := wait.Backoff{
+		Duration: time.Second,
+		Factor:   1.1,
+		Steps:    -1,
 	}
-	return args[0]
+
+	ctx, cancel := context.WithCancel(context.Background())
+	fmt.Printf("start\n")
+
+	timer := time.NewTimer(20 * time.Second)
+	go func() {
+		fmt.Printf("%s\n", wait.ExponentialBackoff(ctx, b, func() (bool, error) {
+			fmt.Printf("%s tick...\n", time.Now())
+			return false, nil
+		}))
+	}()
+	fmt.Printf("wait\n")
+
+	select {
+	case <-timer.C:
+		fmt.Printf("shutdown\n")
+		cancel()
+	}
+	timer.Reset(5 * time.Second)
+	<-timer.C
+	fmt.Printf("done\n")
 }

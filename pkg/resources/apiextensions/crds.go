@@ -18,6 +18,7 @@ package apiextensions
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,14 +27,16 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
+
+const A_MAINTAINER = "crds.gardener.cloud/maintainer"
 
 type CRDSpecification interface{}
 
@@ -98,15 +101,18 @@ outer:
 	return new, nil
 }
 
-func (this *CustomResourceDefinition) For(cluster resources.Cluster) resources.ObjectData {
+func (this *CustomResourceDefinition) ObjectFor(cluster resources.Cluster, cp WebhookClientConfigProvider) resources.Object {
+	return this.ObjectFor(cluster, cp)
+}
+
+func (this *CustomResourceDefinition) DataFor(cluster resources.Cluster, cp WebhookClientConfigProvider) resources.ObjectData {
 	if this == nil {
 		return nil
 	}
 	crd := this.DeepCopy()
-	if len(crd.Spec.Versions) > 1 {
-		fmt.Printf("==========%d\n", len(crd.Spec.Versions))
+	if len(crd.Spec.Versions) > 1 && cp != nil {
 		if crd.Spec.Conversion == nil || crd.Spec.Conversion.WebhookClientConfig == nil {
-			cfg := GetClientConfig(crd.CRDGroupKind(), cluster)
+			cfg := cp.GetClientConfig(crd.CRDGroupKind(), cluster)
 			if cfg != nil {
 				if crd.Spec.Conversion == nil || crd.Spec.Conversion.Strategy == apiextensions.NoneConverter {
 					crd.Spec.Conversion = &apiextensions.CustomResourceConversion{
@@ -132,56 +138,38 @@ func (this *CustomResourceDefinition) For(cluster resources.Cluster) resources.O
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func CreateCRDObjectWithStatus(groupName, version, rkind, rplural, shortName string, namespaces bool, columns ...v1beta1.CustomResourceColumnDefinition) *v1beta1.CustomResourceDefinition {
-	return _CreateCRDObject(true, groupName, version, rkind, rplural, shortName, namespaces, columns...)
+func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd resources.ObjectData, maintainer string) error {
+	var err error
+
+	msg := logger.NewOptionalSingletonMessage(log.Infof, "    foreign %s", crd.GetName())
+	resources.SetAnnotation(crd, A_MAINTAINER, maintainer)
+	found, err := cluster.Resources().GetObject(crd)
+	if err == nil {
+		if found.GetAnnotation(A_MAINTAINER) == maintainer {
+			msg.ResetWith("    uptodate %s", crd.GetName())
+			new, _ := resources.GetObjectSpec(crd)
+			found.Modify(func(data resources.ObjectData) (bool, error) {
+				spec, _ := resources.GetObjectSpec(data)
+				if !reflect.DeepEqual(spec, new) {
+					msg.Default("    updating %s", crd.GetName())
+					resources.SetObjectSpec(data, new)
+					return true, nil
+				}
+				return false, nil
+			})
+		}
+	} else {
+		msg.Default("    creating %s", crd.GetName())
+		err = _CreateCRDFromObject(cluster, crd)
+	}
+	if err != nil {
+		return fmt.Errorf("creating CRD for %s failed: %s", crd.GetName(), err)
+	}
+	msg.Once()
+	return nil
 }
 
-func CreateCRDObject(groupName, version, rkind, rplural, shortName string, namespaces bool, columns ...v1beta1.CustomResourceColumnDefinition) *v1beta1.CustomResourceDefinition {
-	return _CreateCRDObject(false, groupName, version, rkind, rplural, shortName, namespaces, columns...)
-}
-
-func _CreateCRDObject(status bool, groupName, version, rkind, rplural, shortName string, namespaces bool, columns ...v1beta1.CustomResourceColumnDefinition) *v1beta1.CustomResourceDefinition {
-	crdName := rplural + "." + groupName
-	scope := v1beta1.ClusterScoped
-	if namespaces {
-		scope = v1beta1.NamespaceScoped
-	}
-	crd := &v1beta1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: crdName,
-		},
-		Spec: v1beta1.CustomResourceDefinitionSpec{
-			Group:   groupName,
-			Version: version,
-			Scope:   scope,
-			Names: v1beta1.CustomResourceDefinitionNames{
-				Plural: rplural,
-				Kind:   rkind,
-			},
-		},
-	}
-
-	if status {
-		crd.Spec.Subresources = &v1beta1.CustomResourceSubresources{Status: &v1beta1.CustomResourceSubresourceStatus{}}
-	}
-	for _, c := range columns {
-		crd.Spec.AdditionalPrinterColumns = append(crd.Spec.AdditionalPrinterColumns, c)
-	}
-	crd.Spec.AdditionalPrinterColumns = append(crd.Spec.AdditionalPrinterColumns, v1beta1.CustomResourceColumnDefinition{Name: "AGE", Type: "date", JSONPath: ".metadata.creationTimestamp"})
-
-	if len(shortName) != 0 {
-		crd.Spec.Names.ShortNames = []string{shortName}
-	}
-
-	return crd
-}
-
-func CreateCRD(cluster resources.Cluster, groupName, version, rkind, rplural, shortName string, namespaces bool, columns ...v1beta1.CustomResourceColumnDefinition) error {
-	crd := CreateCRDObject(groupName, version, rkind, rplural, shortName, namespaces, columns...)
-	return CreateCRDFromObject(cluster, crd)
-}
-
-func CreateCRDFromObject(cluster resources.Cluster, crd resources.ObjectData) error {
+func _CreateCRDFromObject(cluster resources.Cluster, crd resources.ObjectData) error {
 	resc, err := cluster.Resources().GetByExample(crd)
 	if err != nil {
 		return err

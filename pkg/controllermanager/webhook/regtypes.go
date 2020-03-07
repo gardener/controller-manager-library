@@ -57,8 +57,8 @@ func GetRegistrationResources() RegistrationResources {
 ////////////////////////////////////////////////////////////////////////////////
 
 type RegistrationHandlerBase struct {
-	kind   WebhookKind
-	object runtime.Object
+	kind  WebhookKind
+	proto runtime.Object
 }
 
 func NewRegistrationHandlerBase(kind WebhookKind, obj runtime.Object) *RegistrationHandlerBase {
@@ -70,7 +70,7 @@ func (this *RegistrationHandlerBase) Kind() WebhookKind {
 }
 
 func (this *RegistrationHandlerBase) RegistrationResource() runtime.Object {
-	return this.object
+	return this.proto
 }
 
 func (this *RegistrationHandlerBase) RequireDedicatedRegistrations() bool {

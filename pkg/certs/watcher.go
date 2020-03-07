@@ -24,6 +24,10 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 )
 
+type Watchable interface {
+	RegisterConsumer(h CertificateConsumerUpdater)
+}
+
 type WatchableSource struct {
 	sync.Mutex
 	handlers []CertificateConsumerUpdater

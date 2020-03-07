@@ -88,7 +88,7 @@ func (this *mutating) CreateDeclarations(log logger.LogContext, def webhook.Defi
 	}, nil
 }
 
-func (this *mutating) Register(log logger.LogContext, labels map[string]string, cluster cluster.Interface, name string, declarations ...webhook.WebhookDeclaration) error {
+func (this *mutating) Register(ctx webhook.RegistrationContext, labels map[string]string, cluster cluster.Interface, name string, declarations ...webhook.WebhookDeclaration) error {
 	config := &adminreg.MutatingWebhookConfiguration{
 		ObjectMeta: meta.ObjectMeta{
 			Name:   name,
@@ -98,16 +98,18 @@ func (this *mutating) Register(log logger.LogContext, labels map[string]string, 
 	}
 	var err error
 	if len(config.Webhooks) > 0 {
-		_, err = cluster.Resources().CreateOrUpdateObject(config)
+		ctx.Infof("creating mutating webhook %s", name)
+		err = resources.FilterObjectDeletionError(cluster.Resources().CreateOrUpdateObject(config))
 	}
 	return err
 }
 
-func (this *mutating) Delete(name string, cluster cluster.Interface) error {
+func (this *mutating) Delete(log logger.LogContext, name string, def webhook.Definition, cluster cluster.Interface) error {
 	r, err := cluster.Resources().Get(&adminreg.MutatingWebhookConfiguration{})
 	if err != nil {
 		return err
 	}
+	log.Infof("deleting mutating webhook %s", name)
 	return r.DeleteByName(resources.NewObjectName(name))
 }
 

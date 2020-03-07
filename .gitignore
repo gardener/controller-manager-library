@@ -1,5 +1,6 @@
-test-controller
-test-webhook
+/cmd/test-controller/test-controller
+/cmd/test-webhook/test-webhook
+/cmd/example/example
 /args
 /bin
 /.kube-secrets

@@ -22,7 +22,6 @@ import (
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	runtimeutil "k8s.io/apimachinery/pkg/util/runtime"
 
@@ -45,7 +44,7 @@ func init() {
 	resources.Register(v1.SchemeBuilder)
 }
 
-func CRDObject(spec CRDSpecification) (*CustomResourceDefinition, error) {
+func GetCustomResourceDefinition(spec CRDSpecification) (*CustomResourceDefinition, error) {
 	var data []byte
 	var err error
 
@@ -58,31 +57,22 @@ func CRDObject(spec CRDSpecification) (*CustomResourceDefinition, error) {
 		data = obj
 	case string:
 		data = []byte(obj)
-	case schema.GroupKind:
-		crd := GetCRD(obj)
-		if crd == nil {
-			return nil, errors.ErrUnknown.New(obj)
-		}
-		return crd, nil
-	case *schema.GroupKind:
-		crd := GetCRD(*obj)
-		if crd == nil {
-			return nil, errors.ErrUnknown.New(obj)
-		}
-		return crd, nil
 	case *apiextensions.CustomResourceDefinition:
 		return &CustomResourceDefinition{obj}, nil
+	case *v1beta1.CustomResourceDefinition, *v1.CustomResourceDefinition:
+		err = scheme.Convert(obj, def, nil)
 	case runtime.Object:
 		err = scheme.Convert(obj, def, nil)
 		if err != nil {
-			return nil, err
+			return nil, errors.NewInvalid("invalid CRD spec type: %T", spec)
 		}
-		return &CustomResourceDefinition{def}, nil
 	default:
 		return nil, errors.NewInvalid("invalid CRD spec type: %T", spec)
 	}
 
-	_, _, err = decoder.Decode([]byte(data), nil, def)
+	if data != nil {
+		_, _, err = decoder.Decode([]byte(data), nil, def)
+	}
 	if err != nil {
 		return nil, err
 	}

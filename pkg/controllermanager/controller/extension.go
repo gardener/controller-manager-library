@@ -128,6 +128,9 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 
 	cfg := areacfg.GetConfig(cm.GetConfig())
 
+	if cfg.LeaseName == "" {
+		cfg.LeaseName = cm.GetName() + "-controllers"
+	}
 	groups := defs.Groups()
 	ext.Infof("configured groups: %s", groups.AllGroups())
 

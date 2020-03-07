@@ -128,6 +128,7 @@ func RegisterExtension(e ExtensionType) {
 
 type ControllerManager interface {
 	GetName() string
+	GetMaintainer() string
 	GetNamespace() string
 
 	GetConfig() *areacfg.Config

@@ -24,10 +24,14 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/v1alpha1"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/v1beta1"
+	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 
-	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/crds"
-	/*
-	 */)
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/crds"
+)
+
+func init() {
+	crds.AddToRegistry(apiextensions.DefaultRegistry())
+}
 
 // Install installs all APIs in the scheme.
 func Install(scheme *runtime.Scheme) {
