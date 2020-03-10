@@ -69,28 +69,17 @@ func Create(controller controller.Interface) (reconcile.Interface, error) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-func (h *reconciler) Start() {
-	h.controller.EnqueueCommand("poll")
-}
-
-func (h *reconciler) Command(logger logger.LogContext, cmd string) reconcile.Status {
-	logger.Infof("got command %q", cmd)
-	return reconcile.Succeeded(logger).RescheduleAfter(10 * time.Second)
-}
-
 func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
 	logger.Infof("%s example (%T)", h.config.message, obj.Data())
 	return reconcile.Succeeded(logger)
 }
 
 func (h *reconciler) Delete(logger logger.LogContext, obj resources.Object) reconcile.Status {
-	// logger.Infof("delete infrastructure %s", resources.Description(obj))
 	logger.Infof("should delete")
 	return reconcile.Succeeded(logger)
 }
 
 func (h *reconciler) Deleted(logger logger.LogContext, key resources.ClusterObjectKey) reconcile.Status {
-	// logger.Infof("delete infrastructure %s", resources.Description(obj))
 	logger.Infof("is deleted")
 	return reconcile.Succeeded(logger)
 }
