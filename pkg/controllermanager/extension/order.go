@@ -20,6 +20,7 @@ package extension
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -108,14 +109,26 @@ func Order(m interface{}) ([]string, map[string][]string, error) {
 	return order, after, nil
 }
 
+func cycle(a []string) []string {
+	if len(a) == 0 {
+		return a
+	}
+	min := 0
+	for i, n := range a {
+		if strings.Compare(a[min], n) > 0 {
+			min = i
+		}
+	}
+	return append(a[min:], append(a[:min], a[min])...)
+}
+
 func _order(elems map[string]OrderedElem, history []string, order *[]string, name string, after map[string][]string) error {
 	if elems[name] == nil {
 		return nil
 	}
 	for i, n := range history {
 		if n == name {
-			history = append(history, name)
-			return fmt.Errorf("cycle detected: %+v", history[i:])
+			return fmt.Errorf("cycle detected: %+v", cycle(history[i:]))
 		}
 	}
 	for _, n := range *order {

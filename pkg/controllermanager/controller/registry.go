@@ -23,7 +23,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/config"
 	cgroups "github.com/gardener/controller-manager-library/pkg/controllermanager/controller/groups"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/groups"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension/groups"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )

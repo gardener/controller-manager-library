@@ -293,6 +293,7 @@ func (this *Extension) Start(ctx context.Context) error {
 	}
 
 	if w, ok := this.certificate.(certs.Watchable); ok {
+		this.Infof("server certificate is watchable -> register change notification")
 		w.RegisterConsumer(certs.CertificateUpdaterFunc(func(info certmgmt.CertificateInfo) {
 			this.certificateUpdated()
 		}))

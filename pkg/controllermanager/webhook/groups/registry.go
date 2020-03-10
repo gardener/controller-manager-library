@@ -18,7 +18,7 @@
 
 package groups
 
-import "github.com/gardener/controller-manager-library/pkg/controllermanager/groups"
+import "github.com/gardener/controller-manager-library/pkg/controllermanager/extension/groups"
 
 const DEFAULT = "default"
 
