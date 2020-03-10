@@ -21,6 +21,7 @@ package extension
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -362,6 +363,21 @@ type OptionDefinitions map[string]OptionDefinition
 ////////////////////////////////////////////////////////////////////////////////
 
 type OptionSourceCreator func() config.OptionSource
+
+func OptionSourceCreatorByExample(proto config.OptionSource) OptionSourceCreator {
+	if proto == nil {
+		return nil
+	}
+	t := reflect.TypeOf(proto)
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return func() config.OptionSource {
+		return reflect.New(t).Interface().(config.OptionSource)
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 type OptionSourceDefinition interface {
 	GetName() string

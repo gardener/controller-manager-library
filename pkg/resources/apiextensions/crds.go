@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -141,17 +142,17 @@ func (this *CustomResourceDefinition) DataFor(cluster resources.Cluster, cp Webh
 func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd resources.ObjectData, maintainer string) error {
 	var err error
 
-	msg := logger.NewOptionalSingletonMessage(log.Infof, "    foreign %s", crd.GetName())
+	msg := logger.NewOptionalSingletonMessage(log.Infof, "foreign %s", crd.GetName())
 	resources.SetAnnotation(crd, A_MAINTAINER, maintainer)
 	found, err := cluster.Resources().GetObject(crd)
 	if err == nil {
 		if found.GetAnnotation(A_MAINTAINER) == maintainer {
-			msg.ResetWith("    uptodate %s", crd.GetName())
+			msg.ResetWith("uptodate %s", crd.GetName())
 			new, _ := resources.GetObjectSpec(crd)
 			found.Modify(func(data resources.ObjectData) (bool, error) {
 				spec, _ := resources.GetObjectSpec(data)
 				if !reflect.DeepEqual(spec, new) {
-					msg.Default("    updating %s", crd.GetName())
+					msg.Default("updating %s", crd.GetName())
 					resources.SetObjectSpec(data, new)
 					return true, nil
 				}
@@ -159,7 +160,7 @@ func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd r
 			})
 		}
 	} else {
-		msg.Default("    creating %s", crd.GetName())
+		msg.Default("creating %s", crd.GetName())
 		err = _CreateCRDFromObject(cluster, crd)
 	}
 	if err != nil {
@@ -210,4 +211,71 @@ func WaitCRDReady(cluster resources.Cluster, crdName string) error {
 		return errors.ErrFailed.Wrap(err, "wait for CRD creation", crdName)
 	}
 	return nil
+}
+
+func Migrate(log logger.LogContext, cluster resources.Cluster, crdName string, migscheme *runtime.Scheme) error {
+	key := NewKey(crdName)
+	obj, err := cluster.Resources().GetObject(key)
+	if err != nil {
+		return err
+	}
+	crd := &apiextensions.CustomResourceDefinition{}
+	err = scheme.Convert(obj.Data(), crd, nil)
+	if err != nil {
+		return err
+	}
+	stored := ""
+	for _, v := range crd.Spec.Versions {
+		if v.Storage {
+			stored = v.Name
+		}
+	}
+	if stored != "" {
+		switch len(crd.Status.StoredVersions) {
+		case 0:
+			log.Infof("no stored versions for %s found (should be %s)", crdName, stored)
+			return nil
+		case 1:
+			if stored == crd.Status.StoredVersions[0] {
+				log.Infof("stored versions for %s: %s", crdName, stored)
+				return nil
+			}
+			log.Infof("stored versions mismatch for %s:  found %s (should be %s)", crdName, crd.Status.StoredVersions[0], stored)
+			return nil
+		default:
+			log.Infof("stored versions for %s: %s, required %s", crdName, crd.Status.StoredVersions, stored)
+		}
+	} else {
+		log.Infof("no stored version indicated for %s: found %s", crdName, utils.Strings(crd.Status.StoredVersions...))
+		return nil
+	}
+	log.Infof("migration required...")
+	if migscheme == nil {
+		migscheme = cluster.Resources().Scheme()
+	}
+	gk := resources.NewGroupKind(crd.Spec.Group, crd.Spec.Names.Kind)
+	resc, err := cluster.Resources().GetByGK(gk)
+	if err != nil {
+		return err
+	}
+	list, err := resc.List(metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	log.Infof("migrating %d objects", len(list))
+	for _, obj := range list {
+		nerr := obj.Update()
+		if nerr != nil {
+			err = nerr
+		}
+	}
+	if err == nil {
+		crd.Status.StoredVersions = []string{stored}
+		err := scheme.Convert(crd, obj.Data(), nil)
+		if err != nil {
+			return err
+		}
+		err = obj.UpdateStatus()
+	}
+	return err
 }

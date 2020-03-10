@@ -28,6 +28,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+func OptionSourceCreator(proto config.OptionSource) extension.OptionSourceCreator {
+	return extension.OptionSourceCreatorByExample(proto)
+}
+
 type _Definition struct {
 	name               string
 	keys               []extension.ResourceKey
@@ -35,6 +39,7 @@ type _Definition struct {
 	scheme             *runtime.Scheme
 	handler            WebhookHandler
 	configs            extension.OptionDefinitions
+	configsources      extension.OptionSourceDefinitions
 	activateExplicitly bool
 }
 
@@ -66,6 +71,15 @@ func (this *_Definition) ConfigOptions() map[string]OptionDefinition {
 	}
 	return cfgs
 }
+
+func (this *_Definition) ConfigOptionSources() extension.OptionSourceDefinitions {
+	cfgs := extension.OptionSourceDefinitions{}
+	for n, d := range this.configsources {
+		cfgs[n] = d
+	}
+	return cfgs
+}
+
 func (this *_Definition) ActivateExplicitly() bool {
 	return this.activateExplicitly
 }
@@ -95,8 +109,9 @@ type Configuration struct {
 func Configure(name string) Configuration {
 	return Configuration{
 		settings: _Definition{
-			name:    name,
-			configs: extension.OptionDefinitions{},
+			name:          name,
+			configs:       extension.OptionDefinitions{},
+			configsources: extension.OptionSourceDefinitions{},
 		},
 	}
 }
@@ -166,6 +181,22 @@ func (this Configuration) addOption(name string, t config.OptionType, def interf
 		panic(fmt.Sprintf("option %q already defined", name))
 	}
 	this.settings.configs[name] = extension.NewOptionDefinition(name, t, def, desc)
+	return this
+}
+
+func (this Configuration) OptionSource(name string, creator extension.OptionSourceCreator) Configuration {
+	if this.settings.configsources[name] != nil {
+		panic(fmt.Sprintf("option source %q already defined", name))
+	}
+	this.settings.configsources[name] = extension.NewOptionSourceDefinition(name, creator)
+	return this
+}
+
+func (this Configuration) OptionsByExample(name string, proto config.OptionSource) Configuration {
+	if this.settings.configsources[name] != nil {
+		panic(fmt.Sprintf("option source %q already defined", name))
+	}
+	this.settings.configsources[name] = extension.NewOptionSourceDefinition(name, OptionSourceCreator(proto))
 	return this
 }
 

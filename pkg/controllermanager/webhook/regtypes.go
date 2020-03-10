@@ -21,6 +21,8 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 )
 
 var lock sync.Mutex
@@ -63,6 +65,10 @@ type RegistrationHandlerBase struct {
 
 func NewRegistrationHandlerBase(kind WebhookKind, obj runtime.Object) *RegistrationHandlerBase {
 	return &RegistrationHandlerBase{kind, obj}
+}
+
+func (this *RegistrationHandlerBase) OptionSourceCreator() extension.OptionSourceCreator {
+	return nil
 }
 
 func (this *RegistrationHandlerBase) Kind() WebhookKind {

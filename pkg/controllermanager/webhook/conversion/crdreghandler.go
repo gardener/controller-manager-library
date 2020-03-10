@@ -25,7 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/webhook"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
@@ -34,6 +36,16 @@ import (
 
 func init() {
 	webhook.RegisterRegistrationHandler(newCRDHandler())
+}
+
+type Config struct {
+	OmitStorageMigration bool
+}
+
+var _ config.OptionSource = (*Config)(nil)
+
+func (this *Config) AddOptionsToSet(set config.OptionSet) {
+	set.AddBoolOption(&this.OmitStorageMigration, "omit-crd-storage-migration", "", false, "omit auto migration of crds on changed storagate version")
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,6 +73,10 @@ func newCRDHandler() *crdhandler {
 }
 
 var _ webhook.RegistrationHandler = (*crdhandler)(nil)
+
+func (this *crdhandler) OptionSourceCreator() extension.OptionSourceCreator {
+	return extension.OptionSourceCreatorByExample(&Config{})
+}
 
 func (this *crdhandler) RequireDedicatedRegistrations() bool {
 	return true
@@ -99,13 +115,24 @@ func (this *crdhandler) CreateDeclarations(log logger.LogContext, def webhook.De
 
 func (this *crdhandler) Register(ctx webhook.RegistrationContext, labels map[string]string, cluster cluster.Interface, name string, declarations ...webhook.WebhookDeclaration) error {
 	ctx.Infof("registering crds...")
+	log := ctx.AddIndent("  ")
+	sub := log.AddIndent("  ")
 	for _, d := range declarations {
 		decl := d.(*CRDDeclaration).ObjectData
 		decl.SetLabels(labels)
-		ctx.Infof("  %s (%T)", decl.GetName(), decl)
-		err := apiextensions.CreateCRDFromObject(ctx, cluster, decl, ctx.Maintainer())
+		log.Infof("%s (%T)", decl.GetName(), decl)
+		err := apiextensions.CreateCRDFromObject(sub, cluster, decl, ctx.Maintainer())
 		if err != nil {
 			return err
+		}
+		if ctx.Config().(*Config).OmitStorageMigration {
+			sub.Infof("omitting migration check")
+		} else {
+			sub.Infof("checking for required storage migration")
+			err = apiextensions.Migrate(sub, cluster, decl.GetName(), nil)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

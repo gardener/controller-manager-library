@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
@@ -65,6 +66,7 @@ type Interface interface {
 	GetCluster() cluster.Interface
 	GetScheme() *runtime.Scheme
 	GetKind() WebhookKind
+	GetKindConfig() config.OptionSource
 }
 
 type OptionDefinition extension.OptionDefinition
@@ -79,6 +81,7 @@ type Definition interface {
 	ActivateExplicitly() bool
 
 	ConfigOptions() map[string]OptionDefinition
+	ConfigOptionSources() extension.OptionSourceDefinitions
 
 	Definition() Definition
 }
@@ -101,10 +104,12 @@ type HandlerFactory interface {
 type RegistrationContext interface {
 	logger.LogContext
 	Maintainer() string
+	Config() config.OptionSource
 }
 
 type RegistrationHandler interface {
 	Kind() WebhookKind
+	OptionSourceCreator() extension.OptionSourceCreator
 	RequireDedicatedRegistrations() bool
 	RegistrationNames(def Definition) []string
 	RegistrationResource() runtime.Object

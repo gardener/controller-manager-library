@@ -159,10 +159,11 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 			continue
 		}
 		this.Infof("ensure required crds for cluster %q (used for %q)", cluster.GetName(), n)
+		log := this.AddIndent("  ")
 		for _, v := range crds {
 			crd := v.GetFor(cluster.GetServerVersion())
 			if crd != nil {
-				err = apiextensions.CreateCRDFromObject(this, cluster, crd, env.ControllerManager().GetMaintainer())
+				err = apiextensions.CreateCRDFromObject(log, cluster, crd, env.ControllerManager().GetMaintainer())
 			}
 		}
 	}

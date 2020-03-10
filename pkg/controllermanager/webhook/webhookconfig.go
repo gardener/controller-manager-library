@@ -23,7 +23,10 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/config"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
+
+const WEBHOOK_SET_PREFIX = "webhook."
 
 type WebhookConfig struct {
 	config.OptionSet
@@ -38,12 +41,27 @@ func NewWebhookConfig(name string) *WebhookConfig {
 }
 
 func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
+	set := utils.StringSet{}
 	for name, def := range this.definitions {
 		wcfg := NewWebhookConfig(name)
 		cfg.AddSource(name, wcfg)
 
 		for oname, o := range def.ConfigOptions() {
 			wcfg.AddOption(o.Type(), nil, oname, "", o.Default(), o.Description())
+		}
+		for oname, o := range def.ConfigOptionSources() {
+			wcfg.AddSource(WEBHOOK_SET_PREFIX+oname, o.Create())
+		}
+		kind := string(def.Kind())
+		if !set.Contains(kind) {
+			set.Add(kind)
+			handler := GetRegistrationHandler(def.Kind())
+			if handler != nil {
+				os := handler.OptionSourceCreator()
+				if os != nil {
+					cfg.AddSource(kind, os())
+				}
+			}
 		}
 	}
 }

@@ -27,10 +27,12 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/certs"
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
+	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 	"github.com/gardener/controller-manager-library/pkg/server"
@@ -111,6 +113,7 @@ type Extension struct {
 	extension.Environment
 
 	config         *areacfg.Config
+	regctxs        map[WebhookKind]RegistrationContext
 	definitions    Definitions
 	registrations  Registrations
 	defaultCluster cluster.Interface
@@ -122,7 +125,21 @@ type Extension struct {
 	maintained     MaintainedRegistrations
 }
 
-var _ RegistrationContext = (*Extension)(nil)
+type registrationContext struct {
+	logger.LogContext
+	ext    *Extension
+	config config.OptionSource
+}
+
+func (this *registrationContext) Maintainer() string {
+	return this.ext.Maintainer()
+}
+
+func (this *registrationContext) Config() config.OptionSource {
+	return this.config
+}
+
+var _ RegistrationContext = (*registrationContext)(nil)
 
 func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension, error) {
 	ext := extension.NewDefaultEnvironment(nil, TYPE, cm)
@@ -163,6 +180,7 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		a := strings.Split(l, "=")
 		labels[a[0]] = a[1]
 	}
+
 	return &Extension{
 		Environment:   ext,
 		server:        server.NewHTTPServer(ext.GetContext(), ext, "webhook"),
@@ -206,6 +224,16 @@ func (this *Extension) RequiredClusters() (utils.StringSet, error) {
 func (this *Extension) Setup(ctx context.Context) error {
 	var err error
 
+	ctxs := map[WebhookKind]RegistrationContext{}
+	for _, r := range this.registrations {
+		ctx := &registrationContext{this, this, nil}
+		s := this.config.GetSource(string(r.Kind()))
+		if s != nil {
+			ctx.config = s
+		}
+		ctxs[r.Kind()] = ctx
+	}
+	this.regctxs = ctxs
 	this.defaultCluster = this.GetCluster(this.config.Cluster)
 	if this.defaultCluster == nil {
 		return fmt.Errorf("default cluster %q for webhook server not found", this.config.Cluster)
@@ -249,7 +277,7 @@ func (this *Extension) Setup(ctx context.Context) error {
 
 func (this *Extension) certificateUpdated() {
 	this.Infof("server certificate for web hooks updated")
-	this.maintained.TriggerRegistrationUPdate(this)
+	this.maintained.TriggerRegistrationUpdate(this)
 }
 
 func (this *Extension) Start(ctx context.Context) error {

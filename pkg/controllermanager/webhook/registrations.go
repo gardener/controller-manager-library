@@ -43,7 +43,7 @@ type MaintainedRegistration struct {
 }
 
 func (this *MaintainedRegistration) register(ext *Extension) error {
-	return this.handler.Register(ext, ext.labels, this.cluster, this.name, this.declarations...)
+	return this.handler.Register(ext.regctxs[this.declarations[0].Kind()], ext.labels, this.cluster, this.name, this.declarations...)
 }
 
 type MaintainedRegistrations struct {
@@ -53,16 +53,18 @@ type MaintainedRegistrations struct {
 	next          int
 }
 
-func (this *MaintainedRegistrations) addRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface, declarations ...WebhookDeclaration) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	this.registrations = append(this.registrations, &MaintainedRegistration{
+func (this *MaintainedRegistrations) addRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface, declarations ...WebhookDeclaration) *MaintainedRegistration {
+	reg := &MaintainedRegistration{
 		name:         name,
 		def:          def,
 		handler:      handler,
 		cluster:      cluster,
 		declarations: declarations,
-	})
+	}
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	this.registrations = append(this.registrations, reg)
+	return reg
 }
 
 func (this *MaintainedRegistrations) removeRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface) {
@@ -93,7 +95,7 @@ func (this *MaintainedRegistrations) removeRegistration(handler RegistrationHand
 	}
 }
 
-func (this *MaintainedRegistrations) TriggerRegistrationUPdate(ext *Extension) {
+func (this *MaintainedRegistrations) TriggerRegistrationUpdate(ext *Extension) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -154,8 +156,10 @@ func (this *MaintainedRegistrations) _driveRegistrations(ext *Extension) bool {
 ////////////////////////////////////////////////////////////////////////////////
 
 func (this *Extension) addRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface, declarations ...WebhookDeclaration) error {
-	this.maintained.addRegistration(handler, name, def, cluster, declarations...)
-	return handler.Register(this, this.labels, cluster, name, declarations...)
+	if len(declarations) > 0 {
+		return this.maintained.addRegistration(handler, name, def, cluster, declarations...).register(this)
+	}
+	return nil
 }
 
 func (this *Extension) removeRegistration(handler RegistrationHandler, name string, def Definition, cluster cluster.Interface) error {

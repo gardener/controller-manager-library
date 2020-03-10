@@ -18,7 +18,6 @@ package controller
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,16 +38,7 @@ func NamespaceSelection(namespace string) WatchSelectionFunction {
 }
 
 func OptionSourceCreator(proto config.OptionSource) extension.OptionSourceCreator {
-	if proto == nil {
-		return nil
-	}
-	t := reflect.TypeOf(proto)
-	for t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-	return func() config.OptionSource {
-		return reflect.New(t).Interface().(config.OptionSource)
-	}
+	return extension.OptionSourceCreatorByExample(proto)
 }
 
 ///////////////////////////////////////////////////////////////////////////////

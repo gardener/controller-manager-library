@@ -19,8 +19,11 @@
 package webhook
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime"
 
+	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
@@ -30,6 +33,7 @@ type webhook struct {
 	extension.ElementBase
 
 	config     *WebhookConfig
+	kindconfig config.OptionSource
 	extension  *Extension
 	definition Definition
 	scheme     *runtime.Scheme
@@ -57,6 +61,7 @@ func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*web
 		extension:  ext,
 		definition: def,
 		config:     options,
+		kindconfig: ext.regctxs[def.Kind()].Config(),
 		cluster:    cluster,
 		scheme:     scheme,
 	}
@@ -76,6 +81,18 @@ func (this *webhook) GetResources() resources.Resources {
 
 func (this *webhook) GetEnvironment() Environment {
 	return this.extension
+}
+
+func (this *webhook) GetOptionSource(name string) (config.OptionSource, error) {
+	src := this.config.GetSource(WEBHOOK_SET_PREFIX + name)
+	if src == nil {
+		return nil, fmt.Errorf("option source %s not found for webhook %s", name, this.GetName())
+	}
+	return src, nil
+}
+
+func (this *webhook) GetKindConfig() config.OptionSource {
+	return this.kindconfig
 }
 
 func (this *webhook) GetKind() WebhookKind {
