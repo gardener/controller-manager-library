@@ -35,19 +35,21 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
-type ExtensionDefinitions map[string]ExtensionDefinition
+type ExtensionDefinitions map[string]Definition
 type ExtensionTypes map[string]ExtensionType
 type Extensions map[string]Extension
 
 type ExtensionType interface {
 	Name() string
-	Definition() ExtensionDefinition
+	Definition() Definition
 }
 
-type ExtensionDefinition interface {
-	Name() string
+type Definition interface {
+	OrderedElem
+
 	Names() utils.StringSet
 	Size() int
+	Description() string
 	Validate() error
 	ExtendConfig(*areacfg.Config)
 	CreateExtension(cm ControllerManager) (Extension, error)
@@ -55,6 +57,7 @@ type ExtensionDefinition interface {
 
 type Extension interface {
 	Name() string
+	//Definition() Definition
 	RequiredClusters() (utils.StringSet, error)
 	Setup(ctx context.Context) error
 	Start(ctx context.Context) error
@@ -66,6 +69,37 @@ type ExtensionRegistry interface {
 	GetExtensionTypes() ExtensionTypes
 	GetDefinitions() ExtensionDefinitions
 }
+
+type ExtensionDefinitionBase struct {
+	name   string
+	after  []string
+	before []string
+}
+
+var _ OrderedElem = (*ExtensionDefinitionBase)(nil)
+
+func NewExtensionDefinitionBase(name string, orders ...[]string) ExtensionDefinitionBase {
+	orders = append(orders, nil, nil)
+	return ExtensionDefinitionBase{
+		name:   name,
+		after:  orders[0],
+		before: orders[1],
+	}
+}
+
+func (this *ExtensionDefinitionBase) Name() string {
+	return this.name
+}
+
+func (this *ExtensionDefinitionBase) After() []string {
+	return this.after
+}
+
+func (this *ExtensionDefinitionBase) Before() []string {
+	return this.before
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 type _ExtensionRegistry struct {
 	lock       sync.Mutex

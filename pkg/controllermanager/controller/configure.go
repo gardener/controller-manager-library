@@ -157,7 +157,7 @@ func (this *_Definition) String() string {
 	return s
 }
 
-func (this *_Definition) GetName() string {
+func (this *_Definition) Name() string {
 	return this.name
 }
 func (this *_Definition) MainResource() ResourceKey {
@@ -199,9 +199,9 @@ func (this *_Definition) RequireLease() bool {
 func (this *_Definition) FinalizerName() string {
 	if this.finalizerName == "" {
 		if this.finalizerDomain == "" {
-			return "acme.com" + "/" + this.GetName()
+			return "acme.com" + "/" + this.Name()
 		}
-		return this.finalizerDomain + "/" + this.GetName()
+		return this.finalizerDomain + "/" + this.Name()
 	}
 	return this.finalizerName
 }
@@ -564,6 +564,14 @@ func (this Configuration) OptionSource(name string, creator extension.OptionSour
 		panic(fmt.Sprintf("option source %q already defined", name))
 	}
 	this.settings.configsources[name] = extension.NewOptionSourceDefinition(name, creator)
+	return this
+}
+
+func (this Configuration) OptionsByExample(name string, proto config.OptionSource) Configuration {
+	if this.settings.configsources[name] != nil {
+		panic(fmt.Sprintf("option source %q already defined", name))
+	}
+	this.settings.configsources[name] = extension.NewOptionSourceDefinition(name, OptionSourceCreator(proto))
 	return this
 }
 

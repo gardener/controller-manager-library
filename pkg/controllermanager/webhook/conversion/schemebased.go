@@ -31,7 +31,7 @@ import (
 func validateScheme(wh webhook.Interface) error {
 	scheme := wh.GetScheme()
 outer:
-	for _, r := range wh.GetDefinition().GetResources() {
+	for _, r := range wh.GetDefinition().Resources() {
 		gk := r.GroupKind()
 		if scheme.IsGroupRegistered(gk.Group) {
 			for gvk := range scheme.AllKnownTypes() {

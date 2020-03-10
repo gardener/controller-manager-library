@@ -42,8 +42,8 @@ func kindHandlerProvider(ext webhook.Environment, kind webhook.WebhookKind) (web
 }
 
 func (this *kindHandler) Register(p webhook.Interface) error {
-	this.ext.Infof("registering conversion client handlers for %+v", p.GetDefinition().GetResources())
-	for _, r := range p.GetDefinition().GetResources() {
+	this.ext.Infof("registering conversion client handlers for %+v", p.GetDefinition().Resources())
+	for _, r := range p.GetDefinition().Resources() {
 		this.resources[r.GroupKind()] = p
 	}
 	return nil

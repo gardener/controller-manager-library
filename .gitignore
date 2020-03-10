@@ -1,6 +1,10 @@
 /cmd/test-controller/test-controller
 /cmd/test-webhook/test-webhook
 /cmd/example/example
+/test-controller
+/test-webhook
+/example
+
 /args
 /bin
 /.kube-secrets

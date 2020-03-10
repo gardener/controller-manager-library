@@ -108,7 +108,7 @@ func Filter(owning ResourceKey, resc resources.Object) bool {
 }
 
 func NewController(env Environment, def Definition, cmp mappings.Definition) (*controller, error) {
-	options := env.GetConfig().GetSource(def.GetName()).(*ControllerConfig)
+	options := env.GetConfig().GetSource(def.Name()).(*ControllerConfig)
 
 	this := &controller{
 		definition: def,
@@ -126,7 +126,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 	}
 
 	ctx := ctxutil.WaitGroupContext(env.GetContext())
-	this.ElementBase = extension.NewElementBase(ctx, ctx_controller, this, def.GetName(), options)
+	this.ElementBase = extension.NewElementBase(ctx, ctx_controller, this, def.Name(), options)
 	this.sharedAttributes.LogContext = this.ElementBase
 	this.ready.start()
 

@@ -124,7 +124,8 @@ type PoolDefinition interface {
 type OptionDefinition extension.OptionDefinition
 
 type Definition interface {
-	GetName() string
+	extension.OrderedElem
+
 	// Create(Object) (Reconciler, error)
 	Reconcilers() map[string]ReconcilerType
 	MainResource() ResourceKey
@@ -133,8 +134,6 @@ type Definition interface {
 	Commands() Commands
 	Pools() map[string]PoolDefinition
 	ResourceFilters() []ResourceFilter
-	After() []string
-	Before() []string
 	RequiredClusters() []string
 	RequiredControllers() []string
 	CustomResourceDefinitions() map[string][]*apiextensions.CustomResourceDefinitionVersions

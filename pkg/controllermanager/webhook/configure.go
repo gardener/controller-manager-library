@@ -40,22 +40,22 @@ type _Definition struct {
 
 var _ Definition = &_Definition{}
 
-func (this *_Definition) GetResources() []extension.ResourceKey {
+func (this *_Definition) Resources() []extension.ResourceKey {
 	return append(this.keys[:0:0], this.keys...)
 }
-func (this *_Definition) GetName() string {
+func (this *_Definition) Name() string {
 	return this.name
 }
-func (this *_Definition) GetCluster() string {
+func (this *_Definition) Cluster() string {
 	return this.cluster
 }
-func (this *_Definition) GetScheme() *runtime.Scheme {
+func (this *_Definition) Scheme() *runtime.Scheme {
 	return this.scheme
 }
-func (this *_Definition) GetKind() WebhookKind {
+func (this *_Definition) Kind() WebhookKind {
 	return this.handler.GetKind()
 }
-func (this *_Definition) GetHandler() WebhookHandler {
+func (this *_Definition) Handler() WebhookHandler {
 	return this.handler
 }
 
@@ -71,8 +71,8 @@ func (this *_Definition) ActivateExplicitly() bool {
 }
 
 func (this *_Definition) String() string {
-	s := fmt.Sprintf("%s webhook %q:\n", this.GetKind(), this.GetName())
-	s += fmt.Sprintf("  cluster: %s\n", this.GetCluster())
+	s := fmt.Sprintf("%s webhook %q:\n", this.Kind(), this.Name())
+	s += fmt.Sprintf("  cluster: %s\n", this.Cluster())
 	s += fmt.Sprintf("  gvks:\n")
 	for _, k := range this.keys {
 		s += fmt.Sprintf("  - %s\n", k)

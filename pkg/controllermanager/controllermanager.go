@@ -43,6 +43,7 @@ type ControllerManager struct {
 	logger.LogContext
 	lock       sync.Mutex
 	extensions extension.Extensions
+	order      []string
 
 	namespace  string
 	definition *Definition
@@ -110,18 +111,30 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 		}
 	}
 
+	order, _, err := extension.Order(def.extensions)
+	if err != nil {
+		return nil, fmt.Errorf("controller manager extension cycle: %s", err)
+	}
+	logger.Infof("found configured controller manager extensions:")
+	for _, n := range order {
+		logger.Infof(" - %s (%d elements): %s", n, def.extensions[n].Size(), def.extensions[n].Description())
+	}
+
 	cm := &ControllerManager{
 		LogContext: lgr,
 		namespace:  namespace,
 		definition: def,
+		order:      order,
 		config:     cfg,
 	}
 	ctx = ctx_controllermanager.WithValue(ctx, cm)
 	cm.context = ctx
 
 	set := utils.StringSet{}
+
 	cm.extensions = extension.Extensions{}
-	for _, d := range def.extensions {
+	for _, n := range order {
+		d := def.extensions[n]
 		e, err := d.CreateExtension(cm)
 		if err != nil {
 			return nil, err
@@ -149,7 +162,8 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 
 	cm.clusters = clusters
 
-	for _, e := range cm.extensions {
+	for _, n := range cm.order {
+		e := cm.extensions[n]
 		err = e.Setup(cm.context)
 		if err != nil {
 			return nil, err
@@ -205,8 +219,8 @@ func (this *ControllerManager) Run() error {
 
 	server.ServeFromMainConfig(this.context, "httpserver")
 
-	for _, e := range this.extensions {
-		err = e.Start(this.context)
+	for _, n := range this.order {
+		err = this.extensions[n].Start(this.context)
 		if err != nil {
 			return err
 		}

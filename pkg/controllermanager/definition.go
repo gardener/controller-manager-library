@@ -46,7 +46,7 @@ func (this *Definition) GetExtensions() extension.ExtensionDefinitions {
 	return defs
 }
 
-func (this *Definition) ExtensionDefinition(name string) extension.ExtensionDefinition {
+func (this *Definition) ExtensionDefinition(name string) extension.Definition {
 	for _, e := range this.extensions {
 		if e.Name() == name {
 			return e

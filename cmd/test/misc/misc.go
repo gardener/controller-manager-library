@@ -22,10 +22,46 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 	"github.com/gardener/controller-manager-library/pkg/wait"
 )
 
+type Elem struct {
+	name  string
+	after []string
+}
+
+func (this *Elem) Name() string {
+	return this.name
+}
+
+func (this *Elem) After() []string {
+	return this.after
+}
+
+func (this *Elem) Before() []string {
+	return nil
+}
+
+func (this *Elem) String() string {
+	return this.name
+}
+
 func MiscMain() {
+	A := &Elem{"A", []string{"B", "C"}}
+	B := &Elem{"B", []string{"D"}}
+	C := &Elem{"C", []string{"D"}}
+	D := &Elem{"D", []string{"B"}}
+
+	o, _, err := extension.Order([]*Elem{
+		A, B, C, D,
+	})
+	utils.Must(err)
+	fmt.Printf("%+v\n", o)
+}
+
+func MiscBackoff() {
 
 	b := wait.Backoff{
 		Duration: time.Second,

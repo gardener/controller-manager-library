@@ -113,12 +113,12 @@ func (this *_Registry) RegisterController(reg Registerable, group ...string) err
 	defer this.lock.Unlock()
 
 	if def.MainResource() == nil {
-		return fmt.Errorf("no main resource for controller %q", def.GetName())
+		return fmt.Errorf("no main resource for controller %q", def.Name())
 	}
-	if d, ok := this.definitions[def.GetName()]; ok && d != def {
-		return fmt.Errorf("multiple registration of controller %q", def.GetName())
+	if d, ok := this.definitions[def.Name()]; ok && d != def {
+		return fmt.Errorf("multiple registration of controller %q", def.Name())
 	}
-	logger.Infof("Registering controller %s", def.GetName())
+	logger.Infof("Registering controller %s", def.Name())
 
 	if len(group) == 0 {
 		err := this.addToGroup(def, groups.DEFAULT)
@@ -133,7 +133,7 @@ func (this *_Registry) RegisterController(reg Registerable, group ...string) err
 			}
 		}
 	}
-	this.definitions[def.GetName()] = def
+	this.definitions[def.Name()] = def
 	return nil
 }
 
@@ -194,9 +194,9 @@ func (this *_Registry) addToGroup(def Definition, name string) error {
 		return err
 	}
 	if def.ActivateExplicitly() {
-		grp.ActivateExplicitly(def.GetName())
+		grp.ActivateExplicitly(def.Name())
 	}
-	return grp.Members(def.GetName())
+	return grp.Members(def.Name())
 }
 
 ///////////////////////////////////////////////////////////////////////////////

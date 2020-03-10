@@ -105,15 +105,15 @@ func (this *_Registry) Register(reg Registerable, grps ...string) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	if d, ok := this.definitions[def.GetName()]; ok && d != def {
-		return fmt.Errorf("multiple registrations of webhook %q", def.GetName())
+	if d, ok := this.definitions[def.Name()]; ok && d != def {
+		return fmt.Errorf("multiple registrations of webhook %q", def.Name())
 	}
-	logger.Infof("Registering webhook %s", def.GetName())
+	logger.Infof("Registering webhook %s", def.Name())
 
 	if len(grps) == 0 {
-		grps = []string{groups.DEFAULT, string(def.GetKind())}
+		grps = []string{groups.DEFAULT, string(def.Kind())}
 	} else {
-		grps = append(grps, string(def.GetKind()))
+		grps = append(grps, string(def.Kind()))
 	}
 	for _, g := range grps {
 		err := this.addToGroup(def, g)
@@ -121,7 +121,7 @@ func (this *_Registry) Register(reg Registerable, grps ...string) error {
 			return err
 		}
 	}
-	this.definitions[def.GetName()] = def
+	this.definitions[def.Name()] = def
 	return nil
 }
 
@@ -166,9 +166,9 @@ func (this *_Registry) addToGroup(def Definition, name string) error {
 		return err
 	}
 	if def.ActivateExplicitly() {
-		grp.ActivateExplicitly(def.GetName())
+		grp.ActivateExplicitly(def.Name())
 	}
-	return grp.Members(def.GetName())
+	return grp.Members(def.Name())
 }
 
 ///////////////////////////////////////////////////////////////////////////////

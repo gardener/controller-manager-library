@@ -57,24 +57,30 @@ func (this *ExtensionType) Name() string {
 	return TYPE
 }
 
-func (this *ExtensionType) Definition() extension.ExtensionDefinition {
+func (this *ExtensionType) Definition() extension.Definition {
 	return NewExtensionDefinition(this.GetDefinitions())
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 type ExtensionDefinition struct {
+	extension.ExtensionDefinitionBase
 	definitions Definitions
 }
 
 func NewExtensionDefinition(defs Definitions) *ExtensionDefinition {
 	return &ExtensionDefinition{
-		definitions: defs,
+		ExtensionDefinitionBase: extension.NewExtensionDefinitionBase(TYPE),
+		definitions:             defs,
 	}
 }
 
-func (this *ExtensionDefinition) Name() string {
-	return TYPE
+func (this *ExtensionDefinition) Description() string {
+	kinds := utils.StringSet{}
+	for n := range this.definitions.Names() {
+		kinds.Add(string(this.definitions.Get(n).Kind()))
+	}
+	return "webhook extension " + kinds.String()
 }
 
 func (this *ExtensionDefinition) Size() int {
@@ -173,7 +179,7 @@ func (this *Extension) Maintainer() string {
 }
 
 func (this *Extension) getCluster(def Definition) string {
-	cn := def.GetCluster()
+	cn := def.Cluster()
 	if cn == CLUSTER_MAIN {
 		return this.config.Cluster
 	}
@@ -212,13 +218,13 @@ func (this *Extension) Setup(ctx context.Context) error {
 	for _, def := range this.registrations {
 		var target cluster.Interface
 
-		if def.GetCluster() != "" {
-			if def.GetCluster() == CLUSTER_MAIN {
+		if def.Cluster() != "" {
+			if def.Cluster() == CLUSTER_MAIN {
 				target = this.defaultCluster
 			} else {
-				target = this.GetCluster(def.GetCluster())
+				target = this.GetCluster(def.Cluster())
 				if target == nil {
-					return fmt.Errorf("invalid cluster %q for webhook %q", def.GetCluster(), def.GetName())
+					return fmt.Errorf("invalid cluster %q for webhook %q", def.Cluster(), def.Name())
 				}
 			}
 		}
@@ -229,13 +235,13 @@ func (this *Extension) Setup(ctx context.Context) error {
 		}
 
 		this.RegisterHandler(w)
-		if kh := this.kindHandlers[def.GetKind()]; kh != nil {
+		if kh := this.kindHandlers[def.Kind()]; kh != nil {
 			err := kh.Register(w)
 			if err != nil {
 				return err
 			}
 		} else {
-			this.Infof("no handler for %s(%s)", w.GetName(), def.GetKind())
+			this.Infof("no handler for %s(%s)", w.GetName(), def.Kind())
 		}
 	}
 	return nil
@@ -275,7 +281,7 @@ func (this *Extension) Start(ctx context.Context) error {
 
 		for _, w := range this.hooks {
 			def := w.GetDefinition()
-			handler := GetRegistrationHandler(def.GetKind())
+			handler := GetRegistrationHandler(def.Kind())
 			if handler == nil {
 				this.Infof("no registrations for %s(%s)", w.GetName(), w.GetKind())
 				continue
@@ -309,7 +315,7 @@ func (this *Extension) RegisterHandler(wh Interface) error {
 	if this.hooks[wh.GetName()] != nil {
 		return fmt.Errorf("handler for webhook with name %q already registed", wh.GetName())
 	}
-	h, err := wh.GetDefinition().GetHandler().GetHTTPHandler(wh)
+	h, err := wh.GetDefinition().Handler().GetHTTPHandler(wh)
 	if err != nil {
 		return err
 	}
@@ -330,24 +336,24 @@ func (this *Extension) CreateWebhookClientConfig(msg string, def Definition, tar
 	if this.config.Hostname != "" {
 		if target == this.defaultCluster && this.config.Service != "" {
 			sn := resources.NewObjectName(this.Namespace(), this.config.Service)
-			this.Infof("%swebhook %q for cluster %q with service %q", msg, def.GetName(), target, sn)
-			client = apiextensions.NewServiceWebhookClientConfig(sn, this.config.ServicePort, def.GetName(), cabundle)
+			this.Infof("%swebhook %q for cluster %q with service %q", msg, def.Name(), target, sn)
+			client = apiextensions.NewServiceWebhookClientConfig(sn, this.config.ServicePort, def.Name(), cabundle)
 		} else {
-			url := fmt.Sprintf("https://%s/%s", this.config.Hostname, def.GetName())
+			url := fmt.Sprintf("https://%s/%s", this.config.Hostname, def.Name())
 			if this.config.Port > 0 {
-				url = fmt.Sprintf("https://%s:%d/%s", this.config.Hostname, this.config.Port, def.GetName())
+				url = fmt.Sprintf("https://%s:%d/%s", this.config.Hostname, this.config.Port, def.Name())
 			}
-			this.Infof("%swebhook %q for cluster %q with URL %q", msg, def.GetName(), target, url)
+			this.Infof("%swebhook %q for cluster %q with URL %q", msg, def.Name(), target, url)
 			client = apiextensions.NewURLWebhookClientConfig(url, cabundle)
 		}
 	} else {
 		sn := resources.NewObjectName(this.Namespace(), this.config.Service)
 		if target == this.defaultCluster {
-			this.Infof("%swebhook %q for cluster %q with service %q", msg, def.GetName(), target, sn)
-			client = apiextensions.NewServiceWebhookClientConfig(sn, this.config.ServicePort, def.GetName(), cabundle)
+			this.Infof("%swebhook %q for cluster %q with service %q", msg, def.Name(), target, sn)
+			client = apiextensions.NewServiceWebhookClientConfig(sn, this.config.ServicePort, def.Name(), cabundle)
 		} else {
-			this.Infof("%swebhook %q for cluster %q with runtime service %q", msg, def.GetName(), target, sn)
-			client = apiextensions.NewRuntimeServiceWebhookClientConfig(sn, def.GetName(), cabundle)
+			this.Infof("%swebhook %q for cluster %q with runtime service %q", msg, def.Name(), target, sn)
+			client = apiextensions.NewRuntimeServiceWebhookClientConfig(sn, def.Name(), cabundle)
 		}
 	}
 	return client, nil
@@ -384,9 +390,9 @@ func (this *Extension) RegisterWebhookGroup(name string, target cluster.Interfac
 
 func (this *Extension) addHook(w Interface, target cluster.Interface, client apiextensions.WebhookClientConfigSource, reg *WebhookRegistrationGroup) error {
 	def := w.GetDefinition()
-	if handler := GetRegistrationHandler(def.GetKind()); handler != nil {
+	if handler := GetRegistrationHandler(def.Kind()); handler != nil {
 		if this.config.DedicatedRegistrations || handler.RequireDedicatedRegistrations() {
-			reg.AddRegistrations(def.GetKind(), handler.RegistrationNames(def)...)
+			reg.AddRegistrations(def.Kind(), handler.RegistrationNames(def)...)
 			err := this.RegisterWebhook(def, target, client)
 			if err != nil {
 				return err
@@ -394,7 +400,7 @@ func (this *Extension) addHook(w Interface, target cluster.Interface, client api
 		} else {
 			decls, err := handler.CreateDeclarations(this, def, target, client)
 			if err != nil {
-				return fmt.Errorf("webhook registration for %q failed: %s", def.GetName(), err)
+				return fmt.Errorf("webhook registration for %q failed: %s", def.Name(), err)
 			}
 			reg.AddDeclarations(decls...)
 		}
@@ -421,14 +427,14 @@ func (this *Extension) DeleteWebhookGroup(name string, target cluster.Interface)
 			continue
 		}
 		def := w.GetDefinition()
-		if handler := GetRegistrationHandler(def.GetKind()); handler != nil {
+		if handler := GetRegistrationHandler(def.Kind()); handler != nil {
 			if this.config.DedicatedRegistrations || handler.RequireDedicatedRegistrations() {
-				err := this.removeRegistration(handler, def.GetName(), def, target)
+				err := this.removeRegistration(handler, def.Name(), def, target)
 				if err != nil {
 					return err
 				}
 			}
-			kinds[def.GetKind()] = handler
+			kinds[def.Kind()] = handler
 		}
 	}
 	grpname := this.RegistrationGroupName(name)
@@ -456,9 +462,9 @@ func (this *Extension) RegisterWebhookByName(name string, target cluster.Interfa
 func (this *Extension) RegisterWebhook(def Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) error {
 	var err error
 
-	handler := GetRegistrationHandler(def.GetKind())
+	handler := GetRegistrationHandler(def.Kind())
 	if handler == nil {
-		return fmt.Errorf("reregistrations for kind %q for webhook %q not possible", def.GetKind(), def.GetName())
+		return fmt.Errorf("reregistrations for kind %q for webhook %q not possible", def.Kind(), def.Name())
 	}
 	if client == nil {
 		client, err = this.CreateWebhookClientConfig("using ", def, target)
@@ -468,9 +474,9 @@ func (this *Extension) RegisterWebhook(def Definition, target cluster.Interface,
 	}
 	decls, err := handler.CreateDeclarations(this, def, target, client)
 	if err != nil {
-		return fmt.Errorf("webhook registration for %q failed: %s", def.GetName(), err)
+		return fmt.Errorf("webhook registration for %q failed: %s", def.Name(), err)
 	}
-	return this.addRegistration(handler, def.GetName(), def, target, decls...)
+	return this.addRegistration(handler, def.Name(), def, target, decls...)
 }
 
 func (this *Extension) DeleteWebhookByName(name string, target cluster.Interface) error {
@@ -486,9 +492,9 @@ func (this *Extension) DeleteWebhookByName(name string, target cluster.Interface
 }
 
 func (this *Extension) DeleteWebhook(def Definition, target cluster.Interface) error {
-	handler := GetRegistrationHandler(def.GetKind())
+	handler := GetRegistrationHandler(def.Kind())
 	if handler != nil {
-		this.removeRegistration(handler, def.GetName(), def, target)
+		this.removeRegistration(handler, def.Name(), def, target)
 	}
 	return nil
 }

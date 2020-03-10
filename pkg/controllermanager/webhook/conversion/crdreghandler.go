@@ -68,7 +68,7 @@ func (this *crdhandler) RequireDedicatedRegistrations() bool {
 
 func (this *crdhandler) RegistrationNames(def webhook.Definition) []string {
 	names := []string{}
-	for _, r := range def.GetResources() {
+	for _, r := range def.Resources() {
 		crd := apiextensions.GetCRDs(r.GroupKind())
 		if crd == nil {
 			continue
@@ -83,8 +83,8 @@ func (this *crdhandler) RegistrationNames(def webhook.Definition) []string {
 
 func (this *crdhandler) CreateDeclarations(log logger.LogContext, def webhook.Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) (webhook.WebhookDeclarations, error) {
 	result := webhook.WebhookDeclarations{}
-	log.Infof("creating crd manifests of %s(%s) for cluster %s(%s)", def.GetName(), def.GetKind(), target.GetId(), target.GetServerVersion())
-	for _, r := range def.GetResources() {
+	log.Infof("creating crd manifests of %s(%s) for cluster %s(%s)", def.Name(), def.Kind(), target.GetId(), target.GetServerVersion())
+	for _, r := range def.Resources() {
 		crd := apiextensions.GetCRDFor(r.GroupKind(), target)
 		if crd == nil {
 			log.Infof("  no crd for %s and cluster version %s", r.GroupKind(), target.GetServerVersion())
@@ -125,7 +125,7 @@ func (this *crdhandler) Delete(log logger.LogContext, name string, def webhook.D
 	}
 
 	log.Infof("deleting crds...")
-	for _, r := range def.GetResources() {
+	for _, r := range def.Resources() {
 		crd := apiextensions.GetCRDFor(r.GroupKind(), cluster)
 		if crd == nil {
 			log.Infof("  no crd for %s and cluster version %s", r.GroupKind(), cluster.GetServerVersion())

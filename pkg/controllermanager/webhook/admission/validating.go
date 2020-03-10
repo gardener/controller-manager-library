@@ -72,14 +72,14 @@ func newValidatingHandler() *validating {
 var _ webhook.RegistrationHandler = (*mutating)(nil)
 
 func (this *validating) CreateDeclarations(log logger.LogContext, def webhook.Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) (webhook.WebhookDeclarations, error) {
-	admindef := def.GetHandler().(Definition)
-	rules, policy, err := NewAdmissionSpecData(target, admindef.GetFailurePolicy(), admindef.GetOperations(), def.GetResources()...)
+	admindef := def.Handler().(Definition)
+	rules, policy, err := NewAdmissionSpecData(target, admindef.GetFailurePolicy(), admindef.GetOperations(), def.Resources()...)
 	if err != nil {
 		return nil, err
 	}
 	return webhook.WebhookDeclarations{&ValidatingWebhookDeclaration{
 		adminreg.ValidatingWebhook{
-			Name:              def.GetName(),
+			Name:              def.Name(),
 			NamespaceSelector: admindef.GetNamespaces(),
 			FailurePolicy:     policy,
 			Rules:             rules,

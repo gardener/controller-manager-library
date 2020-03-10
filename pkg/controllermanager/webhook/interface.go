@@ -70,12 +70,12 @@ type Interface interface {
 type OptionDefinition extension.OptionDefinition
 
 type Definition interface {
-	GetName() string
-	GetResources() []extension.ResourceKey
-	GetScheme() *runtime.Scheme
-	GetKind() WebhookKind
-	GetHandler() WebhookHandler
-	GetCluster() string
+	Name() string
+	Resources() []extension.ResourceKey
+	Scheme() *runtime.Scheme
+	Kind() WebhookKind
+	Handler() WebhookHandler
+	Cluster() string
 	ActivateExplicitly() bool
 
 	ConfigOptions() map[string]OptionDefinition

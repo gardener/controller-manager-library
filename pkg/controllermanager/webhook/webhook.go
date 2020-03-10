@@ -41,8 +41,8 @@ var _ Interface = &webhook{}
 func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*webhook, error) {
 	var err error
 
-	scheme := def.GetScheme()
-	options := ext.GetConfig().GetSource(def.GetName()).(*WebhookConfig)
+	scheme := def.Scheme()
+	options := ext.GetConfig().GetSource(def.Name()).(*WebhookConfig)
 	if scheme != nil && cluster != nil {
 		cluster, err = ext.GetClusters().Cache().WithScheme(cluster, scheme)
 		if err != nil {
@@ -60,7 +60,7 @@ func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*web
 		cluster:    cluster,
 		scheme:     scheme,
 	}
-	this.ElementBase = extension.NewElementBase(ext.GetContext(), ctx_webhook, this, def.GetName(), options)
+	this.ElementBase = extension.NewElementBase(ext.GetContext(), ctx_webhook, this, def.Name(), options)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func (this *webhook) GetEnvironment() Environment {
 }
 
 func (this *webhook) GetKind() WebhookKind {
-	return this.definition.GetKind()
+	return this.definition.Kind()
 }
 
 func (this *webhook) GetDefinition() Definition {

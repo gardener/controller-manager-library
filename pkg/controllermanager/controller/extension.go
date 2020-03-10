@@ -53,24 +53,26 @@ func (this *ExtensionType) Name() string {
 	return TYPE
 }
 
-func (this *ExtensionType) Definition() extension.ExtensionDefinition {
+func (this *ExtensionType) Definition() extension.Definition {
 	return NewExtensionDefinition(this.GetDefinitions())
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
 type ExtensionDefinition struct {
+	extension.ExtensionDefinitionBase
 	definitions Definitions
 }
 
 func NewExtensionDefinition(defs Definitions) *ExtensionDefinition {
 	return &ExtensionDefinition{
-		definitions: defs,
+		ExtensionDefinitionBase: extension.NewExtensionDefinitionBase(TYPE, []string{"webhooks"}),
+		definitions:             defs,
 	}
 }
 
-func (this *ExtensionDefinition) Name() string {
-	return TYPE
+func (this *ExtensionDefinition) Description() string {
+	return "kubernetes controllers and operators"
 }
 
 func (this *ExtensionDefinition) Size() int {
@@ -161,19 +163,9 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		return nil, err
 	}
 
-	after := map[string][]string{}
-
-	for n, d := range registrations {
-		for _, a := range d.After() {
-			if registrations[a] != nil {
-				after[n] = append(after[n], a)
-			}
-		}
-		for _, b := range d.Before() {
-			if registrations[b] != nil {
-				after[b] = append(after[b], n)
-			}
-		}
+	_, after, err := extension.Order(registrations)
+	if err != nil {
+		return nil, err
 	}
 	return &Extension{
 		Environment: ext,
@@ -212,7 +204,7 @@ func (this *Extension) Start(ctx context.Context) error {
 		for _, l := range lines[1:] {
 			this.Info(l)
 		}
-		cmp, err := this.definitions.GetMappingsFor(def.GetName())
+		cmp, err := this.definitions.GetMappingsFor(def.Name())
 		if err != nil {
 			return err
 		}

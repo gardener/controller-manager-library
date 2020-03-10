@@ -78,5 +78,5 @@ func (this *RegistrationHandlerBase) RequireDedicatedRegistrations() bool {
 }
 
 func (this *RegistrationHandlerBase) RegistrationNames(def Definition) []string {
-	return []string{def.GetName()}
+	return []string{def.Name()}
 }
