@@ -102,13 +102,16 @@ outer:
 	return new, nil
 }
 
-func (this *CustomResourceDefinition) ObjectFor(cluster resources.Cluster, cp WebhookClientConfigProvider) resources.Object {
-	return this.ObjectFor(cluster, cp)
+func (this *CustomResourceDefinition) ObjectFor(cluster resources.Cluster, cp WebhookClientConfigProvider) (resources.Object, error) {
+	return cluster.Resources().Wrap(this.DataFor(cluster, cp))
 }
 
 func (this *CustomResourceDefinition) DataFor(cluster resources.Cluster, cp WebhookClientConfigProvider) resources.ObjectData {
 	if this == nil {
 		return nil
+	}
+	if cp==nil {
+		cp=registry
 	}
 	crd := this.DeepCopy()
 	if len(crd.Spec.Versions) > 1 && cp != nil {
@@ -142,6 +145,12 @@ func (this *CustomResourceDefinition) DataFor(cluster resources.Cluster, cp Webh
 func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd resources.ObjectData, maintainer string) error {
 	var err error
 
+	if abs, ok := crd.(*CustomResourceDefinition); ok {
+		crd=abs.DataFor(cluster,registry)
+	}
+	if crd==nil {
+		return errors.New(errors.ERR_INVALID, "invalid crd")
+	}
 	msg := logger.NewOptionalSingletonMessage(log.Infof, "foreign %s", crd.GetName())
 	resources.SetAnnotation(crd, A_MAINTAINER, maintainer)
 	found, err := cluster.Resources().GetObject(crd)
@@ -160,6 +169,9 @@ func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd r
 			})
 		}
 	} else {
+		if errors.IsKind(errors.ERR_UNKNOWN_RESOURCE, err) {
+			return err
+		}
 		msg.Default("creating %s", crd.GetName())
 		err = _CreateCRDFromObject(cluster, crd)
 	}

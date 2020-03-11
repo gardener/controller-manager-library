@@ -141,7 +141,7 @@ func (this *AbstractResources) GetByExample(obj runtime.Object) (Resource, error
 
 	gvk, err := this.ctx.GetGVK(obj)
 	if err != nil {
-		return nil, err
+		return nil, errors.ErrUnknownResource.Wrap(err, "object type", reflect.TypeOf(obj))
 	}
 
 	return this._newResource(gvk, t)

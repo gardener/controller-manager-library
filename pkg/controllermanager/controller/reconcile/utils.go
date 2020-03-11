@@ -110,7 +110,7 @@ func FinalUpdate(logger logger.LogContext, modified bool, obj resources.Object) 
 	return Succeeded(logger)
 }
 
-func UpdateStatus(logger logger.LogContext, upd resources.ObjectUpdater, d ...time.Duration) Status {
+func UpdateStatus(logger logger.LogContext, upd resources.ObjectStatusUpdater, d ...time.Duration) Status {
 	err := upd.UpdateStatus()
 	if err != nil {
 		return Delay(logger, err)

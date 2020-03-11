@@ -22,12 +22,20 @@ import (
 
 type ObjectUpdater interface {
 	Update() error
+}
+
+type ObjectStatusUpdater interface {
 	UpdateStatus() error
 }
 
 type ModificationUpdater interface {
 	IsModified() bool
 	ObjectUpdater
+}
+
+type ModificationStatusUpdater interface {
+	IsModified() bool
+	ObjectStatusUpdater
 }
 
 type ModificationState struct {

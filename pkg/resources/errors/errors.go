@@ -163,3 +163,12 @@ func WrapForObjects(err error, o []interface{}, kind string, msgfmt string, args
 func NewInvalid(msgfmt string, elem interface{}) error {
 	return New(ERR_INVALID, msgfmt, elem)
 }
+
+
+func IsGroup(err error) bool {
+	return errors.IsGroup(GROUP,err)
+}
+
+func IsKind(name string, err error) bool {
+	return errors.IsKind(GROUP,name, err)
+}

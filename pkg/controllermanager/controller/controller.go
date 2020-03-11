@@ -163,7 +163,10 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		for _, v := range crds {
 			crd := v.GetFor(cluster.GetServerVersion())
 			if crd != nil {
-				err = apiextensions.CreateCRDFromObject(log, cluster, crd, env.ControllerManager().GetMaintainer())
+				err = apiextensions.CreateCRDFromObject(log, cluster, crd.DataFor(cluster,nil), env.ControllerManager().GetMaintainer())
+				if err != nil {
+				    return nil, err
+				}
 			}
 		}
 	}
