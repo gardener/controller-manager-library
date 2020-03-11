@@ -45,7 +45,7 @@ type Config struct {
 var _ config.OptionSource = (*Config)(nil)
 
 func (this *Config) AddOptionsToSet(set config.OptionSet) {
-	set.AddBoolOption(&this.OmitStorageMigration, "omit-crd-storage-migration", "", false, "omit auto migration of crds on changed storagate version")
+	set.AddBoolOption(&this.OmitStorageMigration, "omit-crd-storage-migration", "", false, "omit auto migration of crds on changed storage version")
 }
 
 ////////////////////////////////////////////////////////////////////////////////

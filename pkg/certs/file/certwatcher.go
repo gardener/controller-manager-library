@@ -70,7 +70,10 @@ func New(ctx context.Context, logger logger.LogContext, certPath, keyPath, cacer
 		return nil, err
 	}
 
-	cw.start(ctx.Done())
+	err = cw.start(ctx.Done())
+	if err != nil {
+		return nil, err
+	}
 
 	return cw, nil
 }
@@ -102,16 +105,18 @@ func (this *CertWatcher) start(stopCh <-chan struct{}) error {
 
 	go this.watch()
 
-	this.logger.Info("Starting certificate watcher")
+	go func() {
+		// Block until the stop channel is closed.
+		<-stopCh
 
-	// Block until the stop channel is closed.
-	<-stopCh
-
-	return this.watcher.Close()
+		_ = this.watcher.Close()
+	}()
+	return nil
 }
 
 // Watch reads events from the watcher's channel and reacts to changes.
 func (this *CertWatcher) watch() {
+	this.logger.Info("Starting certificate watcher")
 	for {
 		select {
 		case event, ok := <-this.watcher.Events:
@@ -153,7 +158,7 @@ func (this *CertWatcher) ReadCertificate() error {
 		this.base.Unlock()
 		this.base.NotifyUpdate(this.info)
 	}
-	this.logger.Info("Updated current TLS certiface")
+	this.logger.Info("Updated current TLS certificate")
 
 	return nil
 }

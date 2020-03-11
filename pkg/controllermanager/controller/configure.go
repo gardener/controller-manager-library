@@ -78,6 +78,12 @@ func (this *rescdef) ResourceType() ResourceKey {
 func (this *rescdef) WatchSelectionFunction() WatchSelectionFunction {
 	return this.selectFunc
 }
+func (this *rescdef) String() string {
+	if this.selectFunc != nil {
+		return this.rtype.String() + " with selector"
+	}
+	return this.rtype.String()
+}
 
 func (this *watchdef) Reconciler() string {
 	return this.reconciler

@@ -58,8 +58,8 @@ func NewConfig() *Config {
 	cfg.AddStringOption(&cfg.Webhooks, "webhooks", "w", "all", "comma separated list of webhooks to start (<name>,<group>,all)")
 	cfg.AddStringOption(&cfg.Cluster, "cluster", "", cluster.DEFAULT, "cluster to maintain webhook server secret")
 	cfg.AddStringOption(&cfg.Secret, "secret", "", "", "name of secret to maintain for webhook server")
-	cfg.AddStringOption(&cfg.Service, "service", "", "", "name of service to use for webhook registragtion")
-	cfg.AddStringOption(&cfg.Hostname, "hostname", "", "", "hostname to use for webhook registragtion")
+	cfg.AddStringOption(&cfg.Service, "service", "", "", "name of service to use for webhook registration")
+	cfg.AddStringOption(&cfg.Hostname, "hostname", "", "", "hostname to use for webhook registration")
 	cfg.AddStringOption(&cfg.CertFile, "certfile", "", "", "webhook server certificate file")
 	cfg.AddStringOption(&cfg.KeyFile, "keyfile", "", "", "webhook server certificate key file")
 	cfg.AddStringOption(&cfg.CACertFile, "cacertfile", "", "", "webhook server ca certificate file")
@@ -69,7 +69,7 @@ func NewConfig() *Config {
 	cfg.AddStringOption(&cfg.RegistrationName, "registration-name", "", "", "webhook registration name for grouped registrations")
 	cfg.AddBoolOption(&cfg.OmitRegistrations, "omit-webhook-registration", "", false, "omit webhook registration")
 	cfg.AddBoolOption(&cfg.DedicatedRegistrations, "dedicated-webhook-registrations", "", false, "uses separate registrations for every configured webhook")
-	cfg.AddStringArrayOption(&cfg.Labels, "label", "", nil, "additional labels for the webhook registartions")
+	cfg.AddStringArrayOption(&cfg.Labels, "label", "", nil, "additional labels for the webhook registrations")
 	return cfg
 }
 
