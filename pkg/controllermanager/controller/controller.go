@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/record"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
@@ -30,6 +31,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
+	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 	"github.com/gardener/controller-manager-library/pkg/utils"
@@ -51,10 +53,23 @@ type EventRecorder interface {
 	// AnnotatedEventf(object runtime.ObjectData, annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{})
 }
 
-type _ReconcilerMapping struct {
+type _ReconcilationKey struct {
 	key        interface{}
 	cluster    string
 	reconciler string
+}
+
+type _Reconcilations map[_ReconcilationKey]string
+
+func (this _Reconcilations) Get(cluster resources.Cluster, gk schema.GroupKind) utils.StringSet {
+	reconcilers := utils.StringSet{}
+	cluster_name := cluster.GetName()
+	for k := range this {
+		if k.cluster == cluster_name && k.key == gk {
+			reconcilers.Add(k.reconciler)
+		}
+	}
+	return reconcilers
 }
 
 type ReadyFlag struct {
@@ -86,16 +101,18 @@ type controller struct {
 
 	sharedAttributes
 
-	ready       ReadyFlag
-	definition  Definition
-	env         Environment
-	cluster     cluster.Interface
-	clusters    cluster.Clusters
-	filters     []ResourceFilter
-	owning      WatchResource
-	reconcilers map[string]reconcile.Interface
-	mappings    map[_ReconcilerMapping]string
-	finalizer   Finalizer
+	ready           ReadyFlag
+	definition      Definition
+	env             Environment
+	cluster         cluster.Interface
+	clusters        cluster.Clusters
+	filters         []ResourceFilter
+	owning          WatchResource
+	reconcilers     map[string]reconcile.Interface
+	reconcilerNames map[reconcile.Interface]string
+	mappings        _Reconcilations
+	syncRequests    *SyncRequests
+	finalizer       Finalizer
 
 	options  *ControllerConfig
 	handlers map[string]*ClusterHandler
@@ -118,12 +135,15 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		owning:  def.MainWatchResource(),
 		filters: def.ResourceFilters(),
 
-		handlers:    map[string]*ClusterHandler{},
-		pools:       map[string]*pool{},
-		reconcilers: map[string]reconcile.Interface{},
-		mappings:    map[_ReconcilerMapping]string{},
-		finalizer:   NewDefaultFinalizer(def.FinalizerName()),
+		handlers:        map[string]*ClusterHandler{},
+		pools:           map[string]*pool{},
+		reconcilers:     map[string]reconcile.Interface{},
+		reconcilerNames: map[reconcile.Interface]string{},
+		mappings:        _Reconcilations{},
+		finalizer:       NewDefaultFinalizer(def.FinalizerName()),
 	}
+
+	this.syncRequests = NewSyncRequests(this)
 
 	ctx := ctxutil.WaitGroupContext(env.GetContext())
 	this.ElementBase = extension.NewElementBase(ctx, ctx_controller, this, def.Name(), options)
@@ -163,9 +183,9 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		for _, v := range crds {
 			crd := v.GetFor(cluster.GetServerVersion())
 			if crd != nil {
-				err = apiextensions.CreateCRDFromObject(log, cluster, crd.DataFor(cluster,nil), env.ControllerManager().GetMaintainer())
+				err = apiextensions.CreateCRDFromObject(log, cluster, crd.DataFor(cluster, nil), env.ControllerManager().GetMaintainer())
 				if err != nil {
-				    return nil, err
+					return nil, err
 				}
 			}
 		}
@@ -177,6 +197,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 			return nil, fmt.Errorf("creating reconciler %s failed: %s", n, err)
 		}
 		this.reconcilers[n] = reconciler
+		this.reconcilerNames[reconciler] = n
 	}
 
 	for cname, watches := range this.definition.Watches() {
@@ -200,6 +221,15 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 				return nil, fmt.Errorf("Add matcher for reconciler %s failed: %s", cmd.Reconciler(), err)
 			}
 		}
+	}
+	for _, s := range this.GetDefinition().Syncers() {
+		cluster := clusters.GetCluster(s.GetCluster())
+		reconcilers := this.mappings.Get(cluster, s.GetResource().GroupKind())
+		if len(reconcilers) == 0 {
+			return nil, fmt.Errorf("resource %q not watched for cluster %s", s.GetResource(), s.GetCluster())
+		}
+		this.syncRequests.AddSyncer(NewSyncer(s.GetName(), s.GetResource(), cluster))
+		this.Infof("adding syncer %s for resource %s on cluster %s", s.GetName(), s.GetResource(), cluster)
 	}
 
 	return this, nil
@@ -236,7 +266,7 @@ func (this *controller) addReconciler(cname string, key interface{}, pool string
 		cluster_name = cluster.GetName()
 		aliases = this.clusters.GetAliases(cluster.GetName())
 	}
-	src := _ReconcilerMapping{key: key, cluster: cluster_name, reconciler: reconciler}
+	src := _ReconcilationKey{key: key, cluster: cluster_name, reconciler: reconciler}
 	mapping, ok := this.mappings[src]
 	if ok {
 		if mapping != pool {
@@ -533,4 +563,12 @@ func (this *controller) DecodeKey(key string) (string, *resources.ClusterObjectK
 
 	r, err := cluster.GetCachedObject(objKey)
 	return "", &objKey, r, err
+}
+
+func (this *controller) Synchronize(log logger.LogContext, name string, initiator resources.Object) (bool, error) {
+	return this.syncRequests.Synchronize(log, name, initiator)
+}
+
+func (this *controller) requestHandled(log logger.LogContext, reconciler reconcile.Interface, key resources.ClusterObjectKey) {
+	this.syncRequests.requestHandled(log, this.reconcilerNames[reconciler], key)
 }

@@ -43,6 +43,24 @@ func OptionSourceCreator(proto config.OptionSource) extension.OptionSourceCreato
 
 ///////////////////////////////////////////////////////////////////////////////
 
+type syncerdef struct {
+	name     string
+	cluster  string
+	resource ResourceKey
+}
+
+func (this *syncerdef) GetName() string {
+	return this.name
+}
+func (this *syncerdef) GetCluster() string {
+	return this.cluster
+}
+func (this *syncerdef) GetResource() ResourceKey {
+	return this.resource
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 type pooldef struct {
 	name   string
 	size   int
@@ -114,6 +132,7 @@ type _Definition struct {
 	name                 string
 	main                 rescdef
 	reconcilers          map[string]ReconcilerType
+	syncers              map[string]SyncerDefinition
 	watches              Watches
 	commands             Commands
 	resource_filters     []ResourceFilter
@@ -217,6 +236,13 @@ func (this *_Definition) Reconcilers() map[string]ReconcilerType {
 	}
 	return types
 }
+func (this *_Definition) Syncers() map[string]SyncerDefinition {
+	syncers := map[string]SyncerDefinition{}
+	for n, d := range this.syncers {
+		syncers[n] = d
+	}
+	return syncers
+}
 func (this *_Definition) Pools() map[string]PoolDefinition {
 	pools := map[string]PoolDefinition{}
 	for n, d := range this.pools {
@@ -261,6 +287,7 @@ func Configure(name string) Configuration {
 		settings: _Definition{
 			name:          name,
 			reconcilers:   map[string]ReconcilerType{},
+			syncers:       map[string]SyncerDefinition{},
 			pools:         map[string]PoolDefinition{},
 			configs:       extension.OptionDefinitions{},
 			configsources: extension.OptionSourceDefinitions{},
@@ -379,6 +406,16 @@ func (this Configuration) VersionedCustomResourceDefinitions(crds ...*CustomReso
 		m[this.cluster] = append(list, crd.GetVersions())
 	}
 	this.settings.crds = m
+	return this
+}
+
+func (this Configuration) Syncer(name string, resc ResourceKey) Configuration {
+	copy := map[string]SyncerDefinition{}
+	for n, s := range this.settings.syncers {
+		copy[n] = s
+	}
+	copy[name] = &syncerdef{name: name, cluster: this.cluster, resource: resc}
+	this.settings.syncers = copy
 	return this
 }
 

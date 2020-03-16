@@ -164,11 +164,10 @@ func NewInvalid(msgfmt string, elem interface{}) error {
 	return New(ERR_INVALID, msgfmt, elem)
 }
 
-
 func IsGroup(err error) bool {
-	return errors.IsGroup(GROUP,err)
+	return errors.IsGroup(GROUP, err)
 }
 
 func IsKind(name string, err error) bool {
-	return errors.IsKind(GROUP,name, err)
+	return errors.IsKind(GROUP, name, err)
 }

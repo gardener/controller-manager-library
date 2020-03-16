@@ -110,8 +110,8 @@ func (this *CustomResourceDefinition) DataFor(cluster resources.Cluster, cp Webh
 	if this == nil {
 		return nil
 	}
-	if cp==nil {
-		cp=registry
+	if cp == nil {
+		cp = registry
 	}
 	crd := this.DeepCopy()
 	if len(crd.Spec.Versions) > 1 && cp != nil {
@@ -146,9 +146,9 @@ func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd r
 	var err error
 
 	if abs, ok := crd.(*CustomResourceDefinition); ok {
-		crd=abs.DataFor(cluster,registry)
+		crd = abs.DataFor(cluster, registry)
 	}
-	if crd==nil {
+	if crd == nil {
 		return errors.New(errors.ERR_INVALID, "invalid crd")
 	}
 	msg := logger.NewOptionalSingletonMessage(log.Infof, "foreign %s", crd.GetName())

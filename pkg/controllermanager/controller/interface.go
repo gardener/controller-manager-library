@@ -26,6 +26,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
+	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
 	"github.com/gardener/controller-manager-library/pkg/utils"
@@ -69,6 +70,8 @@ type Interface interface {
 	FinalizerHandler() Finalizer
 	SetFinalizerHandler(Finalizer)
 
+	Synchronize(log logger.LogContext, name string, initiator resources.Object) (bool, error)
+
 	EnqueueKey(key resources.ClusterObjectKey) error
 	Enqueue(object resources.Object) error
 	EnqueueRateLimited(object resources.Object) error
@@ -104,8 +107,19 @@ func NewResourceKey(group, kind string) ResourceKey {
 	return extension.NewResourceKey(group, kind)
 }
 
-func GetResourceKey(obj resources.Object) ResourceKey {
-	return extension.GetResourceKey(obj)
+func GetResourceKey(objspec interface{}) ResourceKey {
+	return extension.GetResourceKey(objspec)
+}
+
+// ClusterResourceKey implementations are used as key and MUST therefore be value types
+type ClusterResourceKey extension.ResourceKey
+
+func NewClusterResourceKey(clusterid, group, kind string) ResourceKey {
+	return extension.NewClusterResourceKey(clusterid, group, kind)
+}
+
+func GetClusterResourceKey(objspec interface{}) ClusterResourceKey {
+	return extension.GetClusterResourceKey(objspec)
 }
 
 type Watches map[string][]Watch
@@ -114,6 +128,12 @@ type Commands map[string][]Command
 const CLUSTER_MAIN = mappings.CLUSTER_MAIN
 const DEFAULT_POOL = "default"
 const DEFAULT_RECONCILER = "default"
+
+type SyncerDefinition interface {
+	GetName() string
+	GetCluster() string
+	GetResource() ResourceKey
+}
 
 type PoolDefinition interface {
 	GetName() string
@@ -128,6 +148,7 @@ type Definition interface {
 
 	// Create(Object) (Reconciler, error)
 	Reconcilers() map[string]ReconcilerType
+	Syncers() map[string]SyncerDefinition
 	MainResource() ResourceKey
 	MainWatchResource() WatchResource
 	Watches() Watches

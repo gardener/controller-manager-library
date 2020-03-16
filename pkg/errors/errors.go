@@ -325,17 +325,16 @@ func Cause(err error) error {
 	return last
 }
 
-
 func IsGroup(name string, err error) bool {
 	if c, ok := err.(Categorized); ok {
-		return c.Group()==name
+		return c.Group() == name
 	}
 	return false
 }
 
 func IsKind(group, kind string, err error) bool {
 	if c, ok := err.(Categorized); ok {
-		return c.Group()==group && c.Kind()==kind
+		return c.Group() == group && c.Kind() == kind
 	}
 	return false
 }

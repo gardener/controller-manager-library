@@ -55,6 +55,56 @@ func (k resourceKey) String() string {
 	return fmt.Sprintf("%s/%s", k.key.Group, k.key.Kind)
 }
 
-func GetResourceKey(obj resources.Object) ResourceKey {
-	return NewResourceKey(obj.GroupKind().Group, obj.GroupKind().Kind)
+func GetResourceKey(objspec interface{}) ResourceKey {
+	switch s := objspec.(type) {
+	case resources.Object:
+		return NewResourceKey(s.GroupKind().Group, s.GroupKind().Kind)
+	case resources.ObjectKey:
+		return NewResourceKey(s.Group(), s.Kind())
+	case schema.GroupKind:
+		return NewResourceKey(s.Group, s.Kind)
+	case schema.GroupVersionKind:
+		return NewResourceKey(s.Group, s.Kind)
+	default:
+		panic(fmt.Errorf("invalid object spec %T for resource key", objspec))
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// ClusterResourceKey implementations are used as key and MUST therefore be value types
+type ClusterResourceKey interface {
+	GroupKind() schema.GroupKind
+	ClusterId() string
+	String() string
+}
+
+type clusterResourceKey struct {
+	resourceKey
+	clusterid string
+}
+
+func NewClusterResourceKey(clusterid, group, kind string) ClusterResourceKey {
+	if group == "core" {
+		group = corev1.GroupName
+	}
+	return clusterResourceKey{resourceKey: resourceKey{schema.GroupKind{Group: group, Kind: kind}}, clusterid: clusterid}
+}
+
+func (k clusterResourceKey) ClusterId() string {
+	return k.clusterid
+}
+func (k clusterResourceKey) String() string {
+	return fmt.Sprintf("%s/%s", k.clusterid, k.resourceKey.String())
+}
+
+func GetClusterResourceKey(objspec interface{}) ResourceKey {
+	switch s := objspec.(type) {
+	case resources.Object:
+		return NewClusterResourceKey(s.GetCluster().GetId(), s.GroupKind().Group, s.GroupKind().Kind)
+	case resources.ClusterObjectKey:
+		return NewClusterResourceKey(s.Cluster(), s.Group(), s.Kind())
+	default:
+		panic(fmt.Errorf("invalid object spec %T for cluster resource key", objspec))
+	}
 }

@@ -161,6 +161,7 @@ func (w *worker) processNextWorkItem() bool {
 
 		for _, reconciler := range reconcilers {
 			status := f(reconciler)
+			w.pool.controller.requestHandled(w, reconciler, *rkey)
 			if !status.Completed {
 				ok = false
 			}
