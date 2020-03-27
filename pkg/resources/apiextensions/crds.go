@@ -130,7 +130,7 @@ func (this *CustomResourceDefinition) DataFor(cluster resources.Cluster, cp Webh
 			}
 		}
 	}
-	if cluster.GetServerVersion().LessThan(v116) {
+	if cluster.GetServerVersion().LessThan(v116) || len(crd.Spec.Versions) == 0 || crd.Spec.Versions[0].Schema == nil {
 		o, err := crd.ConvertTo(string(CRD_V1BETA1))
 		utils.Must(err)
 		return o
