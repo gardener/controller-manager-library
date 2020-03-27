@@ -213,10 +213,7 @@ func (this *_Definition) RequireLease() bool {
 }
 func (this *_Definition) FinalizerName() string {
 	if this.finalizerName == "" {
-		if this.finalizerDomain == "" {
-			return "acme.com" + "/" + this.Name()
-		}
-		return this.finalizerDomain + "/" + this.Name()
+		return FinalizerName(this.finalizerDomain, this.name)
 	}
 	return this.finalizerName
 }

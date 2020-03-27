@@ -10,5 +10,10 @@ if ! readlink -f . &>/dev/null; then
     exit 1
 fi
 tool_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
-cd "${tool_dir}"/../vendor/sigs.k8s.io/controller-tools
+if [ -d "${tool_dir}/../vendor" ]; then
+  cd "${tool_dir}/../vendor"
+else
+   cd "${tool_dir}/../../../.."
+fi
+cd "sigs.k8s.io/controller-tools"
 go run -v -exec "${tool_dir}/run-in.sh ${current_dir} " ./cmd/controller-gen "$@"

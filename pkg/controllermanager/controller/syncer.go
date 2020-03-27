@@ -62,6 +62,8 @@ func (this *Syncer) newSyncRequest(c *controller, initiator resources.Object) *S
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// SyncRequests is the structure stored in controller object used to manage
+// sync requests
 type SyncRequests struct {
 	lock       sync.RWMutex
 	controller *controller
