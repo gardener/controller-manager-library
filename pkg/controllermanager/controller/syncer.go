@@ -139,11 +139,10 @@ func (this *SyncRequests) Synchronize(log logger.LogContext, name string, initia
 	if err != nil {
 		return false, err
 	}
-	err = cur.update(log, initiator)
+	done, err := cur.update(log, initiator)
 	if err != nil {
 		return false, err
 	}
-	done := cur.done()
 	if done {
 		this.Remove(cur)
 	}
@@ -189,23 +188,37 @@ type SyncRequest struct {
 // the simple case of single reconciler, the reconciler set is omitted and
 // substituted by a nil entry in this sync point map, if there is only one
 // reconciler.
-func (this *SyncRequest) update(log logger.LogContext, initiator resources.Object) error {
+func (this *SyncRequest) update(log logger.LogContext, initiator resources.Object) (bool, error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
 	if this.resourceVersion == initiator.GetResourceVersion() {
-		return nil
+		if len(this.syncPoints) == 0 {
+			log.Info("synchronization %s(%s) for %s(%s) done", this.name, this.resource, initiator.ClusterKey(), this.resourceVersion)
+			return true, nil
+		}
+		log.Info("synchronization %s(%s) for %s(%s) still pending", this.name, this.resource, initiator.ClusterKey(), this.resourceVersion)
+		return false, nil
+	}
+	if this.resourceVersion == "" {
+		log.Info("synchronizing %s(%s) for %s(%s)", this.name, this.resource, initiator, initiator.GetResourceVersion())
+	} else {
+		log.Info("resynchronizing %s(%s) for %s(%s->%s)", this.name, this.resource, initiator, this.resourceVersion, initiator.GetResourceVersion())
 	}
 	this.resourceVersion = initiator.GetResourceVersion()
 	reconcilers := this.controller.mappings.Get(this.cluster, this.resource.GroupKind())
 	if len(reconcilers) == 0 {
-		return fmt.Errorf("no reconcilers found for resource %s in %s", this.resource, this.cluster)
+		return false, fmt.Errorf("no reconcilers found for resource %s in %s", this.resource, this.cluster)
 	}
 	list, err := this.controller.handlers[this.cluster.GetName()].resources[this.resource].List()
 	if err != nil {
-		return err
+		return false, err
 	}
 	this.syncPoints = SyncPoints{}
+	if len(list) == 0 {
+		log.Info("  no %s found for sync -> done", this.resource)
+		return true, nil
+	}
 	if len(reconcilers) == 1 {
 		for _, o := range list {
 			this.syncPoints[o.ObjectName()] = nil
@@ -215,7 +228,7 @@ func (this *SyncRequest) update(log logger.LogContext, initiator resources.Objec
 			this.syncPoints[o.ObjectName()] = reconcilers.Copy()
 		}
 	}
-	return this._requestReconcilations(log)
+	return false, this._requestReconcilations(log)
 }
 
 // done checks whether all requested reconcilations have been done
@@ -226,7 +239,7 @@ func (this *SyncRequest) done() bool {
 }
 
 func (this *SyncRequest) _requestReconcilations(log logger.LogContext) error {
-	log.Infof("syncing %s with %d %s", this.initiator, len(this.syncPoints), this.resource)
+	log.Infof("  syncing %d %s", len(this.syncPoints), this.resource)
 	gk := this.resource.GroupKind()
 
 	id := this.cluster.GetId()
