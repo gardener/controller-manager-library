@@ -20,10 +20,10 @@ loop()
   for f in *.yaml; do
     if [ -f "$f" ]; then
       cat <<EOF
-  data=\`
+    data=\`
 $(cat "$f")
   \`
-  utils.Must(registry.RegisterCRD(data))
+    utils.Must(registry.RegisterCRD(data))
 EOF
     fi
   done
@@ -51,7 +51,7 @@ else
 fi
 mkdir -p crds
 rm -f crds/{*.yaml,zz_generated_crds.go}
-"${PROJECT_ROOT}/hack/controller-gen.sh"  \
+bash "${PROJECT_ROOT}/hack/controller-gen.sh"  \
    "crd:crdVersions=v1,trivialVersions=false" \
     paths="$paths" \
     output:crd:artifacts:config=crds
@@ -69,11 +69,11 @@ import (
 var registry = apiextensions.NewRegistry()
 
 func init() {
-  var data string
+    var data string
 $(loop)
 }
 
 func AddToRegistry(r apiextensions.Registry) {
-  registry.AddToRegistry(r)
+    registry.AddToRegistry(r)
 }
 EOF

@@ -16,4 +16,5 @@ else
    cd "${tool_dir}/../../../.."
 fi
 cd "sigs.k8s.io/controller-tools"
+chmod a+x "${tool_dir}/run-in.sh"
 go run -v -exec "${tool_dir}/run-in.sh ${current_dir} " ./cmd/controller-gen "$@"
