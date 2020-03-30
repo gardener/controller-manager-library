@@ -42,10 +42,10 @@ helper:
             inject_effective_version: true
         steps:
           check:
-            image: 'golang:1.10.4'
+            image: 'golang:1.13.9'
           test:
-            image: 'golang:1.10.4'
+            image: 'golang:1.13.9'
           build:
-            image: 'golang:1.10.4'
+            image: 'golang:1.13.9'
             output_dir: 'binary'
       jobs: (( sum[j|{}|s,e|-> s eval("*.helper.templates.jobs." e)] ))
