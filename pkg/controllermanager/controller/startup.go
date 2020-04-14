@@ -131,6 +131,19 @@ func (this *startupgroup) Add(c *controller) {
 }
 
 func (this *startupgroup) Startup() error {
+	if len(this.controllers) == 0 {
+		return nil
+	}
+
+	msg := this.cluster.GetName()
+	sep := " ("
+	for _, c := range this.controllers {
+		msg = fmt.Sprintf("%s%s%s", msg, sep, c.GetName())
+		sep = ", "
+	}
+	msg += ")"
+
+	this.extension.Infof("no lease required for %s -> starting controllers", msg)
 	for _, c := range this.controllers {
 		err := this.extension.startController(c)
 		if err != nil {
