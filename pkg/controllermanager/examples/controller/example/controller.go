@@ -16,7 +16,7 @@
  *
  */
 
-package test
+package example
 
 import (
 	"time"

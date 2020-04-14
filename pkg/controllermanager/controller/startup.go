@@ -104,7 +104,7 @@ func (this controllers) _orderAdd(logger logger.LogContext, depsmap map[string]c
 				}
 			}
 			if len(preferred) > 0 {
-				logger.Infof("  %s needs to be started after %s", utils.Strings(preferred...))
+				logger.Infof("  %s needs to be started after %s", c.GetName(), utils.Strings(preferred...))
 			}
 		}
 		*order = append(*order, c)
