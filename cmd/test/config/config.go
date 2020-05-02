@@ -18,10 +18,25 @@ package config
 
 import (
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/config"
-	"github.com/spf13/pflag"
+	"os"
 	"reflect"
+
+	"github.com/ghodss/yaml"
+	"github.com/spf13/pflag"
+
+	"github.com/gardener/controller-manager-library/pkg/config"
 )
+
+const configData = `
+  size: 5
+  bool: true
+  main: 
+    - not changed
+    - changed
+  controller:
+    test:
+      cnt: 4
+`
 
 type Mine struct {
 	Option string `configmain:"option,'dies ist ein test'"`
@@ -40,6 +55,32 @@ func (t *Targets) AddOptionsToSet(set config.OptionSet) {
 }
 
 func ConfigMain() {
+	var data map[string]interface{}
+	err := yaml.Unmarshal([]byte(configData), &data)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		os.Exit(1)
+	}
+	args, err := config.MapToArguments("", nil, data)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		os.Exit(1)
+	}
+	flags := pflag.NewFlagSet("map", pflag.ExitOnError)
+	flags.Bool("bool", false, "count")
+	flags.Int("controller.test.cnt", 1, "count")
+	flags.Int("size", 1, "count")
+	flags.String("main", "", "count")
+	flags.Set("controller.test.cnt", "20")
+	config.MergeFlags(flags, args)
+	flags.VisitAll(func(flag *pflag.Flag) {
+		fmt.Printf("eff %s: %v\n", flag.Name, flag.Value)
+	})
+
+	fmt.Printf("%d args\n", len(args))
+	for i, a := range args {
+		fmt.Printf("%d: %s\n", i, a)
+	}
 	main := config.NewDefaultOptionSet("configmain", "")
 	main.AddStringOption(nil, "main", "m", "main", "main name")
 
@@ -65,7 +106,7 @@ func ConfigMain() {
 
 	fmt.Printf("adding args to command line\n")
 
-	flags := pflag.NewFlagSet("test", pflag.ExitOnError)
+	flags = pflag.NewFlagSet("test", pflag.ExitOnError)
 	main.AddToFlags(flags)
 
 	fmt.Printf("setting args\n")
