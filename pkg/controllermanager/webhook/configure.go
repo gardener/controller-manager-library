@@ -102,8 +102,20 @@ func (this *_Definition) String() string {
 // Configuration
 ////////////////////////////////////////////////////////////////////////////////
 
+type ConfigurationModifier func(c Configuration) Configuration
+
 type Configuration struct {
 	settings _Definition
+	configState
+}
+
+type configState struct {
+	previous *configState
+}
+
+func (this *configState) pushState() {
+	save := *this
+	this.previous = &save
 }
 
 func Configure(name string) Configuration {
@@ -113,7 +125,25 @@ func Configure(name string) Configuration {
 			configs:       extension.OptionDefinitions{},
 			configsources: extension.OptionSourceDefinitions{},
 		},
+		configState: configState{},
 	}
+}
+
+func (this Configuration) With(modifier ...ConfigurationModifier) Configuration {
+	save := this.configState
+	result := this
+	for _, m := range modifier {
+		result = m(result)
+	}
+	result.configState = save
+	return result
+}
+
+func (this Configuration) Restore() Configuration {
+	if &this.configState != nil {
+		this.configState = *this.configState.previous
+	}
+	return this
 }
 
 func (this Configuration) Name(name string) Configuration {
