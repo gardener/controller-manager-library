@@ -72,7 +72,7 @@ func ConfigMain() {
 	flags.Int("size", 1, "count")
 	flags.String("main", "", "count")
 	flags.Set("controller.test.cnt", "20")
-	config.MergeFlags(flags, args)
+	config.MergeFlags(flags, args, true)
 	flags.VisitAll(func(flag *pflag.Flag) {
 		fmt.Printf("eff %s: %v\n", flag.Name, flag.Value)
 	})

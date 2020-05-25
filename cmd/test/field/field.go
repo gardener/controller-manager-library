@@ -2,14 +2,21 @@ package field
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/fieldpath"
-	"github.com/gardener/controller-manager-library/pkg/utils"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"os"
 	"reflect"
+
+	"gopkg.in/yaml.v2"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/gardener/controller-manager-library/pkg/fieldpath"
+	"github.com/gardener/controller-manager-library/pkg/resources/plain"
+	"github.com/gardener/controller-manager-library/pkg/types/infodata/simple"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 type S1 struct {
@@ -48,6 +55,65 @@ func assert(err error) {
 	}
 }
 
+type X interface {
+}
+
+type Y struct {
+	X X
+}
+
+func t0() {
+	s := runtime.NewScheme()
+	v1.AddToScheme(s)
+	c := plain.NewResourceContext(context.Background(), s)
+
+	pod := &v1.Pod{}
+	obj, _ := c.Resources().Wrap(pod)
+	status := obj.Status()
+	fmt.Printf("status: %T\n", status)
+	y := &Y{}
+	fx, _ := reflect.TypeOf(y).Elem().FieldByName("X")
+	fmt.Printf("X: %s\n", fx.Type)
+	data := map[string]interface{}{}
+
+	f, err := fieldpath.Compile(".A.B")
+	assert(err)
+
+	err = f.Set(data, "a")
+	assert(err)
+	fmt.Printf("GENERIC MAP: %s\n", simple.Values(data).String())
+
+	f, err = fieldpath.Compile(".A.C")
+	assert(err)
+
+	err = f.Set(data, "b")
+	assert(err)
+	fmt.Printf("GENERIC MAP: %s\n", simple.Values(data).String())
+
+	///////////////
+
+	f, err = fieldpath.Compile(".A[0]")
+	assert(err)
+
+	//data = map[string]interface{}{}
+	err = f.Set(data, "a")
+	if err == nil {
+		panic("expected type error did not occur")
+	}
+
+	data = map[string]interface{}{}
+	err = f.Set(data, "a")
+	assert(err)
+	fmt.Printf("GENERIC ARRAY: %s\n", simple.Values(data).String())
+
+	f, err = fieldpath.Compile(".A[1]")
+	assert(err)
+
+	err = f.Set(data, "b")
+	assert(err)
+	fmt.Printf("GENERIC ARRAY: %s\n", simple.Values(data).String())
+}
+
 func t1() {
 	A, err := fieldpath.NewField(&S4{}, ".FieldA")
 	assert(err)
@@ -66,12 +132,12 @@ func t1() {
 	}
 
 	assert(A.Set(s4, []string{}))
-	//assert(A.Set(s4,nil))
+	// assert(A.Set(s4,nil))
 	if s4.FieldA == nil {
 		fmt.Printf("A NIL\n")
 	}
 	assert(B.Set(s4, &[]string{}))
-	//assert(B.Set(s4,nil))
+	// assert(B.Set(s4,nil))
 	if s4.FieldA == nil {
 		fmt.Printf("B NIL\n")
 	}
@@ -79,6 +145,7 @@ func t1() {
 }
 
 func FieldMain() {
+	t0()
 	t1()
 	data, err := ioutil.ReadFile("local/test.yaml")
 	if err == nil {
