@@ -152,6 +152,9 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		ext.Infof("using grouped webhook registrations per cluster with name %q", cfg.RegistrationName)
 	}
 
+	cfg.CommonName = cm.GetName()
+	cfg.Organization = "kubernetes"
+
 	groups := defs.Groups()
 	ext.Infof("configured groups: %s", groups.AllGroups())
 
@@ -170,8 +173,8 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 	}
 
 	spec := cfg.Service + "--" + cm.GetNamespace()
-	if cfg.Hostname != "" {
-		spec = cfg.Hostname
+	if len(cfg.Hostnames) > 0 {
+		spec = cfg.Hostnames[0]
 	}
 	labels := map[string]string{
 		"service": spec,
@@ -283,11 +286,7 @@ func (this *Extension) certificateUpdated() {
 func (this *Extension) Start(ctx context.Context) error {
 	var err error
 
-	if this.config.CertFile != "" {
-		this.certificate, err = CreateFileCertificateSource(ctx, this)
-	} else {
-		this.certificate, err = CreateSecretCertificateSource(ctx, this)
-	}
+	this.certificate, err = this.config.CertConfig.CreateAccess(ctx, this, this.GetCluster(this.config.Cluster), this.Namespace())
 	if err != nil {
 		return err
 	}
@@ -362,15 +361,15 @@ func (this *Extension) CreateWebhookClientConfig(msg string, def Definition, tar
 	if msg != "" && !strings.HasPrefix(msg, " ") {
 		msg = msg + " "
 	}
-	if this.config.Hostname != "" {
+	if len(this.config.Hostnames) > 0 {
 		if target == this.defaultCluster && this.config.Service != "" {
 			sn := resources.NewObjectName(this.Namespace(), this.config.Service)
 			this.Infof("%swebhook %q for cluster %q with service %q", msg, def.Name(), target, sn)
 			client = apiextensions.NewServiceWebhookClientConfig(sn, this.config.ServicePort, def.Name(), cabundle)
 		} else {
-			url := fmt.Sprintf("https://%s/%s", this.config.Hostname, def.Name())
+			url := fmt.Sprintf("https://%s/%s", this.config.Hostnames[0], def.Name())
 			if this.config.Port > 0 {
-				url = fmt.Sprintf("https://%s:%d/%s", this.config.Hostname, this.config.Port, def.Name())
+				url = fmt.Sprintf("https://%s:%d/%s", this.config.Hostnames[0], this.config.Port, def.Name())
 			}
 			this.Infof("%swebhook %q for cluster %q with URL %q", msg, def.Name(), target, url)
 			client = apiextensions.NewURLWebhookClientConfig(url, cabundle)

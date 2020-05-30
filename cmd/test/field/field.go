@@ -62,7 +62,14 @@ type Y struct {
 	X X
 }
 
+type Over string
+
 func t0() {
+	var o Over
+	t := reflect.TypeOf(o)
+
+	fmt.Printf("o: %s(%s)\n", t, t.Kind())
+
 	s := runtime.NewScheme()
 	v1.AddToScheme(s)
 	c := plain.NewResourceContext(context.Background(), s)
@@ -74,7 +81,9 @@ func t0() {
 	y := &Y{}
 	fx, _ := reflect.TypeOf(y).Elem().FieldByName("X")
 	fmt.Printf("X: %s\n", fx.Type)
-	data := map[string]interface{}{}
+
+	//data := map[string]interface{}{}
+	data := simple.Values{}
 
 	f, err := fieldpath.Compile(".A.B")
 	assert(err)
