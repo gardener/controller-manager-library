@@ -33,6 +33,9 @@ func (this *Struct) String() string {
 	return this.value
 }
 
+type StringList []string
+type StringLists []StringList
+
 var _ = Describe("Conversions", func() {
 
 	Context("explicit conversions", func() {
@@ -316,4 +319,29 @@ var _ = Describe("Conversions", func() {
 		})
 	})
 
+	Context("converts string listss", func() {
+		lists := [][]string{
+			[]string{
+				"a", "b",
+			},
+			[]string{
+				"c", "d",
+			},
+		}
+
+		It("converts map", func() {
+			v := StringLists{
+				StringList{
+					"a", "b",
+				},
+				StringList{
+					"c", "d",
+				},
+			}
+
+			r, err := ConvertTo(lists, StringLists{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(r).To(Equal(v))
+		})
+	})
 })
