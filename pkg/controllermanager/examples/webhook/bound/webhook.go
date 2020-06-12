@@ -31,7 +31,7 @@ func init() {
 		Cluster(cluster.DEFAULT).
 		Resource("core", "ResourceQuota").
 		DefaultedStringOption("message", "yepp", "response message").
-		Handler(handler.Adapt(MyHandlerType)).
+		Kind(admission.Validating(handler.Adapt(MyHandlerType))).
 		MustRegister()
 }
 
