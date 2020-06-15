@@ -16,7 +16,7 @@
  *
  */
 
-package v1_16
+package v1_16 // golint: ignore
 
 import (
 	admissionregistration "k8s.io/api/admissionregistration/v1"

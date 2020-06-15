@@ -40,8 +40,6 @@ var _ = Describe("Conversions", func() {
 
 	Context("explicit conversions", func() {
 		type x int
-		type x32 int32
-		type x64 int64
 
 		type f float64
 
@@ -321,10 +319,10 @@ var _ = Describe("Conversions", func() {
 
 	Context("converts string listss", func() {
 		lists := [][]string{
-			[]string{
+			{
 				"a", "b",
 			},
-			[]string{
+			{
 				"c", "d",
 			},
 		}

@@ -23,6 +23,9 @@ import (
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/resources/conditions"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type My struct {

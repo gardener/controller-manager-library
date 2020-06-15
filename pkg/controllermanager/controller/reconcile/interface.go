@@ -69,7 +69,7 @@ type Interface interface {
 	Command(logger logger.LogContext, cmd string) Status
 }
 
-// RejectResourceReconcilation is an optional interface that can be
+// ReconcilationRejection is an optional interface that can be
 // implemented by a recociler to decide to omit the reconcilation
 // of a dedicated resource the it is registered for by the controller
 // definition

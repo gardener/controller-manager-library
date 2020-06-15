@@ -18,6 +18,11 @@
 
 package utils
 
+import (
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+)
+
 type Struct struct{}
 
 var _ = Describe("Types", func() {
