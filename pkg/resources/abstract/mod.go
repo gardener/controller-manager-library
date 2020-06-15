@@ -87,11 +87,11 @@ func (this *ModificationState) AssureLabel(name, value string) *ModificationStat
 	return this
 }
 
-func (this *ModificationState) Get(field fieldpath.Field) (interface{}, error) {
+func (this *ModificationState) Get(field fieldpath.Path) (interface{}, error) {
 	return field.Get(this.object.Data())
 }
 
-func (this *ModificationState) Set(field fieldpath.Field, value interface{}) error {
+func (this *ModificationState) Set(field fieldpath.Path, value interface{}) error {
 	old, err := field.Get(this.object.Data())
 	if err != nil {
 		return err

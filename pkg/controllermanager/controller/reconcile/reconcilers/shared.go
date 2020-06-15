@@ -41,12 +41,12 @@ func GetSharedReconciler(t SharedReconcilerType, controller controller.Interface
 type SharedReconciler struct {
 	lock        sync.Mutex
 	state       interface{}
-	reconcilers map[string]resources.GroupKindSet
+	reconcilers controller.WatchedResources
 }
 
 func NewSharedReconciler(t SharedReconcilerType) *SharedReconciler {
 	return &SharedReconciler{
-		reconcilers: map[string]resources.GroupKindSet{},
+		reconcilers: controller.WatchedResources{},
 		state:       t.CreateState(),
 	}
 }
@@ -59,17 +59,7 @@ func (this *SharedReconciler) reconcilerFor(cluster cluster.Interface, gks ...sc
 
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	actual := this.reconcilers[cluster.GetId()]
-	if actual == nil {
-		actual = resources.GroupKindSet{}
-		this.reconcilers[cluster.GetId()] = actual
-	}
-	for _, gk := range gks {
-		if !actual.Contains(gk) {
-			responsible.Add(gk)
-			actual.Add(gk)
-		}
-	}
+	this.reconcilers.GatheredAdd(cluster.GetId(), responsible, gks...)
 	return responsible
 }
 

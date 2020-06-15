@@ -17,6 +17,7 @@
 package resources
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/fieldpath"
 	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
@@ -82,33 +83,100 @@ func (this *ModificationState) AddOwners(objs ...Object) *ModificationState {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-func ModifyStatus(obj Object, f func(*ModificationState) error) (bool, error) {
+type ModificationStateUpdater func(*ModificationState) error
+
+type updater struct {
+	obj      Object
+	funcs    []ModificationStateUpdater
+	modified bool
+}
+
+var _ ModificationStatusUpdater = (*updater)(nil)
+var _ ModificationUpdater = (*updater)(nil)
+
+func NewUpdater(obj Object, funcs ...ModificationStateUpdater) *updater {
+	return &updater{
+		obj:   obj,
+		funcs: funcs,
+	}
+}
+
+func (this *updater) UpdateStatus() error {
+	mod, err := ModifyStatus(this.obj, this.funcs...)
+	this.modified = mod
+	return err
+}
+
+func (this *updater) Update() error {
+	mod, err := Modify(this.obj, this.funcs...)
+	this.modified = mod
+	return err
+}
+
+func (this *updater) IsModified() bool {
+	return this.modified
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+var pState = fieldpath.MustFieldPath(".Status.State")
+var pMessage = fieldpath.MustFieldPath(".Status.Message")
+
+func UpdateStandardObjectStatus(obj Object, state, msg string) (bool, error) {
+	return ModifyStatus(obj, func(mod *ModificationState) error {
+		mod.Set(pState, state)
+		mod.Set(pMessage, msg)
+		return nil
+	})
+}
+
+func NewStandardStatusUpdate(obj Object, state, msg string) ModificationStatusUpdater {
+	return NewUpdater(obj, func(mod *ModificationState) error {
+		mod.Set(pState, state)
+		mod.Set(pMessage, msg)
+		return nil
+	})
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+func ModifyStatus(obj Object, funcs ...ModificationStateUpdater) (bool, error) {
 	m := func(data ObjectData) (bool, error) {
 		o, err := obj.Resources().Wrap(data)
 		if err != nil {
 			return false, err
 		}
 		mod := NewModificationState(o)
-		err = f(mod)
+		for _, f := range funcs {
+			err = f(mod)
+			if err != nil {
+				break
+			}
+		}
 		return mod.Modified, err
 	}
 	return obj.ModifyStatus(m)
 }
 
-func Modify(obj Object, f func(*ModificationState) error) (bool, error) {
+func Modify(obj Object, funcs ...ModificationStateUpdater) (bool, error) {
 	m := func(data ObjectData) (bool, error) {
 		o, err := obj.Resources().Wrap(data)
 		if err != nil {
 			return false, err
 		}
 		mod := NewModificationState(o)
-		err = f(mod)
+		for _, f := range funcs {
+			err = f(mod)
+			if err != nil {
+				break
+			}
+		}
 		return mod.Modified, err
 	}
 	return obj.Modify(m)
 }
 
-func CreateOrModify(obj Object, f func(*ModificationState) error) (bool, error) {
+func CreateOrModify(obj Object, f ModificationStateUpdater) (bool, error) {
 	m := func(data ObjectData) (bool, error) {
 		o, err := obj.Resources().Wrap(data)
 		if err != nil {
