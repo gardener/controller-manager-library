@@ -76,7 +76,7 @@ func t0() {
 
 	pod := &v1.Pod{}
 	obj, _ := c.Resources().Wrap(pod)
-	status := obj.Status()
+	status := obj.StatusField()
 	fmt.Printf("status: %T\n", status)
 	y := &Y{}
 	fx, _ := reflect.TypeOf(y).Elem().FieldByName("X")
