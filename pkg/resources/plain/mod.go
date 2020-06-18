@@ -26,8 +26,8 @@ type ModificationState struct {
 	*abstract.ModificationState
 }
 
-func NewModificationState(object Object, mod ...bool) *ModificationState {
-	return &ModificationState{abstract.NewModificationState(object, mod...)}
+func NewModificationState(object Object, settings ...interface{}) *ModificationState {
+	return &ModificationState{abstract.NewModificationState(object, settings...)}
 }
 
 func (this *ModificationState) Object() Object {

@@ -18,6 +18,7 @@ package resources
 
 import (
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
+	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
 )
 
@@ -45,8 +46,8 @@ type ModificationState struct {
 
 var _ ModificationUpdater = (*ModificationState)(nil)
 
-func NewModificationState(object Object, mod ...bool) *ModificationState {
-	return &ModificationState{abstract.NewModificationState(object, mod...)}
+func NewModificationState(object Object, settings ...interface{}) *ModificationState {
+	return &ModificationState{abstract.NewModificationState(object, settings...)}
 }
 
 func (this *ModificationState) Object() Object {
@@ -122,18 +123,24 @@ func (this *updater) IsModified() bool {
 var pState = fieldpath.MustFieldPath(".Status.State")
 var pMessage = fieldpath.MustFieldPath(".Status.Message")
 
-func UpdateStandardObjectStatus(obj Object, state, msg string) (bool, error) {
+func UpdateStandardObjectStatus(log logger.LogContext, obj Object, state, msg string) (bool, error) {
 	return ModifyStatus(obj, func(mod *ModificationState) error {
 		mod.Set(pState, state)
 		mod.Set(pMessage, msg)
+		if log != nil && mod.IsModified() {
+			log.Infof("updatig state %s (%s)", state, msg)
+		}
 		return nil
 	})
 }
 
-func NewStandardStatusUpdate(obj Object, state, msg string) ModificationStatusUpdater {
+func NewStandardStatusUpdate(log logger.LogContext, obj Object, state, msg string) ModificationStatusUpdater {
 	return NewUpdater(obj, func(mod *ModificationState) error {
 		mod.Set(pState, state)
 		mod.Set(pMessage, msg)
+		if log != nil && mod.IsModified() {
+			log.Infof("updatig state %s (%s)", state, msg)
+		}
 		return nil
 	})
 }
