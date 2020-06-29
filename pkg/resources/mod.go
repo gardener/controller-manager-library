@@ -17,6 +17,8 @@
 package resources
 
 import (
+	"fmt"
+
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
@@ -134,15 +136,23 @@ func UpdateStandardObjectStatus(log logger.LogContext, obj Object, state, msg st
 	})
 }
 
+func UpdateStandardObjectStatusf(log logger.LogContext, obj Object, state, msg string, args ...interface{}) (bool, error) {
+	return UpdateStandardObjectStatus(log, obj, state, fmt.Sprintf(msg, args...))
+}
+
 func NewStandardStatusUpdate(log logger.LogContext, obj Object, state, msg string) ModificationStatusUpdater {
 	return NewUpdater(obj, func(mod *ModificationState) error {
 		mod.Set(pState, state)
 		mod.Set(pMessage, msg)
 		if log != nil && mod.IsModified() {
-			log.Infof("updatig state %s (%s)", state, msg)
+			log.Infof("updating state %s (%s)", state, msg)
 		}
 		return nil
 	})
+}
+
+func NewStandardStatusUpdatef(log logger.LogContext, obj Object, state, msg string, args ...interface{}) ModificationStatusUpdater {
+	return NewStandardStatusUpdate(log, obj, state, fmt.Sprintf(msg, args...))
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -235,35 +235,50 @@ func (this *SimpleUsageCache) CleanupUser(log logger.LogContext, msg string, con
 		if len(used) > 0 && log != nil && msg != "" {
 			log.Infof("%s %d uses of %s", msg, len(used), user.ObjectKey())
 		}
-		for key := range used {
-			for _, a := range actions {
-				err := a(log, controller, key)
-				if err != nil {
-					return err
-				}
-			}
+		if err := this.execute(log, controller, used, actions...); err != nil {
+			return err
 		}
 	}
 	this.UpdateUsesFor(user, nil)
 	return nil
 }
 
-func (this *SimpleUsageCache) ExecuteActionForUsersOf(log logger.LogContext, msg string, controller controller.Interface, user resources.ClusterObjectKey, actions ...KeyAction) error {
-	return this.ExecuteActionForFilteredUsersOf(log, msg, controller, user, nil, actions...)
+func (this *SimpleUsageCache) ExecuteActionForUsersOf(log logger.LogContext, msg string, controller controller.Interface, used resources.ClusterObjectKey, actions ...KeyAction) error {
+	return this.ExecuteActionForFilteredUsersOf(log, msg, controller, used, nil, actions...)
 }
 
 func (this *SimpleUsageCache) ExecuteActionForFilteredUsersOf(log logger.LogContext, msg string, controller controller.Interface, key resources.ClusterObjectKey, filter resources.KeyFilter, actions ...KeyAction) error {
 	if len(actions) > 0 {
-		used := this.GetFilteredUsersFor(key, filter)
-		if len(used) > 0 && log != nil && msg != "" {
+		users := this.GetFilteredUsersFor(key, filter)
+		if len(users) > 0 && log != nil && msg != "" {
 			log.Infof("%s users of %s", msg, key.ObjectKey())
 		}
-		for key := range used {
-			for _, a := range actions {
-				err := a(log, controller, key)
-				if err != nil {
-					return err
-				}
+		return this.execute(log, controller, users, actions...)
+	}
+	return nil
+}
+
+func (this *SimpleUsageCache) ExecuteActionForUsesOf(log logger.LogContext, msg string, controller controller.Interface, key resources.ClusterObjectKey, actions ...KeyAction) error {
+	return this.ExecuteActionForFilteredUsesOf(log, msg, controller, key, nil, actions...)
+}
+
+func (this *SimpleUsageCache) ExecuteActionForFilteredUsesOf(log logger.LogContext, msg string, controller controller.Interface, key resources.ClusterObjectKey, filter resources.KeyFilter, actions ...KeyAction) error {
+	if len(actions) > 0 {
+		used := this.GetFilteredUsesFor(key, filter)
+		if len(used) > 0 && log != nil && msg != "" {
+			log.Infof("%s uses of %s", msg, key.ObjectKey())
+		}
+		return this.execute(log, controller, used, actions...)
+	}
+	return nil
+}
+
+func (this *SimpleUsageCache) execute(log logger.LogContext, controller controller.Interface, keys resources.ClusterObjectKeySet, actions ...KeyAction) error {
+	for key := range keys {
+		for _, a := range actions {
+			err := a(log, controller, key)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -334,12 +349,12 @@ func (this *usageReconciler) RejectResourceReconcilation(cluster cluster.Interfa
 }
 
 func (this *usageReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
-	this.cache.ExecuteActionForUsersOf(logger, "changed -> trigger", this.Controller(), obj.ClusterKey(), GlobalEnqueueAction)
+	this.cache.ExecuteActionForUsersOf(logger, "changed -> trigger", this.controller, obj.ClusterKey(), GlobalEnqueueAction)
 	return reconcile.Succeeded(logger)
 }
 
 func (this *usageReconciler) Deleted(logger logger.LogContext, key resources.ClusterObjectKey) reconcile.Status {
-	this.cache.ExecuteActionForUsersOf(logger, "deleted -> trigger", this.controller, key, EnqueueAction)
+	this.cache.ExecuteActionForUsersOf(logger, "deleted -> trigger", this.controller, key, GlobalEnqueueAction)
 	return reconcile.Succeeded(logger)
 }
 
