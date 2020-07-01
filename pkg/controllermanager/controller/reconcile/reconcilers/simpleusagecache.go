@@ -251,7 +251,7 @@ func (this *SimpleUsageCache) ExecuteActionForFilteredUsersOf(log logger.LogCont
 	if len(actions) > 0 {
 		users := this.GetFilteredUsersFor(key, filter)
 		if len(users) > 0 && log != nil && msg != "" {
-			log.Infof("%s users of %s", msg, key.ObjectKey())
+			log.Infof("%s %d users of %s", msg,len(users),  key.ObjectKey())
 		}
 		return this.execute(log, controller, users, actions...)
 	}
@@ -266,7 +266,7 @@ func (this *SimpleUsageCache) ExecuteActionForFilteredUsesOf(log logger.LogConte
 	if len(actions) > 0 {
 		used := this.GetFilteredUsesFor(key, filter)
 		if len(used) > 0 && log != nil && msg != "" {
-			log.Infof("%s uses of %s", msg, key.ObjectKey())
+			log.Infof("%s %d uses of %s", msg, len(used), key.ObjectKey())
 		}
 		return this.execute(log, controller, used, actions...)
 	}
