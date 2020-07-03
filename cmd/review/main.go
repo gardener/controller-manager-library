@@ -94,7 +94,7 @@ func main() {
 
 	out, err := json.MarshalIndent(answer, "", "  ")
 	if err != nil {
-		fmt.Printf("fmt err: 5s\n", err)
+		fmt.Printf("fmt err: %s\n", err)
 		os.Exit(1)
 	}
 	fmt.Printf("%s\n", string(out))
