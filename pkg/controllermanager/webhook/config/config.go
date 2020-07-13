@@ -92,7 +92,7 @@ func (this *Config) Evaluate() error {
 	for _, l := range this.Labels {
 		a := strings.Split(l, "=")
 		if len(a) != 2 {
-			return fmt.Errorf("invalid label spec (%s): must contain excactly one = character")
+			return fmt.Errorf("invalid label spec (%s): must contain excactly one = character", l)
 		}
 	}
 	return this.OptionSet.Evaluate()

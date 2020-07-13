@@ -63,14 +63,14 @@ func (this *Adapter) Handle(logger logger.LogContext, request admission.Request)
 	if request.Object.Raw != nil {
 		object, err = this.resources.Decode(request.Object.Raw)
 		if err != nil {
-			return admission.ErrorResponse(http.StatusInternalServerError, fmt.Errorf("cannot parse object", err))
+			return admission.ErrorResponse(http.StatusInternalServerError, fmt.Errorf("cannot parse object: %s", err))
 		}
 		request.Object.Object = object.Data()
 	}
 	if request.OldObject.Raw != nil {
 		old, err = this.resources.Decode(request.OldObject.Raw)
 		if err != nil {
-			return admission.ErrorResponse(http.StatusInternalServerError, fmt.Errorf("cannot parse oldobject", err))
+			return admission.ErrorResponse(http.StatusInternalServerError, fmt.Errorf("cannot parse oldobject: %s", err))
 		}
 		request.OldObject.Object = old.Data()
 	}
