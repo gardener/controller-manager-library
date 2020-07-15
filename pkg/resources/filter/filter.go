@@ -21,8 +21,11 @@ package filter
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	. "github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 )
+
+type KeyFilter = resources.KeyFilter
+type ClusterObjectKey = resources.ClusterObjectKey
 
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -35,20 +38,20 @@ func None(key ClusterObjectKey) bool {
 }
 
 func GroupKindFilter(gk ...schema.GroupKind) KeyFilter {
-	return GroupKindFilterBySet(NewGroupKindSet(gk...))
+	return GroupKindFilterBySet(resources.NewGroupKindSet(gk...))
 }
 
-func GroupKindFilterBySet(gks GroupKindSet) KeyFilter {
+func GroupKindFilterBySet(gks resources.GroupKindSet) KeyFilter {
 	return func(key ClusterObjectKey) bool {
 		return gks.Contains(key.GroupKind())
 	}
 }
 
-func ClusterGroupKindFilter(cgk ...ClusterGroupKind) KeyFilter {
-	return ClusterGroupKindFilterBySet(NewClusterGroupKindSet(cgk...))
+func ClusterGroupKindFilter(cgk ...resources.ClusterGroupKind) KeyFilter {
+	return ClusterGroupKindFilterBySet(resources.NewClusterGroupKindSet(cgk...))
 }
 
-func ClusterGroupKindFilterBySet(gks ClusterGroupKindSet) KeyFilter {
+func ClusterGroupKindFilterBySet(gks resources.ClusterGroupKindSet) KeyFilter {
 	return func(key ClusterObjectKey) bool {
 		return gks.Contains(key.ClusterGroupKind())
 	}

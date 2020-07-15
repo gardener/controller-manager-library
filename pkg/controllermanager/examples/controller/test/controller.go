@@ -84,6 +84,11 @@ func Create(controller controller.Interface) (reconcile.Interface, error) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+func (h *reconciler) Setup() error {
+	h.controller.Infof("setup of reconciler")
+	return nil
+}
+
 func (h *reconciler) Start() {
 	h.controller.EnqueueCommand("poll")
 }
