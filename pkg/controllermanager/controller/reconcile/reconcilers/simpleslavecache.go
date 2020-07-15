@@ -32,7 +32,7 @@ import (
 
 var slavesKey = ctxutil.SimpleKey("slaves")
 
-// GetSharedSimpleUsageCache returns an instance of a usage cache unique for
+// GetSharedSimpleSlaveCache returns an instance of a usage cache unique for
 // the complete controller manager
 func GetSharedSimpleSlaveCache(controller controller.Interface) *SimpleSlaveCache {
 	return controller.GetEnvironment().GetOrCreateSharedValue(slavesKey, func() interface{} {
