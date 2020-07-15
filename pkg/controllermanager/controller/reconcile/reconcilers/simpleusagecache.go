@@ -251,7 +251,7 @@ func (this *SimpleUsageCache) ExecuteActionForFilteredUsersOf(log logger.LogCont
 	if len(actions) > 0 {
 		users := this.GetFilteredUsersFor(key, filter)
 		if len(users) > 0 && log != nil && msg != "" {
-			log.Infof("%s %d users of %s", msg,len(users),  key.ObjectKey())
+			log.Infof("%s %d users of %s", msg, len(users), key.ObjectKey())
 		}
 		return this.execute(log, controller, users, actions...)
 	}

@@ -410,8 +410,8 @@ func (this Configuration) DefaultCluster() Configuration {
 
 func (this Configuration) Cluster(name string) Configuration {
 	this.pushState()
-	if name=="" {
-		name=CLUSTER_MAIN
+	if name == "" {
+		name = CLUSTER_MAIN
 	}
 	this.cluster = name
 	this.pool = DEFAULT_POOL

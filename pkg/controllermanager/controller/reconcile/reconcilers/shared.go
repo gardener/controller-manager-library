@@ -86,11 +86,11 @@ func (this *sharedReconciler) RejectResourceReconcilation(cluster cluster.Interf
 	return !this.responsible.Contains(gk)
 }
 
-func (this *sharedReconciler) Setup() {
-	this.reconciler.Setup()
+func (this *sharedReconciler) Setup() error {
+	return reconcile.SetupReconciler(this.reconciler)
 }
-func (this *sharedReconciler) Start() {
-	this.reconciler.Start()
+func (this *sharedReconciler) Start() error {
+	return reconcile.StartReconciler(this.reconciler)
 }
 
 func (this *sharedReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {

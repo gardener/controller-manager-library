@@ -570,8 +570,11 @@ func (this *controller) prepare() error {
 	}
 
 	this.Infof("setup reconcilers...")
-	for _, r := range this.reconcilers {
-		r.Setup()
+	for n, r := range this.reconcilers {
+		err = reconcile.SetupReconciler(r)
+		if err != nil {
+			return fmt.Errorf("setup of reconciler %s of controller %s failed: %s", n, this.GetName(), err)
+		}
 	}
 
 	this.Infof("setup watches....")
@@ -606,8 +609,12 @@ func (this *controller) Run() {
 	}
 
 	this.Infof("starting reconcilers...")
-	for _, r := range this.reconcilers {
-		r.Start()
+	for n, r := range this.reconcilers {
+		err := reconcile.StartReconciler(r)
+		if err != nil {
+			this.Errorf("exit controller %s because start of reconciler %s failed: %s", this.GetName(), n, err)
+			return
+		}
 	}
 	this.Infof("controller started")
 	<-this.GetContext().Done()

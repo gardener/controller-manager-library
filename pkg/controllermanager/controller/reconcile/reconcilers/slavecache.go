@@ -337,13 +337,12 @@ type SlaveReconciler struct {
 
 var _ reconcile.Interface = &SlaveReconciler{}
 
-func (this *SlaveReconciler) Setup() {
+func (this *SlaveReconciler) Setup() error {
 	this.SlaveAccess.Setup()
-	this.NestedReconciler.Setup()
+	return this.NestedReconciler.Setup()
 }
 
-func (this *SlaveReconciler) Start() {
-	this.SlaveAccess.Start()
+func (this *SlaveReconciler) Start() error {
 	this.Infof("determining dangling %s objects...", this.spec.Name)
 	for k := range this.SlaveAccess.GetMasters(false) {
 		if this.master_resources.Contains(k.Cluster(), k.GroupKind()) {
@@ -355,7 +354,7 @@ func (this *SlaveReconciler) Start() {
 			}
 		}
 	}
-	this.NestedReconciler.Start()
+	return this.NestedReconciler.Start()
 }
 
 func (this *SlaveReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {

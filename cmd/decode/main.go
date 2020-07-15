@@ -21,10 +21,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/v1alpha1"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
@@ -34,6 +36,7 @@ var decoder *resources.Decoder
 func init() {
 	scheme = runtime.NewScheme()
 	utilruntime.Must(example.AddToScheme(scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	decoder = resources.NewDecoder(scheme)
 }
 
@@ -84,4 +87,18 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("len %d: wire: %T, final: %T: %s\n", len(vers.Objects), vers.First(), vers.Last(), vers.Last().(*example.Example).Spec.URL)
+
+	txt := `
+description: "ACMEIssuerDNS01ProviderAkamai is a structure containing
+	the DNS configuration for Akamai DNS&#0978;Zone Record Management
+	API"
+`
+
+	m := map[string]interface{}{}
+	err = yaml.Unmarshal([]byte(txt), &m)
+	if err != nil {
+		fmt.Printf("Unmarshal: %s\n", err)
+	} else {
+		fmt.Printf("value: %s\n", m["description"])
+	}
 }

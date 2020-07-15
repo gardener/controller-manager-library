@@ -141,14 +141,15 @@ func (this *slaveReconciler) RejectResourceReconcilation(cluster cluster.Interfa
 	return !this.responsible.Contains(gk)
 }
 
-func (this *slaveReconciler) Setup() {
+func (this *slaveReconciler) Setup() error {
 	for r := range this.responsible {
 		res, err := this.controller.GetClusterById(this.clusterId).Resources().Get(r)
 		if err != nil {
-			panic(fmt.Sprintf("cannot find resource %s on cluster %s: %s", r, this.clusterId, err))
+			return fmt.Errorf("cannot find resource %s on cluster %s: %s", r, this.clusterId, err)
 		}
 		this.cache.SetupFor(this.controller, res)
 	}
+	return nil
 }
 
 func (this *slaveReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
