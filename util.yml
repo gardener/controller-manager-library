@@ -4,6 +4,14 @@ helper:
 
   branchset: (( |n,j,b|-> *.helper.templates.branchset ))
 
+  util:
+    notify:
+      slack:
+        default_channel: 'internal_scp_workspace'
+        channel_cfgs:
+          internal_scp_workspace:
+            channel_name: 'C9CEBQPGE' #sap-tech-gardener
+            slack_cfg_name: 'scp_workspace'
   templates:
     branchset:
       <<: (( &template ))
@@ -31,6 +39,7 @@ helper:
             release:
               nextversion: 'bump_minor'
             component_descriptor: ~
+            <<: (( helper.util.notify )) 
 
     standard:
       <<: (( &template ))
