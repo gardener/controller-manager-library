@@ -2,5 +2,6 @@
 # name: lib
 # name: cml
 
+export GOROOT="$(goroot 1.14)"
 export KUBECONFIG=/home/d021770/k8s/CLUSTERS/dnslb-test
 
