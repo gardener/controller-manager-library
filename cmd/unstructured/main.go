@@ -51,7 +51,7 @@ func main() {
 	}
 	rri := client.Resource(info.GroupVersionResource())
 	ri := rri.Namespace("default")
-	s, err := ri.Get("access", metav1.GetOptions{})
+	s, err := ri.Get(context.TODO(), "access", metav1.GetOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
