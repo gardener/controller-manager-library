@@ -177,6 +177,12 @@ func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd r
 					resources.SetObjectSpec(data, new)
 					return true, nil
 				}
+				if v, _ := resources.GetAnnotation(data, A_MAINTAINER); v != maintainer.Ident {
+					if maintainer.Ident == "" {
+						return resources.RemoveAnnotation(data, A_MAINTAINER), nil
+					}
+					return resources.SetAnnotation(data, A_MAINTAINER, maintainer.Ident), nil
+				}
 				return false, nil
 			})
 			if err != nil {
