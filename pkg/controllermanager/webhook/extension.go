@@ -131,7 +131,7 @@ type registrationContext struct {
 	config config.OptionSource
 }
 
-func (this *registrationContext) Maintainer() string {
+func (this *registrationContext) Maintainer() extension.MaintainerInfo {
 	return this.ext.Maintainer()
 }
 
@@ -195,7 +195,7 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 	}, nil
 }
 
-func (this *Extension) Maintainer() string {
+func (this *Extension) Maintainer() extension.MaintainerInfo {
 	return this.ControllerManager().GetMaintainer()
 }
 

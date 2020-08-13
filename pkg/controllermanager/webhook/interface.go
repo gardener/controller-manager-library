@@ -104,7 +104,7 @@ type HandlerFactory interface {
 
 type RegistrationContext interface {
 	logger.LogContext
-	Maintainer() string
+	Maintainer() extension.MaintainerInfo
 	Config() config.OptionSource
 }
 
