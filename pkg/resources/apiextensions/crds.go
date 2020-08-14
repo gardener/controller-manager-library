@@ -180,9 +180,9 @@ func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd r
 				}
 				if v, _ := resources.GetAnnotation(data, A_MAINTAINER); v != maintainer.Ident {
 					if maintainer.Ident == "" {
-						mod = resources.RemoveAnnotation(data, A_MAINTAINER)
+						mod = resources.RemoveAnnotation(data, A_MAINTAINER) || mod
 					} else {
-						mod = resources.SetAnnotation(data, A_MAINTAINER, maintainer.Ident)
+						mod = resources.SetAnnotation(data, A_MAINTAINER, maintainer.Ident) || mod
 					}
 				}
 				return mod, nil
