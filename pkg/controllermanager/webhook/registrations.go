@@ -103,7 +103,7 @@ func (this *MaintainedRegistrations) TriggerRegistrationUpdate(ext *Extension) {
 		start := this.pending == nil
 		this.pending = append(this.registrations[:0:0], this.registrations...)
 		this.next = 0
-		ext.Info("update %d registrations", len(this.pending))
+		ext.Infof("update %d registrations", len(this.pending))
 		if start {
 			go func() {
 				ext.Info("starting registration update handler")
@@ -117,7 +117,7 @@ func (this *MaintainedRegistrations) TriggerRegistrationUpdate(ext *Extension) {
 					return this._driveRegistrations(ext), nil
 				})
 				if err != nil {
-					ext.Info("registration update cancelled: %s", err)
+					ext.Infof("registration update cancelled: %s", err)
 				} else {
 					ext.Info("registration update done")
 				}

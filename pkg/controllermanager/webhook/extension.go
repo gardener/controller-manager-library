@@ -394,7 +394,7 @@ func (this *Extension) RegisterWebhookGroup(name string, target cluster.Interfac
 	if g == nil {
 		return fmt.Errorf("webhook group %q not found", name)
 	}
-	this.Info("registering webhook group %q for cluster %q", name, target.GetName())
+	this.Infof("registering webhook group %q for cluster %q", name, target.GetName())
 	set := g.Members()
 	registrations := WebhookRegistrationGroups{}
 	reg := registrations.GetOrCreateGroup(target)
@@ -402,7 +402,7 @@ func (this *Extension) RegisterWebhookGroup(name string, target cluster.Interfac
 	for n := range set {
 		w := this.hooks[n]
 		if w == nil {
-			this.Info("omitting inactive webhook %q", n)
+			this.Infof("omitting inactive webhook %q", n)
 			continue
 		}
 		if client == nil {
@@ -445,7 +445,7 @@ func (this *Extension) DeleteWebhookGroup(name string, target cluster.Interface)
 	if g == nil {
 		return fmt.Errorf("webhook group %q not found", name)
 	}
-	this.Info("deleting webhook group %q from cluster %q", name, target.GetName())
+	this.Infof("deleting webhook group %q from cluster %q", name, target.GetName())
 	set := g.Members()
 	kinds := map[WebhookKind]RegistrationHandler{}
 
