@@ -76,6 +76,8 @@ type Interface interface {
 
 	WithScheme(scheme *runtime.Scheme) (Interface, error)
 	resources.ClusterSource
+
+	EnforceExplicitClusterIdentity(logger logger.LogContext) error
 }
 
 type Extension interface {
@@ -93,6 +95,7 @@ type _Cluster struct {
 	rctx       resources.ResourceContext
 	resources  resources.Resources
 	attributes map[interface{}]interface{}
+	iderr      error
 }
 
 var _ Interface = &_Cluster{}
@@ -182,6 +185,14 @@ func (this *_Cluster) WithScheme(scheme *runtime.Scheme) (Interface, error) {
 	return CreateClusterForScheme(this.ctx, this.logctx, this.definition, this.id, this.kubeConfig, scheme)
 }
 
+func (this *_Cluster) EnforceExplicitClusterIdentity(logger logger.LogContext) error {
+	if this.id == "" {
+		logger.Errorf("cluster identity required for %q, but neither set nor retrievable: %s", this.name, this.iderr)
+		return this.iderr
+	}
+	return nil
+}
+
 func CreateCluster(ctx context.Context, logger logger.LogContext, def Definition, id string, kubeconfig string) (Interface, error) {
 	if kubeconfig == "IN-CLUSTER" {
 		kubeconfig = ""
@@ -232,18 +243,18 @@ func CreateClusterForScheme(ctx context.Context, logger logger.LogContext, def D
 		cm := &corev1.ConfigMap{}
 		_, err := cluster.Resources().GetObjectInto(resources.NewObjectName("kube-system", "cluster-identity"), cm)
 		if err != nil {
-			if !errors.IsNotFound(err) {
-				logger.Errorf("cannot read cluster-identity config map: %s", err)
-				return nil, err
+			if errors.IsNotFound(err) {
+				cluster.iderr = fmt.Errorf("no cluster identity configmap provided by cluster %q", cluster.name)
+			} else {
+				cluster.iderr = fmt.Errorf("cannot get cluster-identity config map: %s", err)
 			}
-			logger.Warnf("no cluster identity configmap provided by cluster %q", cluster.name)
 		} else {
 			id, ok := cm.Data["cluster-identity"]
 			if ok {
 				logger.Infof("using cluster identity provided by cluster %q: %s", cluster.name, id)
 				cluster.id = id
 			} else {
-				logger.Warnf("no cluster identity provided by configmap in cluster %q", cluster.name)
+				cluster.iderr = fmt.Errorf("no cluster identity provided by configmap in cluster %q", cluster.name)
 			}
 		}
 	} else {

@@ -34,7 +34,7 @@ type Definitions interface {
 	Groups() groups.Definitions
 	GetRequiredControllers(name string) (utils.StringSet, error)
 	GetMappingsFor(name string) (mappings.Definition, error)
-	DetermineRequestedClusters(clusters cluster.Definitions, sets ...utils.StringSet) (utils.StringSet, error)
+	DetermineRequestedClusters(clusters cluster.Definitions, sets ...utils.StringSet) (_clusters utils.StringSet, _withids utils.StringSet, _err error)
 	Registrations(names ...string) (Registrations, error)
 	ExtendConfig(cfg *areacfg.Config)
 }
@@ -83,7 +83,7 @@ func (this *_Definitions) GetMappingsFor(name string) (mappings.Definition, erro
 	return this.mappings.GetEffective(name, this.groups)
 }
 
-func (this *_Definitions) DetermineRequestedClusters(cdefs cluster.Definitions, controllersets ...utils.StringSet) (utils.StringSet, error) {
+func (this *_Definitions) DetermineRequestedClusters(cdefs cluster.Definitions, controllersets ...utils.StringSet) (_clusters utils.StringSet, _withids utils.StringSet, _err error) {
 	var controller_names utils.StringSet
 	switch len(controllersets) {
 	case 0:
@@ -97,30 +97,38 @@ func (this *_Definitions) DetermineRequestedClusters(cdefs cluster.Definitions, 
 	defer this.lock.RUnlock()
 
 	clusters := utils.StringSet{}
+	withids := utils.StringSet{}
 	logger.Infof("determining required clusters:")
 	logger.Infof("  found mappings: %s", this.mappings)
 	for n := range controller_names {
 		def := this.definitions[n]
 		if def == nil {
-			return nil, fmt.Errorf("controller %q not definied", n)
+			return nil, nil, fmt.Errorf("controller %q not definied", n)
 		}
 		names := cluster.Canonical(def.RequiredClusters())
+		reftargets := cluster.Canonical(def.ReferenceTargetClusters())
 		cmp, err := this.GetMappingsFor(def.Name())
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		logger.Infof("  for controller %s:", n)
 		logger.Infof("     found mappings %s", cmp)
 		logger.Infof("     logical clusters %s", utils.Strings(names...))
+		logger.Infof("     reference target clusters %s", utils.Strings(reftargets...))
 
 		set, found, err := mappings.DetermineClusters(cdefs, cmp, names...)
 		if err != nil {
-			return nil, fmt.Errorf("controller %q %s", def.Name(), err)
+			return nil, nil, fmt.Errorf("controller %q %s", def.Name(), err)
 		}
 		clusters.AddSet(set)
 		logger.Infof("  mapped to %s", utils.Strings(found...))
+		set, _, err = mappings.DetermineClusters(cdefs, cmp, reftargets...)
+		if err != nil {
+			return nil, nil, fmt.Errorf("controller %q %s", def.Name(), err)
+		}
+		withids.AddSet(set)
 	}
-	return clusters, nil
+	return clusters, withids, nil
 }
 
 func (this *_Definitions) Registrations(names ...string) (Registrations, error) {

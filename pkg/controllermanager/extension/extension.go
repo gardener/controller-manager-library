@@ -59,7 +59,7 @@ type Definition interface {
 type Extension interface {
 	Name() string
 	//Definition() Definition
-	RequiredClusters() (utils.StringSet, error)
+	RequiredClusters() (clusters utils.StringSet, withids utils.StringSet, err error)
 	Setup(ctx context.Context) error
 	Start(ctx context.Context) error
 }

@@ -162,6 +162,7 @@ type _Definition struct {
 	after                []string
 	before               []string
 	required_clusters    []string
+	identity_clusters    []string
 	required_controllers []string
 	require_lease        bool
 	pools                map[string]PoolDefinition
@@ -180,9 +181,10 @@ func (this *_Definition) String() string {
 	s := fmt.Sprintf("controller %q:\n", this.name)
 	s += fmt.Sprintf("  main rsc:    %s\n", this.main.String())
 	s += fmt.Sprintf("  clusters:    %s\n", utils.Strings(this.RequiredClusters()...))
+	s += fmt.Sprintf("  ref targets: %s\n", utils.Strings(this.ReferenceTargetClusters()...))
 	s += fmt.Sprintf("  required:    %s\n", utils.Strings(this.RequiredControllers()...))
 	s += fmt.Sprintf("  after:       %s\n", utils.Strings(this.After()...))
-	s += fmt.Sprintf("  before:       %s\n", utils.Strings(this.Before()...))
+	s += fmt.Sprintf("  before:      %s\n", utils.Strings(this.Before()...))
 	s += fmt.Sprintf("  reconcilers: %s\n", toString(this.reconcilers))
 	s += fmt.Sprintf("  watches:     %s\n", toString(this.watches))
 	s += fmt.Sprintf("  commands:    %s\n", toString(this.commands))
@@ -228,6 +230,22 @@ func (this *_Definition) RequiredClusters() []string {
 	}
 	return []string{cluster.DEFAULT}
 }
+func (this *_Definition) ReferenceTargetClusters() []string {
+	var result []string
+
+	for _, r := range this.required_clusters {
+		if r == CLUSTER_MAIN {
+			if len(this.required_clusters) > 0 {
+				r = this.required_clusters[0]
+			} else {
+				r = cluster.DEFAULT
+			}
+		}
+		result = append(result, r)
+	}
+	return result
+}
+
 func (this *_Definition) RequiredControllers() []string {
 	return this.required_controllers
 }
@@ -408,7 +426,7 @@ func (this Configuration) DefaultCluster() Configuration {
 	return this.Cluster(cluster.DEFAULT)
 }
 
-func (this Configuration) Cluster(name string) Configuration {
+func (this Configuration) Cluster(name string, userefs ...bool) Configuration {
 	this.pushState()
 	if name == "" {
 		name = CLUSTER_MAIN
@@ -428,6 +446,31 @@ func (this Configuration) Cluster(name string) Configuration {
 		}
 		this.settings.required_clusters = append([]string{}, this.settings.required_clusters...)
 		this.settings.required_clusters = append(this.settings.required_clusters, name)
+	}
+	if len(userefs) > 0 && userefs[0] {
+		return this.ReferenceTargetClusters(name)
+	}
+	return this
+}
+
+func (this Configuration) ReferenceTargetClusters(names ...string) Configuration {
+	this.pushState()
+
+	this.settings.identity_clusters = append([]string{}, this.settings.identity_clusters...)
+	for _, name := range names {
+		if name != CLUSTER_MAIN {
+			found := false
+			for _, c := range this.settings.required_clusters {
+				if c == name {
+					found = true
+					break
+				}
+			}
+			if !found {
+				panic(fmt.Errorf("unknown cluster %q", name))
+			}
+		}
+		this.settings.identity_clusters = append(this.settings.identity_clusters, name)
 	}
 	return this
 }

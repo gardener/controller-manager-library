@@ -128,6 +128,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	cm.context = ctx
 
 	set := utils.StringSet{}
+	reftgtset := utils.StringSet{}
 
 	cm.extensions = extension.Extensions{}
 	for _, n := range order {
@@ -141,11 +142,12 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 			continue
 		}
 		cm.extensions[d.Name()] = e
-		s, err := e.RequiredClusters()
+		s, reftgt, err := e.RequiredClusters()
 		if err != nil {
 			return nil, err
 		}
 		set.AddSet(s)
+		reftgtset.AddSet(reftgt)
 	}
 
 	if len(cm.extensions) == 0 {
@@ -155,6 +157,16 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	clusters, err := def.ClusterDefinitions().CreateClusters(ctx, lgr, cfg, cluster.NewSchemeCache(), set)
 	if err != nil {
 		return nil, err
+	}
+
+	cm.Infof("enforcing explicit cluster ids for %s", reftgtset)
+	for reftgt := range reftgtset {
+		c := clusters.GetCluster(reftgt)
+		if c != nil {
+			if err = c.EnforceExplicitClusterIdentity(cm); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	cm.clusters = clusters

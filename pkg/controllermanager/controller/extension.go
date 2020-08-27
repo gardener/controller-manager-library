@@ -207,7 +207,7 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 	}, nil
 }
 
-func (this *Extension) RequiredClusters() (utils.StringSet, error) {
+func (this *Extension) RequiredClusters() (utils.StringSet, utils.StringSet, error) {
 	return this.definitions.DetermineRequestedClusters(this.ClusterDefinitions(), this.registrations.Names())
 }
 
