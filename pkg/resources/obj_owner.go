@@ -7,6 +7,7 @@
 package resources
 
 import (
+	"fmt"
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,6 +34,66 @@ func GetAnnotatedOwners(data ObjectData) []string {
 	return r
 }
 
+func MigrateOwnerClusterIds(obj Object, migration ClusterIdMigration) error {
+	_, err := obj.Modify(func(od ObjectData) (bool, error) {
+		mod := false
+		s, err := obj.GetResource().Wrap(od)
+		if err != nil {
+			return false, err
+		}
+		for o := range s.GetOwners() {
+			if new := migration.RequireMigration(o.Cluster()); new != "" {
+				mod = MigrateOwnerClusterId(od, obj.GetCluster().GetId(), o, new) || mod
+			}
+		}
+		return mod, nil
+	})
+	if err != nil {
+		return fmt.Errorf("owner cluster id migration failed for %s: %s", obj.ClusterKey(), err)
+	}
+	return nil
+}
+
+// MigrateOwnerClusterId switched the cluster id for a referenced object.
+// the new cluster id MUST be the actual cluster id of the SAME cluster
+// formally denoted by the current id of the the ClusterObjectKey.
+// Meaning: namespace local references will be kept, there is no switch
+// to a cross namesapce of cross cluster reference.
+func MigrateOwnerClusterId(data ObjectData, clusterid string, owner ClusterObjectKey, newid string) bool {
+	if owner.Namespace() == data.GetNamespace() && newid == clusterid {
+		return false
+	} else {
+		// maintain foreign references via annotations
+
+		// in case of a migration for a local ref this id (ref) is wrongly calculated including
+		// the old cluster id (instead on none), but this does not matter because
+		// this one is not a valid ref for the actual object and the new one will
+		// correctly be calculated without cluster id
+		// so that the modification coding below will produce no diff
+		ref := owner.AsRefFor(clusterid)
+		newref := owner.ChangeCluster(newid).AsRefFor(clusterid)
+		if ref == newref {
+			return false
+		}
+		refs := GetAnnotatedOwners(data)
+		new := []string{}
+		found := false
+
+		for _, r := range refs {
+			if ref != r {
+				new = append(new, r)
+			}
+			if newref == r {
+				found = true
+			}
+		}
+		if !found {
+			new = append(new, newref)
+		}
+		return SetAnnotation(data, owner_annotation, strings.Join(new, ","))
+	}
+}
+
 func (this *AbstractObject) AddOwner(obj Object) bool {
 	return AddOwner(this, this.self.GetCluster().GetId(), obj)
 }
@@ -47,7 +108,7 @@ func AddOwner(data ObjectData, clusterid string, obj Object) bool {
 		ref := owner.AsRefFor(clusterid)
 		refs := GetAnnotatedOwners(data)
 		for _, r := range refs {
-			if ref == strings.TrimSpace(r) {
+			if ref == r {
 				return false
 			}
 		}

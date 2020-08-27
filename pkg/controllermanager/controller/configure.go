@@ -227,7 +227,7 @@ func (this *_Definition) RequiredClusters() []string {
 func (this *_Definition) ReferenceTargetClusters() []string {
 	var result []string
 
-	for _, r := range this.required_clusters {
+	for _, r := range this.identity_clusters {
 		if r == CLUSTER_MAIN {
 			if len(this.required_clusters) > 0 {
 				r = this.required_clusters[0]

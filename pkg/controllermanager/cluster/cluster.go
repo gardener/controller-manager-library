@@ -52,9 +52,11 @@ func Canonical(names []string) []string {
 type Interface interface {
 	GetName() string
 	GetId() string
+	GetMigrationIds() utils.StringSet
 	GetServerVersion() *semver.Version
 	GetAttr(key interface{}) interface{}
 	SetAttr(key, value interface{})
+	AddMigrationIds(id ...string)
 	GetObject(interface{}) (resources.Object, error)
 	GetObjectInto(resources.ObjectName, resources.ObjectData) (resources.Object, error)
 	GetCachedObject(interface{}) (resources.Object, error)
@@ -78,6 +80,7 @@ type Extension interface {
 type _Cluster struct {
 	name       string
 	id         string
+	migids     utils.StringSet
 	definition Definition
 	kubeConfig *restclient.Config
 	ctx        context.Context
@@ -107,6 +110,14 @@ func (this *_Cluster) GetId() string {
 		return this.id
 	}
 	return this.name + "/" + CLUSTERID_GROUP
+}
+
+func (this *_Cluster) GetMigrationIds() utils.StringSet {
+	return this.migids
+}
+
+func (this *_Cluster) AddMigrationIds(ids ...string) {
+	this.migids.Add(ids...)
 }
 
 func (this *_Cluster) SetId(id string) {
@@ -209,7 +220,7 @@ func CreateCluster(ctx context.Context, logger logger.LogContext, def Definition
 }
 
 func CreateClusterForScheme(ctx context.Context, logger logger.LogContext, def Definition, id string, kubeconfig *restclient.Config, scheme *runtime.Scheme) (Interface, error) {
-	cluster := &_Cluster{name: def.Name(), attributes: map[interface{}]interface{}{}}
+	cluster := &_Cluster{name: def.Name(), attributes: map[interface{}]interface{}{}, migids: utils.StringSet{}}
 
 	if def.Scheme() == nil {
 		scheme = resources.DefaultScheme()

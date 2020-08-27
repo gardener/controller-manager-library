@@ -389,6 +389,9 @@ func ProcessResource(logger logger.LogContext, action string, resc resources.Int
 			handled, err := process(logger, l)
 			if err != nil {
 				logger.Infof("  errorneous %s %s: %s", resc.Name(), l.ObjectName(), err)
+				if !handled {
+					return err
+				}
 			} else {
 				if handled {
 					logger.Infof("  found %s %s", resc.Name(), l.ObjectName())

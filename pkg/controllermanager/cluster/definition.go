@@ -101,6 +101,9 @@ func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, 
 		cluster.SetAttr(SUBOPTION_DISABLE_DEPLOY_CRDS, true)
 	}
 
+	if !cfg.MigrationIds.IsEmpty() {
+		cluster.AddMigrationIds(cfg.MigrationIds.AsArray()...)
+	}
 	err = callExtensions(func(e Extension) error { return e.Extend(cluster, cfg) })
 	if err != nil {
 		return nil, err
