@@ -37,6 +37,7 @@ var secretGK = resources.NewGroupKind("core", "Secret")
 func init() {
 	controller.Configure("cm").
 		Reconciler(Create).RequireLease().
+		ReferenceTargetClusters(controller.CLUSTER_MAIN).
 		DefaultWorkerPool(10, 0*time.Second).
 		Commands("poll").
 		StringOption("test", "Controller argument").

@@ -163,6 +163,7 @@ type Definition interface {
 	Pools() map[string]PoolDefinition
 	ResourceFilters() []ResourceFilter
 	RequiredClusters() []string
+	ReferenceTargetClusters() []string
 	RequiredControllers() []string
 	CustomResourceDefinitions() map[string][]*apiextensions.CustomResourceDefinitionVersions
 	RequireLease() bool
