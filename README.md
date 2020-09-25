@@ -1,5 +1,7 @@
 # Controller Manager Library
 
+[![reuse compliant](https://reuse.software/badge/reuse-compliant.svg)](https://reuse.software/)
+
 This basic library is intended to easily implement kubernetes controllers
 and webhooks.
 
