@@ -18,6 +18,7 @@
 .vscode
 .idea
 .DS_Store
+.godev
 
 # Virtual go & fuse
 .virtualgo
