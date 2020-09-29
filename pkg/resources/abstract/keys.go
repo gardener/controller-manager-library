@@ -93,6 +93,11 @@ func NewClusterKey(cluster string, groupKind schema.GroupKind, namespace, name s
 	return ClusterObjectKey{cluster, objectKey{ObjectKey{groupKind, NewObjectName(namespace, name)}}}
 }
 
+func (this ClusterObjectKey) ChangeCluster(id string) ClusterObjectKey {
+	this.cluster = id
+	return this
+}
+
 func (this ClusterObjectKey) String() string {
 	return this.asString()
 }

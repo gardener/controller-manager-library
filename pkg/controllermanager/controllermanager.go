@@ -41,6 +41,8 @@ type ControllerManager struct {
 	context  context.Context
 	config   *areacfg.Config
 	clusters cluster.Clusters
+
+	migrations resources.ClusterIdMigration
 }
 
 var _ extension.ControllerManager = &ControllerManager{}
@@ -160,6 +162,11 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	}
 
 	cm.clusters = clusters
+	list := []resources.Cluster{}
+	for c := range clusters.Names() {
+		list = append(list, clusters.GetCluster(c))
+	}
+	cm.migrations = resources.ClusterIdMigrationFor(list...)
 
 	for _, n := range cm.order {
 		e := cm.extensions[n]
@@ -206,6 +213,10 @@ func (this *ControllerManager) GetCluster(name string) cluster.Interface {
 
 func (this *ControllerManager) GetClusters() cluster.Clusters {
 	return this.clusters
+}
+
+func (this *ControllerManager) GetClusterIdMigration() resources.ClusterIdMigration {
+	return this.migrations
 }
 
 func (this *ControllerManager) GetDefaultScheme() *runtime.Scheme {

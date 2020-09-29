@@ -7,6 +7,8 @@
 package resources
 
 import (
+	"fmt"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -22,11 +24,16 @@ type entry struct {
 }
 
 type SlaveCache struct {
-	cache SubObjectCache
+	migration ClusterIdMigration
+	cache     SubObjectCache
 }
 
-func NewSlaveCache() *SlaveCache {
-	return &SlaveCache{*NewSubObjectCache(func(o Object) ClusterObjectKeySet { return o.GetOwners() })}
+func NewSlaveCache(migration ...ClusterIdMigration) *SlaveCache {
+	var mig ClusterIdMigration
+	if len(migration) > 0 {
+		mig = migration[0]
+	}
+	return &SlaveCache{mig, *NewSubObjectCache(func(o Object) ClusterObjectKeySet { return o.GetOwners() })}
 }
 
 func (this *SlaveCache) AddOwnerFilter(filters ...KeyFilter) *SlaveCache {
@@ -48,6 +55,14 @@ func (this *SlaveCache) SlaveCount() int {
 }
 
 func (this *SlaveCache) Setup(slaves []Object) {
+	if this.migration != nil {
+		for _, s := range slaves {
+			err := MigrateOwnerClusterIds(s, this.migration)
+			if err != nil {
+				panic(fmt.Errorf("owner cluster id migration failed for %s: %s", s.ClusterKey(), err))
+			}
+		}
+	}
 	this.cache.Setup(slaves)
 }
 

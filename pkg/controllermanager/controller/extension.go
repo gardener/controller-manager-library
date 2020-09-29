@@ -210,6 +210,12 @@ func (this *Extension) Setup(ctx context.Context) error {
 func (this *Extension) Start(ctx context.Context) error {
 	var err error
 
+	if this.ControllerManager().GetClusterIdMigration() != nil {
+		mig := this.ControllerManager().GetClusterIdMigration().String()
+		if mig != "" {
+			this.Infof("found migrations: %s", this.ControllerManager().GetClusterIdMigration())
+		}
+	}
 	for _, def := range this.registrations {
 		lines := strings.Split(def.String(), "\n")
 		this.Infof("creating %s", lines[0])

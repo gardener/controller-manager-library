@@ -17,6 +17,7 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 type KeyFilter = abstract.KeyFilter
@@ -51,10 +52,20 @@ type Cluster interface {
 
 	GetName() string
 	GetId() string
+	GetMigrationIds() utils.StringSet
 	Config() restclient.Config
 
 	GetAttr(key interface{}) interface{}
 	SetAttr(key, value interface{})
+}
+
+type ClusterIdMigrationProvider interface {
+	GetClusterIdMigration() ClusterIdMigration
+}
+
+type ClusterIdMigration interface {
+	RequireMigration(id string) string
+	String() string
 }
 
 /////////////////////////////////////////////////////////////////////////////////

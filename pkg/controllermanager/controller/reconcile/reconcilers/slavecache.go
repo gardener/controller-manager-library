@@ -103,6 +103,7 @@ type SlaveAccess struct {
 	slave_resources  *_resources
 	master_resources *_resources
 	slavefilters     []resources.ObjectFilter
+	migration        resources.ClusterIdMigration
 	spec             SlaveAccessSpec
 }
 
@@ -111,18 +112,33 @@ type SlaveAccessSpec struct {
 	Slaves          Resources
 	Masters         Resources
 	RequeueDeleting bool
+	Migration       resources.ClusterIdMigrationProvider
 }
 
 func NewSlaveAccess(c controller.Interface, name string, slave_func Resources, master_func Resources) *SlaveAccess {
-	return NewSlaveAccessBySpec(c, SlaveAccessSpec{Name: name, Slaves: slave_func, Masters: master_func})
+	return NewSlaveAccessBySpec(c, SlaveAccessSpec{
+		Name:      name,
+		Slaves:    slave_func,
+		Masters:   master_func,
+		Migration: c.GetEnvironment().ControllerManager(),
+	})
 }
 
 func NewSlaveAccessBySpec(c controller.Interface, spec SlaveAccessSpec) *SlaveAccess {
+	var migration resources.ClusterIdMigration
+
+	if spec.Migration == nil {
+		spec.Migration = c.GetEnvironment().ControllerManager()
+	}
+	if spec.Migration != nil {
+		migration = spec.Migration.GetClusterIdMigration()
+	}
 	return &SlaveAccess{
 		Interface:        c,
 		name:             spec.Name,
 		slave_resources:  newResources(c, spec.Slaves),
 		master_resources: newResources(c, spec.Masters),
+		migration:        migration,
 		spec:             spec,
 	}
 }
@@ -153,7 +169,7 @@ func (this *SlaveAccess) AddSlaveFilter(filter ...resources.ObjectFilter) {
 }
 
 func (this *SlaveAccess) setupSlaveCache() interface{} {
-	cache := resources.NewSlaveCache()
+	cache := resources.NewSlaveCache(this.migration)
 	cache.AddSlaveFilter(this.slavefilters...)
 	this.Infof("setup %s owner cache", this.name)
 	for _, r := range this.slave_resources.resources {

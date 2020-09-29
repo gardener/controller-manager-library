@@ -48,7 +48,7 @@ commented=(
 )
 
 abbrev=(
-   "Id should be .*ID"
+   "Id.* should be .*ID"
 )
 
 join_by()

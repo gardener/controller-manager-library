@@ -18,6 +18,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -166,6 +167,8 @@ type ControllerManager interface {
 	ClusterDefinitions() cluster.Definitions
 
 	GetExtension(name string) Extension
+
+	GetClusterIdMigration() resources.ClusterIdMigration
 }
 
 type Environment interface {
