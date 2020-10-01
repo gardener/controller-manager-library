@@ -199,7 +199,7 @@ func (this *Extension) GetConfig() *areacfg.Config {
 	return this.config
 }
 
-func (this *Extension) RequiredClusters() (utils.StringSet, utils.StringSet, error) {
+func (this *Extension) RequiredClusters() (utils.StringSet, error) {
 	result := utils.StringSet{}
 
 	for _, r := range this.registrations {
@@ -209,7 +209,11 @@ func (this *Extension) RequiredClusters() (utils.StringSet, utils.StringSet, err
 		}
 	}
 	result.Add(this.config.Cluster)
-	return result, nil, nil
+	return result, nil
+}
+
+func (this *Extension) RequiredClusterIds(clusters cluster.Clusters) utils.StringSet {
+	return nil
 }
 
 func (this *Extension) Setup(ctx context.Context) error {
