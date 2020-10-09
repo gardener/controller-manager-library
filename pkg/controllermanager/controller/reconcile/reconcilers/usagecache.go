@@ -40,6 +40,7 @@ type UsedExtractorFactory func(controller.Interface) resources.UsedExtractor
 
 type UsageAccessSpec struct {
 	Name                string
+	Namespace           string
 	MasterResources     Resources
 	Extractor           resources.UsedExtractor
 	ExtractorFactory    UsedExtractorFactory
@@ -78,7 +79,12 @@ func (this *UsageAccess) setupUsageCache() interface{} {
 
 	this.Infof("setup %s usage cache", this.name)
 	for _, r := range this.master_resources.resources {
-		list, _ := r.ListCached(labels.Everything())
+		var list []resources.Object
+		if this.spec.Namespace != "" {
+			list, _ = r.Namespace(this.spec.Namespace).ListCached(labels.Everything())
+		} else {
+			list, _ = r.ListCached(labels.Everything())
+		}
 		cache.Setup(list)
 	}
 	this.Infof("found %d %s(s) for %d objects", cache.UsedCount(), this.name, cache.Size())
