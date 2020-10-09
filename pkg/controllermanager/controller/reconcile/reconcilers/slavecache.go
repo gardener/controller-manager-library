@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
@@ -149,10 +148,10 @@ func NewSlaveAccessBySpec(c controller.Interface, spec SlaveAccessSpec) *SlaveAc
 }
 
 type accesskey struct {
-	name    string
-	namespace    string
-	masters string
-	slaves  string
+	name      string
+	namespace string
+	masters   string
+	slaves    string
 }
 
 func (this accesskey) String() string {
@@ -179,12 +178,7 @@ func (this *SlaveAccess) setupSlaveCache() interface{} {
 	cache.AddSlaveFilter(this.slavefilters...)
 	this.Infof("setup %s owner cache", this.name)
 	for _, r := range this.slave_resources.resources {
-		var list []resources.Object
-		if this.spec.Namespace != "" {
-			list, _ = r.Namespace(this.spec.Namespace).ListCached(labels.Everything())
-		} else {
-			list, _ = r.ListCached(labels.Everything())
-		}
+		list, _ := listCachedWithNamespace(r, this.spec.Namespace)
 		cache.Setup(list)
 	}
 	this.Infof("found %d %s(s) for %d owners", cache.SlaveCount(), this.name, cache.Size())
