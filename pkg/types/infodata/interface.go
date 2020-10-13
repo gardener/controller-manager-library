@@ -81,11 +81,12 @@ func (this *InfoDataList) Set(name string, data InfoData) error {
 	return nil
 }
 
-// Delete deletes an InfoData ovject with the given label from the list
+// Delete deletes an InfoData object with the given label from the list
 func (this *InfoDataList) Delete(name string) {
 	for i, e := range *this {
 		if e.Name == name {
 			*this = append((*this)[:i], (*this)[i+1:]...)
+			break
 		}
 	}
 }
