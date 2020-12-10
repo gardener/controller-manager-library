@@ -113,7 +113,6 @@ func (this clusterMapping) Map(name string) string {
 
 type Extension struct {
 	extension.Environment
-	sharedAttributes
 
 	config        *areacfg.Config
 	definitions   Definitions
@@ -198,10 +197,7 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		return nil, err
 	}
 	this := &Extension{
-		Environment: ext,
-		sharedAttributes: sharedAttributes{
-			LogContext: ext,
-		},
+		Environment:   ext,
 		config:        cfg,
 		definitions:   defs,
 		registrations: registrations,

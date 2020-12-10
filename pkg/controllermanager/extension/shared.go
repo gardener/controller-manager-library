@@ -2,9 +2,10 @@
  * SPDX-FileCopyrightText: 2019 SAP SE or an SAP affiliate company and Gardener contributors
  *
  * SPDX-License-Identifier: Apache-2.0
+ *
  */
 
-package controller
+package extension
 
 import (
 	"sync"
@@ -12,18 +13,17 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/logger"
 )
 
-type SharedAttributes interface {
-	GetSharedValue(key interface{}) interface{}
-	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
+func NewSharedAttributes(logger logger.LogContext) *SharedAttributesImpl {
+	return &SharedAttributesImpl{LogContext: logger}
 }
 
-type sharedAttributes struct {
+type SharedAttributesImpl struct {
 	logger.LogContext
 	lock   sync.RWMutex
 	shared map[interface{}]interface{}
 }
 
-func (c *sharedAttributes) GetSharedValue(key interface{}) interface{} {
+func (c *SharedAttributesImpl) GetSharedValue(key interface{}) interface{} {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 	if c.shared == nil {
@@ -32,7 +32,7 @@ func (c *sharedAttributes) GetSharedValue(key interface{}) interface{} {
 	return c.shared[key]
 }
 
-func (c *sharedAttributes) GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{} {
+func (c *SharedAttributesImpl) GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{} {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	if c.shared == nil {
