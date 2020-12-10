@@ -43,19 +43,22 @@ func (this *CertConfig) AddOptionsToSet(set config.OptionSet) {
 	set.AddStringOption(&this.KeyFile, this.prefix+"keyfile", "", "", fmt.Sprintf("%s server certificate key file", this.name))
 	set.AddStringOption(&this.CACertFile, this.prefix+"cacertfile", "", "", fmt.Sprintf("%s server ca certificate file", this.name))
 	set.AddStringOption(&this.CAKeyFile, this.prefix+"cakeyfile", "", "", fmt.Sprintf("%s server ca certificate key file", this.name))
+	set.AddStringOption(&this.CommonName, this.prefix+"commonname", "", this.CommonName, fmt.Sprintf("%s server common name", this.name))
+	set.AddStringOption(&this.Organization, this.prefix+"organization", "", this.Organization, fmt.Sprintf("%s server organization", this.name))
 }
 
 func OptionSourceCreator(name, prefix string, common, org string) extension.OptionSourceCreator {
 	return func() config.OptionSource {
-		cfg := NewCertConfig(name, prefix)
-		cfg.CommonName = common
-		cfg.Organization = org
-		return cfg
+		return NewCertConfig2(name, prefix, common, org)
 	}
 }
 
 func NewCertConfig(name, prefix string) *CertConfig {
 	return &CertConfig{name: name, prefix: prefix}
+}
+
+func NewCertConfig2(name, prefix string, common, org string) *CertConfig {
+	return &CertConfig{name: name, prefix: prefix, CommonName: common, Organization: org}
 }
 
 func (this *CertConfig) Used() bool {
