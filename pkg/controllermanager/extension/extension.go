@@ -25,6 +25,11 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
+type SharedAttributes interface {
+	GetSharedValue(key interface{}) interface{}
+	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
+}
+
 type ExtensionDefinitions map[string]Definition
 type ExtensionTypes map[string]ExtensionType
 type Extensions map[string]Extension
@@ -154,6 +159,7 @@ func RegisterExtension(e ExtensionType) {
 type MaintainerInfo = areacfg.MaintainerInfo
 
 type ControllerManager interface {
+	SharedAttributes
 	GetName() string
 	GetMaintainer() MaintainerInfo
 	GetNamespace() string
@@ -174,6 +180,8 @@ type ControllerManager interface {
 
 type Environment interface {
 	logger.LogContext
+	SharedAttributes
+
 	ControllerManager() ControllerManager
 	Name() string
 	Namespace() string
@@ -185,7 +193,7 @@ type Environment interface {
 }
 
 type environment struct {
-	logger.LogContext
+	SharedAttributesImpl
 	name    string
 	context context.Context
 	manager ControllerManager
@@ -197,10 +205,10 @@ func NewDefaultEnvironment(ctx context.Context, name string, manager ControllerM
 	}
 	logctx := manager.NewContext("extension", name)
 	return &environment{
-		LogContext: logctx,
-		name:       name,
-		context:    logger.Set(ctx, logctx),
-		manager:    manager,
+		SharedAttributesImpl: *NewSharedAttributes(logctx),
+		name:                 name,
+		context:              logger.Set(ctx, logctx),
+		manager:              manager,
 	}
 }
 

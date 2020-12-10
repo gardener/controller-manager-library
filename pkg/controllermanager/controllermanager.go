@@ -30,7 +30,7 @@ import (
 )
 
 type ControllerManager struct {
-	logger.LogContext
+	extension.SharedAttributesImpl
 	lock       sync.Mutex
 	extensions extension.Extensions
 	order      []string
@@ -110,11 +110,11 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	}
 
 	cm := &ControllerManager{
-		LogContext: lgr,
-		namespace:  namespace,
-		definition: def,
-		order:      order,
-		config:     cfg,
+		SharedAttributesImpl: *extension.NewSharedAttributes(lgr),
+		namespace:            namespace,
+		definition:           def,
+		order:                order,
+		config:               cfg,
 	}
 	ctx = ctx_controllermanager.WithValue(ctx, cm)
 	cm.context = ctx

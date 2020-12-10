@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/certs"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
@@ -89,7 +88,6 @@ func (this *ExtensionDefinition) CreateExtension(cm extension.ControllerManager)
 
 type Extension struct {
 	extension.Environment
-	controllermanager.SharedAttributes
 
 	config         *areacfg.Config
 	definitions    Definitions
@@ -123,12 +121,11 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 	}
 
 	this := &Extension{
-		Environment:      ext,
-		SharedAttributes: controllermanager.NewSharedAttributes(),
-		config:           cfg,
-		definitions:      defs,
-		registrations:    registrations,
-		servers:          map[string]*httpserver{},
+		Environment:   ext,
+		config:        cfg,
+		definitions:   defs,
+		registrations: registrations,
+		servers:       map[string]*httpserver{},
 	}
 	this.clusters, err = this.definitions.DetermineRequestedClusters(cfg, this.ClusterDefinitions(), this.registrations)
 	if err != nil {

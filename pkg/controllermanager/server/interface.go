@@ -9,7 +9,6 @@ package server
 import (
 	"net/http"
 
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/server/config"
@@ -32,13 +31,12 @@ type HandlerType func(Interface) (handler.Interface, error)
 
 type Environment interface {
 	extension.Environment
-	controllermanager.SharedAttributes
 	GetConfig() *areacfg.Config
 }
 
 type Interface interface {
 	extension.ElementBase
-	controllermanager.SharedAttributes
+	extension.SharedAttributes
 
 	GetEnvironment() Environment
 	GetDefinition() Definition

@@ -13,7 +13,6 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/certs"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/handler"
@@ -25,7 +24,7 @@ import (
 
 type httpserver struct {
 	extension.ElementBase
-	controllermanager.SharedAttributes
+	extension.SharedAttributes
 
 	definition  Definition
 	env         Environment
@@ -41,14 +40,14 @@ func NewServer(env Environment, def Definition, cmp mappings.Definition) (*https
 	options := env.GetConfig().GetSource(def.Name()).(*ServerConfig)
 
 	this := &httpserver{
-		definition:       def,
-		SharedAttributes: controllermanager.NewSharedAttributes(),
-		config:           options,
-		env:              env,
-		handlers:         map[string]handler.Interface{},
+		definition: def,
+		config:     options,
+		env:        env,
+		handlers:   map[string]handler.Interface{},
 	}
 
 	this.ElementBase = extension.NewElementBase(env.GetContext(), ctx_server, this, def.Name(), options)
+	this.SharedAttributes = extension.NewSharedAttributes(this.ElementBase)
 	this.server = server.NewHTTPServer(this.GetContext(), this, def.Name())
 
 	required := def.Cluster()

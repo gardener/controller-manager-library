@@ -29,7 +29,6 @@ type ReconcilerType func(Interface) (reconcile.Interface, error)
 
 type Environment interface {
 	extension.Environment
-	SharedAttributes
 
 	GetConfig() *areacfg.Config
 	Enqueue(obj resources.Object)
@@ -46,7 +45,7 @@ type Pool interface {
 
 type Interface interface {
 	extension.ElementBase
-	SharedAttributes
+	extension.SharedAttributes
 
 	IsReady() bool
 	Owning() ResourceKey
