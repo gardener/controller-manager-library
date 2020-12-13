@@ -60,7 +60,7 @@ type ExtensionDefinition struct {
 
 func NewExtensionDefinition(defs Definitions) *ExtensionDefinition {
 	return &ExtensionDefinition{
-		ExtensionDefinitionBase: extension.NewExtensionDefinitionBase(TYPE),
+		ExtensionDefinitionBase: extension.NewExtensionDefinitionBase(TYPE, []string{"modules"}),
 		definitions:             defs,
 	}
 }

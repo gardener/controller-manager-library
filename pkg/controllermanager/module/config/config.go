@@ -11,10 +11,10 @@ import (
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 )
 
-const OPTION_SOURCE = "servers"
+const OPTION_SOURCE = "modules"
 
 type Config struct {
-	Servers string
+	Modules string
 
 	config.OptionSet
 }
@@ -25,7 +25,7 @@ func NewConfig() *Config {
 	cfg := &Config{
 		OptionSet: config.NewSharedOptionSet(OPTION_SOURCE, OPTION_SOURCE[:len(OPTION_SOURCE)-1], nil),
 	}
-	cfg.AddStringOption(&cfg.Servers, "servers", "", "all", "comma separated list of servers to start (<name>,<group>,all)")
+	cfg.AddStringOption(&cfg.Modules, "modules", "", "all", "comma separated list of servers to start (<name>,<group>,all)")
 	return cfg
 }
 

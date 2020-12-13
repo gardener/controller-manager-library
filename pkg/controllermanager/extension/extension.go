@@ -268,10 +268,11 @@ type elementBase struct {
 	name     string
 	typeName string
 	context  context.Context
+	prefix   string
 	options  config.OptionGroup
 }
 
-func NewElementBase(ctx context.Context, valueType ctxutil.ValueKey, element interface{}, name string, set config.OptionGroup) ElementBase {
+func NewElementBase(ctx context.Context, valueType ctxutil.ValueKey, element interface{}, name string, prefix string, set config.OptionGroup) ElementBase {
 	ctx = valueType.WithValue(ctx, name)
 	ctx, logctx := logger.WithLogger(ctx, valueType.Name(), name)
 	return &elementBase{
@@ -279,6 +280,7 @@ func NewElementBase(ctx context.Context, valueType ctxutil.ValueKey, element int
 		context:    ctx,
 		name:       name,
 		typeName:   valueType.Name(),
+		prefix:     prefix,
 		options:    set,
 	}
 }
@@ -304,7 +306,7 @@ func (this *elementBase) GetOption(name string) (*config.ArbitraryOption, error)
 }
 
 func (this *elementBase) GetOptionSource(name string) (config.OptionSource, error) {
-	src := this.options.GetSource(name)
+	src := this.options.GetSource(this.prefix + name)
 	if src == nil {
 		return nil, fmt.Errorf("unknown option source %q for %s %q", name, this.GetType(), this.GetName())
 	}

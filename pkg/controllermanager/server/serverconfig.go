@@ -48,22 +48,22 @@ func (this *ServerConfig) Evaluate() error {
 
 func (this *ServerConfig) Reconfigure(def Definition) (Definition, error) {
 	kind := def.Kind()
-	cl := def.Cluster()
+	clusters := def.RequiredClusters()
 	mod := false
 
 	if this.UseTLS && def.Kind() != HTTPS {
 		mod = true
 		kind = HTTPS
 	}
-	if kind == HTTPS && cl == "" {
+	if kind == HTTPS && len(clusters) == 0 {
 		mod = true
-		cl = cluster.DEFAULT
+		clusters = []string{cluster.DEFAULT}
 	}
 	if mod {
 		def = &_Definition{
 			name:               def.Name(),
 			kind:               kind,
-			cluster:            cl,
+			required_clusters:  clusters,
 			serverport:         def.ServerPort(),
 			handlers:           def.Handlers(),
 			configs:            def.ConfigOptions(),
