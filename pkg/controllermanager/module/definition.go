@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package server
+package module
 
 import (
 	"fmt"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/server/config"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/groups"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/mappings"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/module/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/module/groups"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/module/mappings"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -23,7 +23,7 @@ type Definitions interface {
 	Names() utils.StringSet
 	Groups() groups.Definitions
 	GetMappingsFor(name string) (mappings.Definition, error)
-	DetermineRequestedClusters(cfg *areacfg.Config, clusters cluster.Definitions, regs Registrations) (utils.StringSet, error)
+	DetermineRequestedClusters(cfg *areacfg.Config, clusters cluster.Definitions, names utils.StringSet) (utils.StringSet, error)
 	Registrations(names ...string) (Registrations, error)
 	ExtendConfig(cfg *areacfg.Config)
 }
@@ -48,27 +48,18 @@ func (this *_Definitions) GetMappingsFor(name string) (mappings.Definition, erro
 	return this.mappings.GetEffective(name, this.groups)
 }
 
-func (this *_Definitions) DetermineRequestedClusters(cfg *areacfg.Config, cdefs cluster.Definitions, regs Registrations) (_clusters utils.StringSet, _err error) {
-	server_names := regs.Names()
+func (this *_Definitions) DetermineRequestedClusters(cfg *areacfg.Config, cdefs cluster.Definitions, mod_names utils.StringSet) (_clusters utils.StringSet, _err error) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
 	clusters := utils.StringSet{}
 	logger.Infof("determining required clusters:")
 	logger.Infof("  found mappings: %s", this.mappings)
-	for n := range server_names {
+	for n := range mod_names {
 		def := this.definitions[n]
 		if def == nil {
 			return nil, fmt.Errorf("server %q not definied", n)
 		}
-
-		scfg := cfg.GetSource(n).(*ServerConfig)
-		var err error
-		def, err = scfg.Reconfigure(def)
-		if err != nil {
-			return nil, fmt.Errorf("configuration error for server %s: %s", def.Name(), err)
-		}
-		regs[n] = def
 
 		names := cluster.Canonical(def.RequiredClusters())
 		if len(names) > 0 {

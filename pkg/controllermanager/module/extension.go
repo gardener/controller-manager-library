@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package server
+package module
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
-	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/server/config"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/module/config"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -53,13 +53,13 @@ type ExtensionDefinition struct {
 
 func NewExtensionDefinition(defs Definitions) *ExtensionDefinition {
 	return &ExtensionDefinition{
-		ExtensionDefinitionBase: extension.NewExtensionDefinitionBase(TYPE, []string{"modules"}),
+		ExtensionDefinitionBase: extension.NewExtensionDefinitionBase(TYPE),
 		definitions:             defs,
 	}
 }
 
 func (this *ExtensionDefinition) Description() string {
-	return "server extension"
+	return "module extension"
 }
 
 func (this *ExtensionDefinition) Size() int {
@@ -94,24 +94,24 @@ type Extension struct {
 	registrations  Registrations
 	defaultCluster cluster.Interface
 	certificate    certs.CertificateSource
-	servers        map[string]*httpserver
+	modules        map[string]*module
 	clusters       utils.StringSet
 }
 
 func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension, error) {
-	ctx := ctxutil.WaitGroupContext(cm.GetContext(), "server extension")
+	ctx := ctxutil.WaitGroupContext(cm.GetContext(), "module extension")
 	ext := extension.NewDefaultEnvironment(ctx, TYPE, cm)
 	cfg := areacfg.GetConfig(cm.GetConfig())
 
 	groups := defs.Groups()
 	ext.Infof("configured groups: %s", groups.AllGroups())
 
-	active, err := groups.Members(ext, strings.Split(cfg.Servers, ","))
+	active, err := groups.Members(ext, strings.Split(cfg.Modules, ","))
 	if err != nil {
 		return nil, err
 	}
 	if len(active) == 0 {
-		ext.Infof("no servers activated")
+		ext.Infof("no modules activated")
 		return nil, nil
 	}
 
@@ -125,9 +125,9 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		config:        cfg,
 		definitions:   defs,
 		registrations: registrations,
-		servers:       map[string]*httpserver{},
+		modules:       map[string]*module{},
 	}
-	this.clusters, err = this.definitions.DetermineRequestedClusters(cfg, this.ClusterDefinitions(), this.registrations)
+	this.clusters, err = this.definitions.DetermineRequestedClusters(cfg, this.ClusterDefinitions(), this.registrations.Names())
 	if err != nil {
 		return nil, err
 	}
@@ -166,39 +166,33 @@ func (this *Extension) Start(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		srv, err := NewServer(this, def, cmp)
+		mod, err := NewModule(this, def, cmp)
 		if err != nil {
 			return err
 		}
 
-		this.servers[def.Name()] = srv
+		this.modules[def.Name()] = mod
 	}
 
-	for _, srv := range this.servers {
-		err := srv.handleSetup()
-		if err != nil {
-			return err
-		}
-	}
-
-	for _, srv := range this.servers {
-		err := srv.Start()
+	for _, mod := range this.modules {
+		err := mod.handleSetup()
 		if err != nil {
 			return err
 		}
 	}
 
-	for _, srv := range this.servers {
-		err := srv.handleStart()
+	for _, mod := range this.modules {
+		err := mod.handleStart()
 		if err != nil {
 			return err
 		}
 	}
+
 	ctxutil.WaitGroupRun(ctx, func() {
 		<-this.GetContext().Done()
-		this.Info("waiting for servers to shutdown")
+		this.Info("waiting for modules to shutdown")
 		ctxutil.WaitGroupWait(this.GetContext(), 120*time.Second)
-		this.Info("all servers down now")
+		this.Info("all modules down now")
 	})
 
 	return nil
