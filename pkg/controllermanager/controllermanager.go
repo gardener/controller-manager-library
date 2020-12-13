@@ -129,7 +129,7 @@ func NewControllerManager(ctx context.Context, def Definition) (*ControllerManag
 		if err != nil {
 			return nil, err
 		}
-		if e == nil {
+		if utils.IsNil(e) {
 			logger.Infof("skipping unused extension %q", d.Name())
 			continue
 		}
@@ -177,9 +177,11 @@ func NewControllerManager(ctx context.Context, def Definition) (*ControllerManag
 
 	for _, n := range cm.order {
 		e := cm.extensions[n]
-		err = e.Setup(cm.context)
-		if err != nil {
-			return nil, err
+		if e != nil {
+			err = e.Setup(cm.context)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -237,9 +239,12 @@ func (this *ControllerManager) Run() error {
 	server.ServeFromMainConfig(this.context, "httpserver")
 
 	for _, n := range this.order {
-		err = this.extensions[n].Start(this.context)
-		if err != nil {
-			return err
+		e := this.extensions[n]
+		if e != nil {
+			err = e.Start(this.context)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

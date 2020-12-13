@@ -18,6 +18,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/handler"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/mappings"
 	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/server"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -28,6 +29,7 @@ type httpserver struct {
 
 	definition  Definition
 	env         Environment
+	clusters    cluster.Clusters
 	cluster     cluster.Interface
 	server      *server.HTTPServer
 	handlers    map[string]handler.Interface
@@ -46,19 +48,19 @@ func NewServer(env Environment, def Definition, cmp mappings.Definition) (*https
 		handlers:   map[string]handler.Interface{},
 	}
 
-	this.ElementBase = extension.NewElementBase(env.GetContext(), ctx_server, this, def.Name(), options)
+	this.ElementBase = extension.NewElementBase(env.GetContext(), ctx_server, this, def.Name(), SERVER_SET_PREFIX, options)
 	this.SharedAttributes = extension.NewSharedAttributes(this.ElementBase)
 	this.server = server.NewHTTPServer(this.GetContext(), this, def.Name())
 
-	required := def.Cluster()
-	if required != "" {
-		clusters, err := mappings.MapClusters(env.GetClusters(), cmp, required)
+	required := cluster.Canonical(def.RequiredClusters())
+	if len(required) != 0 {
+		clusters, err := mappings.MapClusters(env.GetClusters(), cmp, required...)
 		if err != nil {
 			return nil, err
 		}
 		this.Infof("  using clusters %+v: %s (selected from %s)", required, clusters, env.GetClusters())
-		this.Infof("  using cluster %s", required)
-		this.cluster = clusters.GetCluster(required)
+		this.clusters = clusters
+		this.cluster = clusters.GetCluster(required[0])
 		if options.Secret != "" {
 			this.Infof(" using secret %s", options.Secret)
 		}
@@ -85,8 +87,35 @@ func (this *httpserver) GetKind() ServerKind {
 	return this.definition.Kind()
 }
 
-func (this *httpserver) GetCluster() cluster.Interface {
+func (this *httpserver) GetClusterById(id string) cluster.Interface {
+	return this.clusters.GetById(id)
+}
+
+func (this *httpserver) GetCluster(name string) cluster.Interface {
+	if name == CLUSTER_MAIN || name == "" {
+		return this.GetMainCluster()
+	}
+	return this.clusters.GetCluster(name)
+}
+
+func (this *httpserver) GetMainCluster() cluster.Interface {
 	return this.cluster
+}
+
+func (this *httpserver) GetClusterAliases(eff string) utils.StringSet {
+	return this.clusters.GetAliases(eff)
+}
+
+func (this *httpserver) GetEffectiveCluster(eff string) cluster.Interface {
+	return this.clusters.GetEffective(eff)
+}
+
+func (this *httpserver) GetObject(key resources.ClusterObjectKey) (resources.Object, error) {
+	return this.clusters.GetObject(key)
+}
+
+func (this *httpserver) GetCachedObject(key resources.ClusterObjectKey) (resources.Object, error) {
+	return this.clusters.GetCachedObject(key)
 }
 
 func (this *httpserver) Server() *server.HTTPServer {
@@ -145,7 +174,7 @@ func (this *httpserver) handleStart() error {
 			this.Infof("  start handler %s", n)
 			err := s.Start()
 			if err != nil {
-				return fmt.Errorf("setup of server %s handler %s failed: %s", this.definition.Name(), n, err)
+				return fmt.Errorf("start of server %s handler %s failed: %s", this.definition.Name(), n, err)
 			}
 		}
 	}

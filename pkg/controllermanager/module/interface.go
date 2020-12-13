@@ -4,17 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package server
+package module
 
 import (
-	"net/http"
-
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
-	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/server/config"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/handler"
+	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/module/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/module/handler"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-	"github.com/gardener/controller-manager-library/pkg/server"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
@@ -23,11 +20,6 @@ import (
 ////////////////////////////////////////////////////////////////////////////////
 
 const CLUSTER_MAIN = "<MAIN>"
-
-type ServerKind string
-
-const HTTP = ServerKind("http")
-const HTTPS = ServerKind("https")
 
 type HandlerType func(Interface) (handler.Interface, error)
 
@@ -48,13 +40,6 @@ type Interface interface {
 	GetClusterAliases(eff string) utils.StringSet
 	GetDefinition() Definition
 
-	GetKind() ServerKind
-
-	Server() *server.HTTPServer
-
-	Register(pattern string, handler http.HandlerFunc)
-	RegisterHandler(pattern string, handler http.Handler)
-
 	GetObject(key resources.ClusterObjectKey) (resources.Object, error)
 	GetCachedObject(key resources.ClusterObjectKey) (resources.Object, error)
 }
@@ -63,15 +48,12 @@ type OptionDefinition extension.OptionDefinition
 
 type Definition interface {
 	Name() string
-	Kind() ServerKind
 	Cluster() string
 	RequiredClusters() []string
 	ActivateExplicitly() bool
 
 	ConfigOptions() extension.OptionDefinitions
 	ConfigOptionSources() extension.OptionSourceDefinitions
-
-	ServerPort() int
 
 	Handlers() map[string]HandlerType
 

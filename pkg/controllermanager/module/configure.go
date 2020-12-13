@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package server
+package module
 
 import (
 	"fmt"
@@ -22,8 +22,6 @@ func OptionSourceCreator(proto config.OptionSource) extension.OptionSourceCreato
 
 type _Definition struct {
 	name               string
-	kind               ServerKind
-	serverport         int
 	required_clusters  []string
 	handlers           map[string]HandlerType
 	configs            extension.OptionDefinitions
@@ -34,12 +32,7 @@ type _Definition struct {
 var _ Definition = &_Definition{}
 
 func (this *_Definition) String() string {
-	kind := ""
-	if this.kind != "" {
-		kind = string(this.kind) + " "
-	}
-	s := fmt.Sprintf("%s server %s:\n", kind, this.Name())
-	s += fmt.Sprintf("  server-port: %d\n", this.ServerPort())
+	s := fmt.Sprintf("module set %s:\n", this.Name())
 	s += fmt.Sprintf("  clusters:    %s\n", utils.Strings(this.RequiredClusters()...))
 
 	return s
@@ -54,13 +47,6 @@ func (this *_Definition) Cluster() string {
 		return ""
 	}
 	return this.required_clusters[0]
-}
-func (this *_Definition) Kind() ServerKind {
-	return this.kind
-}
-
-func (this *_Definition) ServerPort() int {
-	return this.serverport
 }
 
 func (this *_Definition) RequiredClusters() []string {
@@ -122,7 +108,6 @@ func Configure(name string) Configuration {
 	return Configuration{
 		settings: _Definition{
 			name:          name,
-			serverport:    8081,
 			configs:       extension.OptionDefinitions{},
 			configsources: extension.OptionSourceDefinitions{},
 		},
@@ -152,15 +137,6 @@ func (this Configuration) Name(name string) Configuration {
 	return this
 }
 
-func (this Configuration) TLS(tls bool) Configuration {
-	if tls {
-		this.settings.kind = HTTPS
-	} else {
-		this.settings.kind = HTTP
-	}
-	return this
-}
-
 func (this Configuration) Cluster(name string) Configuration {
 	if name == "" {
 		name = cluster.DEFAULT
@@ -172,11 +148,6 @@ func (this Configuration) Cluster(name string) Configuration {
 	}
 	this.settings.required_clusters = append([]string{}, this.settings.required_clusters...)
 	this.settings.required_clusters = append(this.settings.required_clusters, name)
-	return this
-}
-
-func (this Configuration) Port(port int) Configuration {
-	this.settings.serverport = port
 	return this
 }
 
@@ -263,11 +234,11 @@ func (this Configuration) MustRegisterAt(registry RegistrationInterface) Configu
 	return this
 }
 
-func (this Configuration) Register() error {
-	return registry.Register(this)
+func (this Configuration) Register(groups ...string) error {
+	return registry.Register(this, groups...)
 }
 
-func (this Configuration) MustRegister() Configuration {
-	registry.MustRegister(this)
+func (this Configuration) MustRegister(groups ...string) Configuration {
+	registry.MustRegister(this, groups...)
 	return this
 }
