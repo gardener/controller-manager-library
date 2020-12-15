@@ -88,6 +88,12 @@ type ResourceEventHandlerFuncs struct {
 
 type Modifier func(ObjectData) (bool, error)
 
+type ObjectInfo interface {
+	Key() ObjectKey
+	Description() string
+	ClusterSource
+}
+
 type Object interface {
 	abstract.Object
 	// runtime.ObjectData

@@ -144,12 +144,12 @@ func (c *ClusterHandler) EnqueueKey(key resources.ClusterObjectKey) error {
 	return nil
 }
 
-func (c *ClusterHandler) enqueue(obj resources.Object, e func(p *pool, r resources.Object)) error {
+func (c *ClusterHandler) enqueue(obj resources.ObjectInfo, e func(p *pool, r resources.ObjectInfo)) error {
 	c.whenReady()
 	// c.Infof("enqueue %s", obj.Description())
 	i := c.resources[GetResourceKey(obj)]
 	if i.pools == nil || len(i.pools) == 0 {
-		return fmt.Errorf("no worker pool for type %s", obj.GroupKind())
+		return fmt.Errorf("no worker pool for type %s", obj.Key().GroupKind())
 	}
 	for _, p := range i.pools {
 		// p.Infof("enqueue %s", resources.ObjectrKey(obj))
@@ -158,23 +158,23 @@ func (c *ClusterHandler) enqueue(obj resources.Object, e func(p *pool, r resourc
 	return nil
 }
 
-func enq(p *pool, obj resources.Object) {
+func enq(p *pool, obj resources.ObjectInfo) {
 	p.EnqueueObject(obj)
 }
 
-func (c *ClusterHandler) EnqueueObject(obj resources.Object) error {
+func (c *ClusterHandler) EnqueueObject(obj resources.ObjectInfo) error {
 	return c.enqueue(obj, enq)
 }
 
-func enqRateLimited(p *pool, obj resources.Object) {
+func enqRateLimited(p *pool, obj resources.ObjectInfo) {
 	p.EnqueueObjectRateLimited(obj)
 }
 func (c *ClusterHandler) EnqueueObjectRateLimited(obj resources.Object) error {
 	return c.enqueue(obj, enqRateLimited)
 }
 
-func (c *ClusterHandler) EnqueueObjectAfter(obj resources.Object, duration time.Duration) error {
-	e := func(p *pool, obj resources.Object) {
+func (c *ClusterHandler) EnqueueObjectAfter(obj resources.ObjectInfo, duration time.Duration) error {
+	e := func(p *pool, obj resources.ObjectInfo) {
 		p.EnqueueObjectAfter(obj, duration)
 	}
 	return c.enqueue(obj, e)
@@ -187,7 +187,14 @@ func (c *ClusterHandler) GetObject(key resources.ClusterObjectKey) (resources.Ob
 	if o == nil || !ok {
 		return nil, nil
 	}
-	return o.(resources.Object), nil
+	if obj, ok := o.(resources.Object); ok {
+		return obj, nil
+	}
+	r, err := c.GetResource(key)
+	if err != nil {
+		return nil, err
+	}
+	return r.Get(key)
 }
 
 func (c *ClusterHandler) objectAdd(obj resources.Object) {

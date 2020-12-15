@@ -46,7 +46,11 @@ func (k resourceKey) String() string {
 func GetResourceKey(objspec interface{}) ResourceKey {
 	switch s := objspec.(type) {
 	case resources.Object:
-		return NewResourceKey(s.GroupKind().Group, s.GroupKind().Kind)
+		gk := s.GroupKind()
+		return NewResourceKey(gk.Group, gk.Kind)
+	case resources.ObjectInfo:
+		gk := s.Key().GroupKind()
+		return NewResourceKey(gk.Group, gk.Kind)
 	case resources.ObjectKey:
 		return NewResourceKey(s.Group(), s.Kind())
 	case schema.GroupKind:

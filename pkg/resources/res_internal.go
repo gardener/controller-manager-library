@@ -103,11 +103,12 @@ func (this *_i_resource) I_delete(data ObjectDataName) error {
 }
 
 func (this *_i_resource) I_getInformer(namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
-	if this.cache != nil {
-		return this.cache, nil
-	}
 	this.lock.Lock()
 	defer this.lock.Unlock()
+
+	if this.cache != nil && namespace == "" && optionsFunc == nil {
+		return this.cache, nil
+	}
 
 	if this.cache != nil {
 		return this.cache, nil

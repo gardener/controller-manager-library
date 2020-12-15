@@ -172,7 +172,8 @@ func (f *genericInformerFactory) newInformer(client restclient.Interface, res *I
 					r = r.Namespace(f.namespace)
 				}
 
-				return r.Watch(ctx)
+				w, err := r.Watch(ctx)
+				return w, err
 			},
 		},
 		reflect.New(elemType).Interface().(runtime.Object),
