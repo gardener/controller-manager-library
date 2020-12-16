@@ -54,7 +54,7 @@ func newResource(ctx ResourceContext, otype, ltype reflect.Type, gvk schema.Grou
 		info:   info,
 		client: client,
 	}
-	r.AbstractResource, _ = NewAbstractResource(ctx, &_i_resource{_resource: r}, otype, ltype, gvk)
+	r.AbstractResource, _ = NewAbstractResource(ctx, new_i_resource(r), otype, ltype, gvk)
 	return r, nil
 }
 

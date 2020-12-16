@@ -84,7 +84,7 @@ var _ = Describe("Informers", func() {
 	Describe("informer list and watch test", func() {
 		var err error
 		var rStructured, rUnstructured resources.Interface
-		var firstObjectInfo resources.ObjectInfo
+		var foundWatchForSecret2 bool
 
 		It("should handle list and watch for all supported object types", func() {
 			By("list structured objects", func() {
@@ -108,8 +108,8 @@ var _ = Describe("Informers", func() {
 			By("add secret and wait for watch", func() {
 				rStructured.AddInfoEventHandler(resources.ResourceInfoEventHandlerFuncs{
 					AddFunc: func(obj resources.ObjectInfo) {
-						if firstObjectInfo == nil {
-							firstObjectInfo = obj
+						if !foundWatchForSecret2 {
+							foundWatchForSecret2 = obj.Key().Name() == "informers-test-2"
 						}
 					},
 				})
@@ -118,14 +118,13 @@ var _ = Describe("Informers", func() {
 			By("watch with event handler", func() {
 				func() {
 					for i := 0; i < 50; i++ {
-						if firstObjectInfo != nil {
+						if foundWatchForSecret2 {
 							return
 						}
 						time.Sleep(50 * time.Millisecond)
 					}
 				}()
-				Expect(firstObjectInfo).NotTo(BeNil())
-				Expect(firstObjectInfo.Key().Name()).To(Equal(knownSecret2.GetName()))
+				Expect(foundWatchForSecret2).To(BeTrue())
 			})
 			By("watch structured objects", func() {
 				waitForSecret(rStructured, knownSecret2.GetName())

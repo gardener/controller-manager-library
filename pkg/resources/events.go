@@ -7,6 +7,7 @@
 package resources
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -71,13 +72,16 @@ func convertInfo(resource Interface, funcs *ResourceInfoEventHandlerFuncs) *cach
 			if funcs.AddFunc == nil {
 				return
 			}
-			funcs.AddFunc(wrapInfo(resource, obj))
+			o := wrapInfo(resource, obj)
+			if o != nil {
+				funcs.AddFunc(o)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 			if funcs.DeleteFunc == nil {
 				return
 			}
-			data, ok := obj.(*minimal.MinimalObject)
+			data, ok := toMinimalObject(resource, obj)
 			if !ok {
 				stale, ok := obj.(cache.DeletedFinalStateUnknown)
 				if !ok {
@@ -88,26 +92,48 @@ func convertInfo(resource Interface, funcs *ResourceInfoEventHandlerFuncs) *cach
 					logger.Errorf("informer %q reported no stale object to be deleted", resource.Name())
 					return
 				}
-				data, ok = stale.Obj.(*minimal.MinimalObject)
+				data, ok = toMinimalObject(resource, stale.Obj)
 				if !ok {
 					logger.Errorf("informer %q reported unknown stale object to be deleted (%T)", resource.Name(), stale.Obj)
 					return
 				}
 			}
-			funcs.DeleteFunc(wrapInfo(resource, data))
+			o := wrapInfo(resource, data)
+			if o != nil {
+				funcs.DeleteFunc(o)
+			}
 		},
 		UpdateFunc: func(old, new interface{}) {
 			if funcs.UpdateFunc == nil {
 				return
 			}
-			funcs.UpdateFunc(wrapInfo(resource, old), wrapInfo(resource, new))
+			o := wrapInfo(resource, old)
+			n := wrapInfo(resource, new)
+			if o != nil && n != nil {
+				funcs.UpdateFunc(o, n)
+			}
 		},
 	}
 }
 
+func toMinimalObject(resource Interface, obj interface{}) (*minimal.MinimalObject, bool) {
+	if m, ok := obj.(*minimal.MinimalObject); ok {
+		m.SetGroupVersionKind(resource.GroupVersionKind())
+		return m, ok
+	}
+	if meta, ok := obj.(metav1.Object); ok {
+		m := minimal.ConvertToMinimalObject("", "", meta)
+		m.SetGroupVersionKind(resource.GroupVersionKind())
+		return m, true
+	}
+	return nil, false
+}
+
 func wrapInfo(resource Interface, obj interface{}) ObjectInfo {
-	m := obj.(*minimal.MinimalObject)
-	m.SetGroupVersionKind(resource.GroupVersionKind())
+	m, ok := toMinimalObject(resource, obj)
+	if !ok {
+		return nil
+	}
 	return &minimalObjectInfo{
 		minimalObject: m,
 		cluster:       resource.GetCluster(),

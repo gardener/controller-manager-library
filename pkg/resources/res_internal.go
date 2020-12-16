@@ -50,10 +50,14 @@ type Internal interface {
 type _i_resource struct {
 	*_resource
 	lock  sync.Mutex
-	cache GenericInformer
+	cache map[bool]GenericInformer
 }
 
 var _ Internal = &_i_resource{}
+
+func new_i_resource(r *_resource) *_i_resource {
+	return &_i_resource{_resource: r, cache: map[bool]GenericInformer{}}
+}
 
 func (this *_i_resource) Resource() Interface {
 	return this._resource
@@ -103,14 +107,14 @@ func (this *_i_resource) I_delete(data ObjectDataName) error {
 }
 
 func (this *_i_resource) I_getInformer(minimal bool, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
-	if this.cache != nil {
-		return this.cache, nil
+	if cached, ok := this.cache[minimal]; ok {
+		return cached, nil
 	}
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	if this.cache != nil {
-		return this.cache, nil
+	if cached, ok := this.cache[minimal]; ok {
+		return cached, nil
 	}
 
 	var informers GenericFilteredInformerFactory
@@ -130,20 +134,20 @@ func (this *_i_resource) I_getInformer(minimal bool, namespace string, optionsFu
 	}
 
 	if namespace == "" && optionsFunc == nil {
-		this.cache = informer
+		this.cache[minimal] = informer
 	}
 	return informer, nil
 }
 
 func (this *_i_resource) I_lookupInformer(minimal bool, namespace string) (GenericInformer, error) {
-	if this.cache != nil {
-		return this.cache, nil
+	if cached, ok := this.cache[minimal]; ok {
+		return cached, nil
 	}
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	if this.cache != nil {
-		return this.cache, nil
+	if cached, ok := this.cache[minimal]; ok {
+		return cached, nil
 	}
 
 	informers := this.ResourceContext().SharedInformerFactory().Structured()
