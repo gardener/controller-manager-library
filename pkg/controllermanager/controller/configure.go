@@ -132,6 +132,7 @@ type watchdef struct {
 type rescdef struct {
 	rtype      ResourceKey
 	selectFunc WatchSelectionFunction
+	minimal    bool
 }
 
 func (this *rescdef) ResourceType() ResourceKey {
@@ -140,11 +141,18 @@ func (this *rescdef) ResourceType() ResourceKey {
 func (this *rescdef) WatchSelectionFunction() WatchSelectionFunction {
 	return this.selectFunc
 }
+func (this *rescdef) ShouldEnforceMinimal() bool {
+	return this.minimal
+}
 func (this *rescdef) String() string {
+	s := this.rtype.String()
 	if this.selectFunc != nil {
-		return this.rtype.String() + " with selector"
+		s += " with selector"
 	}
-	return this.rtype.String()
+	if this.minimal {
+		s += " (minimal)"
+	}
+	return s
 }
 
 func (this *watchdef) Reconciler() string {
@@ -573,6 +581,12 @@ func (this Configuration) Syncer(name string, resc ResourceKey) Configuration {
 func (this *Configuration) assureWatches() {
 	if this.settings.watches == nil {
 		this.settings.watches = map[string][]Watch{}
+	} else {
+		copy := map[string][]Watch{}
+		for k, v := range this.settings.watches {
+			copy[k] = v
+		}
+		this.settings.watches = copy
 	}
 }
 
@@ -639,7 +653,7 @@ func (this Configuration) ReconcilerWatches(reconciler string, keys ...ResourceK
 	this.assureWatches()
 	for _, key := range keys {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil, false}, reconciler, this.pool})
 	}
 	return this
 }
@@ -648,7 +662,7 @@ func (this Configuration) ReconcilerWatchesByGK(reconciler string, gks ...schema
 	for _, gk := range gks {
 		key := NewResourceKeyByGK(gk)
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil, false}, reconciler, this.pool})
 	}
 	return this
 }
@@ -657,7 +671,7 @@ func (this Configuration) ReconcilerSelectedWatches(reconciler string, sel Watch
 	this.assureWatches()
 	for _, key := range keys {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel, false}, reconciler, this.pool})
 	}
 	return this
 }
@@ -666,11 +680,25 @@ func (this Configuration) ReconcilerSelectedWatchesByGK(reconciler string, sel W
 	for _, gk := range gks {
 		key := NewResourceKeyByGK(gk)
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel, false}, reconciler, this.pool})
 	}
 	return this
 }
 
+func (this Configuration) MinimalWatchesForGK(gks ...schema.GroupKind) Configuration {
+	this.assureWatches()
+	for i, watch := range this.settings.watches[this.cluster] {
+		for _, gk := range gks {
+			if watch.(*watchdef).rtype.GroupKind() == gk {
+				new := *watch.(*watchdef)
+				new.minimal = true
+				this.settings.watches[this.cluster][i] = &new
+				continue
+			}
+		}
+	}
+	return this
+}
 func (this Configuration) ActivateExplicitly() Configuration {
 	this.settings.activateExplicitly = true
 	return this
@@ -679,6 +707,12 @@ func (this Configuration) ActivateExplicitly() Configuration {
 func (this *Configuration) assureCommands() {
 	if this.settings.commands == nil {
 		this.settings.commands = map[string][]Command{}
+	} else {
+		copy := map[string][]Command{}
+		for k, v := range this.settings.commands {
+			copy[k] = v
+		}
+		this.settings.commands = copy
 	}
 }
 

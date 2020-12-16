@@ -34,8 +34,8 @@ type Internal interface {
 	I_modifyByName(name ObjectDataName, status_only, create bool, modifier Modifier) (Object, bool, error)
 	I_modify(data ObjectData, status_only, read, create bool, modifier Modifier) (ObjectData, bool, error)
 
-	I_getInformer(namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error)
-	I_lookupInformer(namespace string) (GenericInformer, error)
+	I_getInformer(minimal bool, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error)
+	I_lookupInformer(minimal bool, namespace string) (GenericInformer, error)
 	I_list(namespace string, opts metav1.ListOptions) ([]Object, error)
 }
 
@@ -102,7 +102,7 @@ func (this *_i_resource) I_delete(data ObjectDataName) error {
 		Error()
 }
 
-func (this *_i_resource) I_getInformer(namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
+func (this *_i_resource) I_getInformer(minimal bool, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
 	if this.cache != nil {
 		return this.cache, nil
 	}
@@ -113,9 +113,13 @@ func (this *_i_resource) I_getInformer(namespace string, optionsFunc TweakListOp
 		return this.cache, nil
 	}
 
-	informers := this.ResourceContext().SharedInformerFactory().Structured()
-	if this.IsUnstructured() {
+	var informers GenericFilteredInformerFactory
+	if minimal {
+		informers = this.ResourceContext().SharedInformerFactory().MinimalObject()
+	} else if this.IsUnstructured() {
 		informers = this.ResourceContext().SharedInformerFactory().Unstructured()
+	} else {
+		informers = this.ResourceContext().SharedInformerFactory().Structured()
 	}
 	informer, err := informers.FilteredInformerFor(this.GroupVersionKind(), namespace, optionsFunc)
 	if err != nil {
@@ -131,7 +135,7 @@ func (this *_i_resource) I_getInformer(namespace string, optionsFunc TweakListOp
 	return informer, nil
 }
 
-func (this *_i_resource) I_lookupInformer(namespace string) (GenericInformer, error) {
+func (this *_i_resource) I_lookupInformer(minimal bool, namespace string) (GenericInformer, error) {
 	if this.cache != nil {
 		return this.cache, nil
 	}

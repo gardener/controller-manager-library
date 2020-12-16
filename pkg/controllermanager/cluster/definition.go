@@ -15,6 +15,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const CLUSTERID_GROUP = "gardener.cloud"
@@ -24,6 +25,7 @@ type Definitions interface {
 	CreateClusters(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, cache SchemeCache, names utils.StringSet) (Clusters, error)
 	ExtendConfig(cfg *areacfg.Config)
 	GetScheme() *runtime.Scheme
+	ClusterNames() []string
 }
 
 var _ Definitions = &_Definitions{}
@@ -37,6 +39,13 @@ type Definition interface {
 
 	Definition() Definition
 	Configure() Configuration
+
+	IsMinimalWatchEnforced(schema.GroupKind) bool
+	MinimalWatchedGK() []schema.GroupKind
+}
+
+type InternalDefinition interface {
+	SetMinimalWatch(schema.GroupKind)
 }
 
 type _Definition struct {
@@ -45,15 +54,21 @@ type _Definition struct {
 	configOptionName string
 	description      string
 	scheme           *runtime.Scheme
+	minimalWatches   map[schema.GroupKind]struct{}
 }
 
 func copy(d Definition) *_Definition {
+	minimalWatches := map[schema.GroupKind]struct{}{}
+	for _, k := range d.MinimalWatchedGK() {
+		minimalWatches[k] = struct{}{}
+	}
 	return &_Definition{
 		d.Name(),
 		d.Fallback(),
 		d.ConfigOptionName(),
 		d.Description(),
 		d.Scheme(),
+		minimalWatches,
 	}
 }
 
@@ -74,6 +89,23 @@ func (this *_Definition) Scheme() *runtime.Scheme {
 }
 func (this *_Definition) Definition() Definition {
 	return this
+}
+
+func (this *_Definition) IsMinimalWatchEnforced(gk schema.GroupKind) bool {
+	_, ok := this.minimalWatches[gk]
+	return ok
+}
+
+func (this *_Definition) MinimalWatchedGK() []schema.GroupKind {
+	var keys []schema.GroupKind
+	for k := range this.minimalWatches {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func (this *_Definition) SetMinimalWatch(gk schema.GroupKind) {
+	this.minimalWatches[gk] = struct{}{}
 }
 
 func (this *_Definition) Configure() Configuration {

@@ -11,9 +11,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/ghodss/yaml v1.0.0
 	github.com/gobwas/glob v0.2.3 // indirect
-	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/huandu/xstrings v1.2.0 // indirect
-	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
@@ -30,5 +28,7 @@ require (
 	k8s.io/client-go v0.18.6
 	k8s.io/code-generator v0.18.6
 	k8s.io/helm v2.16.0+incompatible
+	k8s.io/klog v1.0.0
+	sigs.k8s.io/controller-runtime v0.6.4
 	sigs.k8s.io/controller-tools v0.2.9
 )

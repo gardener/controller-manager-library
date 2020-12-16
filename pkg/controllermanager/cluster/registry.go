@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/utils"
@@ -113,6 +114,16 @@ func (this *_Registry) GetDefinitions() Definitions {
 	return &_Definitions{definitions: defs}
 }
 
+func (this *_Definitions) ClusterNames() []string {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	names := []string{}
+	for k := range this.definitions {
+		names = append(names, k)
+	}
+	return names
+}
+
 func (this *_Definitions) Get(name string) Definition {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
@@ -139,7 +150,16 @@ type Configuration struct {
 var _ Registerable = Configuration{}
 
 func Configure(name string, option string, short string) Configuration {
-	return Configuration{_Definition{name, "", option, short, nil}}
+	return Configuration{
+		_Definition{
+			name:             name,
+			fallback:         "",
+			configOptionName: option,
+			description:      short,
+			scheme:           nil,
+			minimalWatches:   map[schema.GroupKind]struct{}{},
+		},
+	}
 }
 
 func (this Configuration) Fallback(name string) Configuration {
@@ -171,6 +191,11 @@ func (this Configuration) RegisterAt(registry Registry) error {
 
 func (this Configuration) MustRegisterAt(registry Registry) Configuration {
 	registry.MustRegisterCluster(this)
+	return this
+}
+
+func (this Configuration) DisableCaching(gk schema.GroupKind) Configuration {
+	this.definition.minimalWatches[gk] = struct{}{}
 	return this
 }
 

@@ -161,7 +161,7 @@ func (this *_Cluster) GetCachedObject(spec interface{}) (resources.Object, error
 }
 
 func (this *_Cluster) GetResource(groupKind schema.GroupKind) (resources.Interface, error) {
-	return this.resources.Get(groupKind)
+	return this.resources.GetByGK(groupKind)
 }
 
 func (this *_Cluster) GetServerVersion() *semver.Version {

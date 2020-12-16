@@ -21,6 +21,13 @@ source "$SOURCE_PATH/build/setupenv.src"
 echo "Installing Ginkgo..."
 go install -mod=vendor ./vendor/github.com/onsi/ginkgo/ginkgo
 
+# Install kubebuilder (with etcd & kube-apiserver)
+if [[ "$(uname)" == "Linux" && ! -d "/usr/local/kubebuilder/" ]]; then
+  echo "Installing kubebuilder binaries"
+  curl -sL https://github.com/kubernetes-sigs/kubebuilder/releases/download/v2.3.1/kubebuilder_2.3.1_linux_amd64.tar.gz | tar xvz
+  mv kubebuilder_2.3.1_linux_amd64 /usr/local/kubebuilder
+fi
+
 ###############################################################################
 
 COVER_FLAG=""

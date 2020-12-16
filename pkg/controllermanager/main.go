@@ -31,8 +31,12 @@ const DeletionActivity = "DeletionActivity"
 var Version = "dev-version"
 
 func Start(use, short, long string) {
+	PrepareStart(use, long).Start(use, short)
+}
+
+func PrepareStart(use, long string) Configuration {
 	args := strings.Split(use, " ")
-	Configure(args[0], long, nil).ByDefault().Start(use, short)
+	return Configure(args[0], long, nil).ByDefault()
 }
 
 func (this Configuration) Start(use, short string) {
