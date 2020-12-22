@@ -198,3 +198,7 @@ func Register(reg Registerable, groups ...string) error {
 func MustRegister(reg Registerable, groups ...string) RegistrationInterface {
 	return registry.MustRegisterController(reg, groups...)
 }
+
+func ResetRegistryForTesting() {
+	registry.(*_Registry).definitions = map[string]Definition{}
+}

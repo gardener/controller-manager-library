@@ -36,7 +36,7 @@ type ControllerManager struct {
 	order      []string
 
 	namespace  string
-	definition *Definition
+	definition Definition
 
 	context  context.Context
 	config   *areacfg.Config
@@ -47,7 +47,7 @@ type ControllerManager struct {
 
 var _ extension.ControllerManager = &ControllerManager{}
 
-func NewControllerManager(ctx context.Context, def *Definition) (*ControllerManager, error) {
+func NewControllerManager(ctx context.Context, def Definition) (*ControllerManager, error) {
 	maincfg := configmain.Get(ctx)
 	cfg := areacfg.GetConfig(maincfg)
 	lgr := logger.New()
@@ -57,7 +57,8 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	ctx = logger.Set(ctxutil.WaitGroupContext(ctx, "controllermanager"), lgr)
 	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName()) // golint: ignore
 
-	for _, e := range def.extensions {
+	extensions := def.GetExtensions()
+	for _, e := range extensions {
 		err := e.Validate()
 		if err != nil {
 			return nil, err
@@ -84,7 +85,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 	}
 
 	found := false
-	for _, e := range def.extensions {
+	for _, e := range extensions {
 		if e.Size() > 0 {
 			found = true
 			break
@@ -94,19 +95,19 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 		return nil, fmt.Errorf("no controller manager extension registered")
 	}
 
-	for _, e := range def.extensions {
+	for _, e := range extensions {
 		if e.Size() > 0 {
 			logger.Infof("configured %s: %s", e.Name(), e.Names())
 		}
 	}
 
-	order, _, err := extension.Order(def.extensions)
+	order, _, err := extension.Order(extensions)
 	if err != nil {
 		return nil, fmt.Errorf("controller manager extension cycle: %s", err)
 	}
 	logger.Infof("found configured controller manager extensions:")
 	for _, n := range order {
-		logger.Infof(" - %s (%d elements): %s", n, def.extensions[n].Size(), def.extensions[n].Description())
+		logger.Infof(" - %s (%d elements): %s", n, extensions[n].Size(), extensions[n].Description())
 	}
 
 	cm := &ControllerManager{
@@ -123,7 +124,7 @@ func NewControllerManager(ctx context.Context, def *Definition) (*ControllerMana
 
 	cm.extensions = extension.Extensions{}
 	for _, n := range order {
-		d := def.extensions[n]
+		d := extensions[n]
 		e, err := d.CreateExtension(cm)
 		if err != nil {
 			return nil, err
@@ -226,7 +227,7 @@ func (this *ControllerManager) GetClusterIdMigration() resources.ClusterIdMigrat
 }
 
 func (this *ControllerManager) GetDefaultScheme() *runtime.Scheme {
-	return this.definition.cluster_defs.GetScheme()
+	return this.definition.ClusterDefinitions().GetScheme()
 }
 
 func (this *ControllerManager) Run() error {

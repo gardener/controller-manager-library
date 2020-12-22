@@ -419,7 +419,11 @@ func (this *controller) getClusterHandler(name string) (*ClusterHandler, error) 
 	}
 	h := this.handlers[cluster.GetId()]
 	if h == nil {
-		h = newClusterHandler(this, cluster)
+		var err error
+		h, err = newClusterHandler(this, cluster)
+		if err != nil {
+			return nil, err
+		}
 		this.handlers[cluster.GetId()] = h
 	}
 	return h, nil
@@ -547,7 +551,7 @@ func (this *controller) registerWatch(h *ClusterHandler, r WatchResource, p stri
 	if r.WatchSelectionFunction() != nil {
 		ns, optionsFunc = r.WatchSelectionFunction()(this)
 	}
-	return h.register(r.ResourceType(), ns, optionsFunc, this.getPool(p))
+	return h.register(r, ns, optionsFunc, this.getPool(p))
 }
 
 // Prepare finally prepares the controller to run

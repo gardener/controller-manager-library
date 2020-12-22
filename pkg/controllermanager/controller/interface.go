@@ -77,11 +77,12 @@ type Interface interface {
 	GetCachedObject(key resources.ClusterObjectKey) (resources.Object, error)
 }
 
-type WatchSelectionFunction func(c Interface) (string, resources.TweakListOptionsFunc)
+type WatchSelectionFunction func(c Interface) (namespace string, tweaker resources.TweakListOptionsFunc)
 
 type WatchResource interface {
 	ResourceType() ResourceKey
 	WatchSelectionFunction() WatchSelectionFunction
+	ShouldEnforceMinimal() bool
 }
 
 type Watch interface {
