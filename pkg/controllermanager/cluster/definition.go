@@ -9,9 +9,11 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,7 +28,10 @@ type Definitions interface {
 	ExtendConfig(cfg *areacfg.Config)
 	GetScheme() *runtime.Scheme
 	ClusterNames() []string
+	Reconfigure(modifiers ...ConfigurationModifier) Definitions
 }
+
+type ConfigurationModifier func(c Configuration) Configuration
 
 var _ Definitions = &_Definitions{}
 
@@ -41,11 +46,7 @@ type Definition interface {
 	Configure() Configuration
 
 	IsMinimalWatchEnforced(schema.GroupKind) bool
-	MinimalWatchedGK() []schema.GroupKind
-}
-
-type InternalDefinition interface {
-	SetMinimalWatch(schema.GroupKind)
+	MinimalWatches() []schema.GroupKind
 }
 
 type _Definition struct {
@@ -54,21 +55,17 @@ type _Definition struct {
 	configOptionName string
 	description      string
 	scheme           *runtime.Scheme
-	minimalWatches   map[schema.GroupKind]struct{}
+	minimalWatches   resources.GroupKindSet
 }
 
 func copy(d Definition) *_Definition {
-	minimalWatches := map[schema.GroupKind]struct{}{}
-	for _, k := range d.MinimalWatchedGK() {
-		minimalWatches[k] = struct{}{}
-	}
 	return &_Definition{
 		d.Name(),
 		d.Fallback(),
 		d.ConfigOptionName(),
 		d.Description(),
 		d.Scheme(),
-		minimalWatches,
+		resources.NewGroupKindSetByArray(d.MinimalWatches()),
 	}
 }
 
@@ -88,31 +85,38 @@ func (this *_Definition) Scheme() *runtime.Scheme {
 	return this.scheme
 }
 func (this *_Definition) Definition() Definition {
-	return this
+	copy := this.copy()
+	return &copy
 }
 
 func (this *_Definition) IsMinimalWatchEnforced(gk schema.GroupKind) bool {
-	_, ok := this.minimalWatches[gk]
-	return ok
+	return this.minimalWatches.Contains(gk)
 }
 
-func (this *_Definition) MinimalWatchedGK() []schema.GroupKind {
-	var keys []schema.GroupKind
-	for k := range this.minimalWatches {
-		keys = append(keys, k)
-	}
-	return keys
-}
-
-func (this *_Definition) SetMinimalWatch(gk schema.GroupKind) {
-	this.minimalWatches[gk] = struct{}{}
+func (this *_Definition) MinimalWatches() []schema.GroupKind {
+	return this.minimalWatches.AsArray()
 }
 
 func (this *_Definition) Configure() Configuration {
-	return Configuration{*this}
+	return Configuration{this.copy()}
+}
+
+func (this *_Definition) copy() _Definition {
+	copy := *this
+	copy.minimalWatches = resources.NewGroupKindSetByArray(this.MinimalWatches())
+	return copy
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+type _Definitions struct {
+	lock        sync.RWMutex
+	definitions Registrations
+	scheme      *runtime.Scheme
+}
+
+var _ Definition = &_Definition{}
+var _ Definitions = &_Definitions{}
 
 func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, cfg *Config, req Definition) (Interface, error) {
 
@@ -228,4 +232,44 @@ func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 		callExtensions(func(e Extension) error { e.ExtendConfig(req, clusterCfg); return nil })
 		cfg.AddSource(configTargetKey(req), clusterCfg)
 	}
+}
+
+func (this *_Definitions) ClusterNames() []string {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	names := []string{}
+	for k := range this.definitions {
+		names = append(names, k)
+	}
+	return names
+}
+
+func (this *_Definitions) Get(name string) Definition {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	if c, ok := this.definitions[name]; ok {
+		return c
+	}
+	return nil
+}
+
+func (this *_Definitions) GetScheme() *runtime.Scheme {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+	return this.scheme
+}
+
+func (this *_Definitions) Reconfigure(modifiers ...ConfigurationModifier) Definitions {
+	this.lock.RLock()
+	defer this.lock.RUnlock()
+
+	definitions := &_Definitions{definitions: Registrations{}, scheme: this.scheme}
+	for _, name := range this.ClusterNames() {
+		configuration := this.Get(name).Configure()
+		for _, modifier := range modifiers {
+			configuration = modifier(configuration)
+		}
+		definitions.definitions[name] = configuration.Definition()
+	}
+	return definitions
 }

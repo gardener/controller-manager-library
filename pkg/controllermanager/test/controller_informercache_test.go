@@ -207,8 +207,7 @@ var _ = Describe("Informers", func() {
 			Reconciler(createReconciler).
 			DefaultWorkerPool(1, 5*time.Second).
 			MainResourceByGK(gvk.GroupKind()).
-			With(reconcilers.SecretUsageReconciler(controller.CLUSTER_MAIN)).
-			MustRegister()
+			With(reconcilers.SecretUsageReconciler(controller.CLUSTER_MAIN))
 
 		ctx00 := ctxutil.CancelContext(ctxutil.WaitGroupContext(context.Background(), "main"))
 		ctx0 := ctxutil.TickContext(ctx00, controllermanager.DeletionActivity)
@@ -220,9 +219,10 @@ var _ = Describe("Informers", func() {
 		case GloballyMinimalWatch:
 			minimalWatches = []schema.GroupKind{gvk.GroupKind()}
 		case ControllerMinimalWatch:
-			ctrlconfig.MinimalWatchesForGK(gvk.GroupKind())
+			ctrlconfig = ctrlconfig.MinimalWatches(gvk.GroupKind())
 		}
 
+		ctrlconfig.MustRegister()
 		def := controllermanager.PrepareStart("informercache-test", "").GlobalMinimalWatch(minimalWatches...).Definition()
 		def.ExtendConfig(cfg)
 		df := cfg.GetSource("controllermanager").(*config2.Config)

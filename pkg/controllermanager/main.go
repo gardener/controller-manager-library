@@ -101,7 +101,7 @@ func (this Configuration) Start(use, short string) {
 	logger.Infof("%s exits.", use)
 }
 
-func NewCommand(ctx context.Context, use, short, long string, def *Definition) *cobra.Command {
+func NewCommand(ctx context.Context, use, short, long string, def Definition) *cobra.Command {
 	ctx, cfg := configmain.WithConfig(ctx, nil)
 	def.ExtendConfig(cfg)
 	fileName := ""
@@ -130,7 +130,7 @@ func NewCommand(ctx context.Context, use, short, long string, def *Definition) *
 	return cmd
 }
 
-func runCM(ctx context.Context, def *Definition) error {
+func runCM(ctx context.Context, def Definition) error {
 	return run.Run(ctx, func() error {
 		logger.Infof("starting controller manager")
 		controllerManager, err := NewControllerManager(ctx, def)

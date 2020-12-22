@@ -79,7 +79,7 @@ func NewClusterResourceKey(clusterid, group, kind string) ClusterResourceKey {
 	if group == "core" {
 		group = corev1.GroupName
 	}
-	return clusterResourceKey{resourceKey: resourceKey{key: schema.GroupKind{Group: group, Kind: kind}}, clusterid: clusterid}
+	return clusterResourceKey{resourceKey: resourceKey{schema.GroupKind{Group: group, Kind: kind}}, clusterid: clusterid}
 }
 
 func (k clusterResourceKey) ClusterId() string {
