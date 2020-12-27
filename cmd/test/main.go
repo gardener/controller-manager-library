@@ -19,6 +19,7 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/misc"
 	"github.com/gardener/controller-manager-library/cmd/test/plain"
 	"github.com/gardener/controller-manager-library/cmd/test/preferred"
+	"github.com/gardener/controller-manager-library/cmd/test/recover"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
 	"github.com/gardener/controller-manager-library/pkg/sync"
 	"github.com/gardener/controller-manager-library/pkg/utils"
@@ -76,6 +77,8 @@ func main() {
 			preferred.PreferredMain()
 		case "misc":
 			misc.MiscMain()
+		case "recover":
+			recover.RecoverMain()
 		}
 	}
 }
