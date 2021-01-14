@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 	"time"
 
 	"github.com/gardener/controller-manager-library/cmd/test/certs"
@@ -21,10 +22,9 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/preferred"
 	"github.com/gardener/controller-manager-library/cmd/test/recover"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"github.com/gardener/controller-manager-library/pkg/sync"
 	"github.com/gardener/controller-manager-library/pkg/utils"
-
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 
 	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/crds"
 	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.12"
@@ -32,26 +32,118 @@ import (
 
 var values = map[controller.ResourceKey]int{}
 
+type V struct {
+	V interface{}
+}
+
+func PV(v interface{}) {
+	pv("", "", reflect.ValueOf(v))
+}
+
+func pv(gap, prefix string, v reflect.Value) {
+	g := gap + "  "
+	k := fmt.Sprintf("%s%s%s (%s)", gap, prefix, v.Kind().String(), v.Type())
+	if utils.IsNil(v) {
+		fmt.Printf("%s <NIL>\n", k)
+		return
+	}
+	switch v.Kind() {
+	case reflect.Ptr, reflect.Interface:
+		fmt.Printf("%s elem:\n", k)
+		pv(g, "", v.Elem())
+	case reflect.Struct:
+		fmt.Printf("%s fields %d:\n", k, v.NumField())
+		for i := 0; i < v.NumField(); i++ {
+			f := v.Type().Field(i)
+			p := fmt.Sprintf("%s: ", f.Name)
+			pv(g, p, v.Field(i))
+		}
+	case reflect.Map:
+		fmt.Printf("%s len %d:\n", k, v.Len())
+		for it := v.MapRange(); it.Next(); {
+			p := fmt.Sprintf("%s: ", it.Value().String())
+			pv(g, p, it.Value())
+		}
+	case reflect.Array, reflect.Slice:
+		fmt.Printf("%s len %d:\n", k, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			p := fmt.Sprintf("%d: ", i)
+			pv(g, p, v.Index(i))
+		}
+	default:
+		fmt.Printf("%s (%s) %q\n", k, v.Type(), v.String())
+	}
+}
+
+func doStruct() {
+	a := []V{
+		V{"test"},
+	}
+	fmt.Printf("----------------------\n")
+	av := reflect.ValueOf(a)
+	PV(a)
+
+	v := av.Index(0)
+
+	fmt.Printf("%s: %s\n", v.Type(), v)
+	v.Set(reflect.ValueOf(V{"bla"}))
+	fmt.Printf("v: %s\n", a[0].V)
+}
+
+type I interface {
+	Error() string
+}
+
+type E string
+
+func (this E) Error() string {
+	return string(this)
+}
+
+func doTypedInterface() {
+	other := E("other")
+	a := []I{
+		fmt.Errorf("test"),
+		nil,
+	}
+	fmt.Printf("----------------------\n")
+	av := reflect.ValueOf(a)
+	av = reflect.Append(av, reflect.ValueOf(other))
+	av = reflect.Append(av, reflect.New(av.Type().Elem()).Elem())
+	PV(av.Interface())
+
+	v := av.Index(0)
+
+	fmt.Printf("%s: %s\n", v.Type(), v)
+	v.Set(reflect.ValueOf(fmt.Errorf("bla")))
+	fmt.Printf("v: %s\n", a[0])
+}
+
+func doInterface() {
+	a := []interface{}{
+		"test",
+		nil,
+	}
+	fmt.Printf("----------------------\n")
+	av := reflect.ValueOf(a)
+	av = reflect.Append(av, reflect.New(av.Type().Elem()).Elem())
+	PV(av.Interface())
+
+	v := av.Index(0)
+
+	fmt.Printf("%s: %s\n", v.Type(), v)
+	v.Set(reflect.ValueOf("bla"))
+	fmt.Printf("v: %s\n", a[0])
+}
+
 func main() {
 
-	x := map[string]map[string]string{}
-	x["a"] = map[string]string{}
-	x["a"]["b"] = "c"
-	x["a"]["c"] = "d"
-	if x["a"]["b"] != "c" {
-		panic("shit")
-	}
-	delete(x["a"], "b")
-	if _, ok := x["a"]["b"]; ok {
-		panic("shit")
-	}
+	PV(E("err"))
+	doStruct()
+	doInterface()
+	doTypedInterface()
+	os.Exit(0)
 
-	y := map[int]string{
-		1: "a",
-		2: "b",
-		3: "a",
-	}
-	fmt.Printf("values: %s\n", utils.StringValueSet(y))
 	//doit()
 	for i := 1; i < len(os.Args); i++ {
 		fmt.Printf("*** %s ***\n", os.Args[i])
@@ -159,35 +251,3 @@ func doit() {
 	cancel()
 	time.Sleep(15 * time.Second)
 }
-
-/*
-////////////////////////////////////////////////////////////////////////////////
-
-type R interface {
-	Name() string
-}
-
-type Getter interface {
-	Get(interface{}) R
-}
-
-
-type MyR interface {
-	R
-	Other()
-}
-
-type MyGetter interface {
-	Get(interface{}) MyR
-}
-
-func X(g Getter) {
-
-}
-
-func DO() {
-	var G MyGetter
-
-	X(G)
-}
-*/

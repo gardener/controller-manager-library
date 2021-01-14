@@ -17,7 +17,10 @@ func IsNil(o interface{}) bool {
 	if o == nil {
 		return true
 	}
-	v := reflect.ValueOf(o)
+	v, ok := o.(reflect.Value)
+	if !ok {
+		v = reflect.ValueOf(o)
+	}
 	switch v.Kind() {
 	case reflect.Chan, reflect.Func, reflect.Map, reflect.Slice, reflect.Interface, reflect.Ptr, reflect.UnsafePointer:
 		return v.IsNil()
