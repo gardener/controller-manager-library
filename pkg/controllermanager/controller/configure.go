@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"time"
 
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
@@ -45,6 +47,17 @@ func NamespaceByOptionSelection(opt string) WatchSelectionFunction {
 
 func LocalNamespaceSelection(c Interface) (string, resources.TweakListOptionsFunc) {
 	return c.GetEnvironment().Namespace(), nil
+}
+
+type ObjectSelectorFunction func(c Interface) resources.ObjectName
+
+func ObjectSelection(sel ObjectSelectorFunction) WatchSelectionFunction {
+	return func(c Interface) (string, resources.TweakListOptionsFunc) {
+		name := sel(c)
+		return name.Namespace(), func(options *v1.ListOptions) {
+			options.FieldSelector = fields.OneTermEqualSelector("metadata.name", name.Name()).String()
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
