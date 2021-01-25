@@ -7,11 +7,11 @@
 package resources
 
 import (
-	"context"
 	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -22,8 +22,8 @@ import (
 type internalInformerFactory interface {
 	informerFor(lwFactory listWatchFactory) (GenericInformer, error)
 
-	Start(stopCh <-chan struct{})
-	WaitForCacheSync(stopCh <-chan struct{})
+	Start()
+	WaitForCacheSync()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -58,25 +58,25 @@ func newGenericInformerFactory(rctx *resourceContext, defaultResync time.Duratio
 }
 
 // Start initializes all requested informers.
-func (f *genericInformerFactory) Start(stopCh <-chan struct{}) {
+func (f *genericInformerFactory) Start() {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
 	for informerType, informer := range f.informers {
 		if !f.startedInformers[informerType] {
-			go informer.Run(stopCh)
+			go informer.Run(informer.Context().Done())
 			f.startedInformers[informerType] = true
 		}
 	}
 }
 
 // WaitForCacheSync waits for all started informers' cache were synced.
-func (f *genericInformerFactory) WaitForCacheSync(stopCh <-chan struct{}) {
-	informers := func() map[schema.GroupVersionKind]cache.SharedIndexInformer {
+func (f *genericInformerFactory) WaitForCacheSync() {
+	informers := func() map[schema.GroupVersionKind]GenericInformer {
 		f.lock.Lock()
 		defer f.lock.Unlock()
 
-		informers := map[schema.GroupVersionKind]cache.SharedIndexInformer{}
+		informers := map[schema.GroupVersionKind]GenericInformer{}
 		for informerType, informer := range f.informers {
 			if f.startedInformers[informerType] {
 				informers[informerType] = informer
@@ -86,7 +86,7 @@ func (f *genericInformerFactory) WaitForCacheSync(stopCh <-chan struct{}) {
 	}()
 
 	for _, informer := range informers {
-		cache.WaitForCacheSync(stopCh, informer.HasSynced)
+		cache.WaitForCacheSync(informer.Context().Done(), informer.HasSynced)
 	}
 }
 
@@ -127,13 +127,14 @@ func (f *genericInformerFactory) getClient(gv schema.GroupVersion) (restclient.I
 func (f *genericInformerFactory) newInformer(lw listWatchFactory) (GenericInformer, error) {
 	logger.Infof("new generic informer for %s (%s) %s (%d seconds)", lw.ElemType(), lw.GroupVersionKind(), lw.ListType(), lw.Resync()/time.Second)
 
-	listWatch, err := lw.CreateListWatch(context.Background(), f.namespace, f.optionsFunc)
+	ctx := ctxutil.CancelContext(f.context)
+	listWatch, err := lw.CreateListWatch(ctx, f.namespace, f.optionsFunc)
 	if err != nil {
 		return nil, err
 	}
 	informer := cache.NewSharedIndexInformer(listWatch, lw.ExampleObject(), resyncPeriod(lw.Resync())(),
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	return &genericInformer{informer, lw.Info()}, nil
+	return &genericInformer{informer, lw.Info(), ctx}, nil
 }
 
 // resyncPeriod returns a function which generates a duration each time it is

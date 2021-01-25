@@ -14,11 +14,11 @@ import (
 )
 
 type StartInterface interface {
-	Start(<-chan struct{})
+	Start()
 }
 
 func Start(ctx context.Context, startInterface StartInterface, synched ...cache.InformerSynced) error {
-	startInterface.Start(ctx.Done())
+	startInterface.Start()
 	if ok := cache.WaitForCacheSync(ctx.Done(), synched...); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}

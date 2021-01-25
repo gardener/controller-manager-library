@@ -25,11 +25,13 @@ type GenericInformer interface {
 	cache.SharedIndexInformer
 	Informer() cache.SharedIndexInformer
 	Lister() Lister
+	Context() context.Context
 }
 
 type genericInformer struct {
 	cache.SharedIndexInformer
 	resource *Info
+	context  context.Context
 }
 
 func (f *genericInformer) Informer() cache.SharedIndexInformer {
@@ -38,6 +40,28 @@ func (f *genericInformer) Informer() cache.SharedIndexInformer {
 
 func (f *genericInformer) Lister() Lister {
 	return NewLister(f.Informer().GetIndexer(), f.resource)
+}
+
+func (f *genericInformer) Context() context.Context {
+	return f.context
+}
+
+func (f *genericInformer) Active() bool {
+	select {
+	case <-f.context.Done():
+		return false
+	default:
+		return f.SharedIndexInformer.HasSynced()
+	}
+}
+
+func (f *genericInformer) HasSynced() bool {
+	select {
+	case <-f.context.Done():
+		return true
+	default:
+		return f.SharedIndexInformer.HasSynced()
+	}
 }
 
 // SharedInformerFactory provides shared informers for resources in all known
@@ -59,14 +83,14 @@ type SharedInformerFactory interface {
 	MinimalObjectInformerFor(gvk schema.GroupVersionKind) (GenericInformer, error)
 	FilteredMinimalObjectInformerFor(gvk schema.GroupVersionKind, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error)
 
-	Start(stopCh <-chan struct{})
-	WaitForCacheSync(stopCh <-chan struct{})
+	Start()
+	WaitForCacheSync()
 }
 
 type GenericInformerFactory interface {
 	InformerFor(gvk schema.GroupVersionKind) (GenericInformer, error)
-	Start(stopCh <-chan struct{})
-	WaitForCacheSync(stopCh <-chan struct{})
+	Start()
+	WaitForCacheSync()
 }
 
 type GenericFilteredInformerFactory interface {
@@ -107,16 +131,16 @@ func (f *sharedInformerFactory) MinimalObject() GenericFilteredInformerFactory {
 }
 
 // Start initializes all requested informers.
-func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
-	f.structured.Start(stopCh)
-	f.unstructured.Start(stopCh)
-	f.minimalObject.Start(stopCh)
+func (f *sharedInformerFactory) Start() {
+	f.structured.Start()
+	f.unstructured.Start()
+	f.minimalObject.Start()
 }
 
-func (f *sharedInformerFactory) WaitForCacheSync(stopCh <-chan struct{}) {
-	f.structured.WaitForCacheSync(stopCh)
-	f.unstructured.WaitForCacheSync(stopCh)
-	f.minimalObject.WaitForCacheSync(stopCh)
+func (f *sharedInformerFactory) WaitForCacheSync() {
+	f.structured.WaitForCacheSync()
+	f.unstructured.WaitForCacheSync()
+	f.minimalObject.WaitForCacheSync()
 }
 
 func (f *sharedInformerFactory) UnstructuredInformerFor(gvk schema.GroupVersionKind) (GenericInformer, error) {
@@ -187,15 +211,15 @@ func newSharedFilteredInformerFactory(rctx *resourceContext, defaultResync time.
 }
 
 // Start initializes all requested informers.
-func (f *sharedFilteredInformerFactory) Start(stopCh <-chan struct{}) {
+func (f *sharedFilteredInformerFactory) Start() {
 	for _, i := range f.filters {
-		i.Start(stopCh)
+		i.Start()
 	}
 }
 
-func (f *sharedFilteredInformerFactory) WaitForCacheSync(stopCh <-chan struct{}) {
+func (f *sharedFilteredInformerFactory) WaitForCacheSync() {
 	for _, i := range f.filters {
-		i.WaitForCacheSync(stopCh)
+		i.WaitForCacheSync()
 	}
 }
 

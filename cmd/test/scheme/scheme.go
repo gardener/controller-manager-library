@@ -58,9 +58,9 @@ func SchemeMain() {
 	ctx := ctxutil.CancelContext(context.Background())
 
 	cluster.Configure("main", "", "").Definition()
-	c, err := cluster.CreateCluster(ctx, logger.New(), cluster.Configure("main", "", "").Definition(), "", os.Args[1])
+	c, err := cluster.CreateCluster(ctx, logger.New(), cluster.Configure("main", "", "").Definition(), "", "")
 	if err != nil {
-		fmt.Errorf("failed to create kube configmain %s: %s", os.Args[1], err)
+		fmt.Errorf("failed to create kube configmain %s: %s\n", os.Args[1], err)
 		os.Exit(2)
 	}
 
@@ -115,7 +115,6 @@ func SchemeMain() {
 		os.Exit(4)
 	}
 	informer, err = factory.InformerForObject(&corev1.ConfigMap{})
-	informer, err = factory.InformerForObject(&corev1.ConfigMap{})
 
 	fmt.Printf("# get generic uncached configamp\n")
 
@@ -131,8 +130,15 @@ func SchemeMain() {
 		UpdateFunc: update,
 		DeleteFunc: delete,
 	})
-	factory.Start(ctx.Done())
-	factory.WaitForCacheSync(ctx.Done())
+	factory.Start()
+	factory.WaitForCacheSync()
+
+	fmt.Printf("# watch\n")
+	time.Sleep(60 * time.Second)
+	fmt.Printf("# stop watch\n")
+	ctxutil.Cancel(informer.Context())
+	time.Sleep(60 * time.Second)
+	fmt.Printf("# continue\n")
 
 	fmt.Printf("# get cached from informer\n")
 	data, err := informer.Lister().Namespace("default").Get("test")
