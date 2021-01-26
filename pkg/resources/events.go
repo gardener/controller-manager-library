@@ -12,7 +12,36 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources/minimal"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
+
+func (r *_resource) mapHandler(hndlr ResourceEventHandler) cache.ResourceEventHandler {
+	var h cache.ResourceEventHandler
+	if utils.IsComparable(hndlr) {
+		if h = r.handlers[hndlr]; h != nil {
+			return h
+		}
+		h = convert(r, hndlr)
+		r.handlers[hndlr] = h
+	} else {
+		h = convert(r, hndlr)
+	}
+	return h
+}
+
+func (r *_resource) mapInfoHandler(hndlr ResourceInfoEventHandler) cache.ResourceEventHandler {
+	var h cache.ResourceEventHandler
+	if utils.IsComparable(hndlr) {
+		if h = r.handlers[hndlr]; h != nil {
+			return h
+		}
+		h = convertInfo(r, hndlr)
+		r.handlers[hndlr] = h
+	} else {
+		h = convertInfo(r, hndlr)
+	}
+	return h
+}
 
 func convert(resource Interface, hndlr ResourceEventHandler) cache.ResourceEventHandler {
 	if funcs, ok := hndlr.(*ResourceEventHandlerFuncs); ok {

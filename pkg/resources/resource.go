@@ -24,6 +24,8 @@ type _resource struct {
 	AbstractResource
 	info   *Info
 	client restclient.Interface
+
+	handlers map[interface{}]cache.ResourceEventHandler
 }
 
 var _ Interface = &_resource{}
@@ -51,8 +53,9 @@ func newResource(ctx ResourceContext, otype, ltype reflect.Type, gvk schema.Grou
 		otype = unstructuredType
 	}
 	r := &_resource{
-		info:   info,
-		client: client,
+		info:     info,
+		client:   client,
+		handlers: map[interface{}]cache.ResourceEventHandler{},
 	}
 	r.AbstractResource, _ = NewAbstractResource(ctx, new_i_resource(r), otype, ltype, gvk)
 	return r, nil
@@ -119,19 +122,19 @@ func (this *_resource) addRawSelectedEventHandler(minimal bool, handlers cache.R
 }
 
 func (this *_resource) AddEventHandler(handler ResourceEventHandler) error {
-	return this.AddRawEventHandler(convert(this, handler))
+	return this.AddRawEventHandler(this.mapHandler(handler))
 }
 
 func (this *_resource) AddSelectedEventHandler(handler ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
-	return this.AddRawSelectedEventHandler(convert(this, handler), namespace, optionsFunc)
+	return this.AddRawSelectedEventHandler(this.mapHandler(handler), namespace, optionsFunc)
 }
 
 func (this *_resource) AddInfoEventHandler(handler ResourceInfoEventHandler) error {
-	return this.AddRawInfoEventHandler(convertInfo(this, handler))
+	return this.AddRawInfoEventHandler(this.mapInfoHandler(handler))
 }
 
 func (this *_resource) AddSelectedInfoEventHandler(handler ResourceInfoEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
-	return this.AddRawSelectedInfoEventHandler(convertInfo(this, handler), namespace, optionsFunc)
+	return this.AddRawSelectedInfoEventHandler(this.mapInfoHandler(handler), namespace, optionsFunc)
 }
 
 func (this *_resource) NormalEventf(name ObjectDataName, reason, msgfmt string, args ...interface{}) {

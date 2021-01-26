@@ -13,6 +13,20 @@ import (
 	"unsafe"
 )
 
+func IsPtr(o interface{}) bool {
+	if o == nil {
+		return false
+	}
+	return reflect.ValueOf(o).Kind() == reflect.Ptr
+}
+
+func IsComparable(o interface{}) bool {
+	if o == nil {
+		return false
+	}
+	return reflect.ValueOf(o).Type().Comparable()
+}
+
 func IsNil(o interface{}) bool {
 	if o == nil {
 		return true

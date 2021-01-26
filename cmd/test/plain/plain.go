@@ -13,6 +13,7 @@ import (
 	"k8s.io/api/core/v1"
 
 	"github.com/gardener/controller-manager-library/pkg/resources/plain"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
 var serviceAccountYAML = `
@@ -25,6 +26,7 @@ var serviceAccountYAML = `
     namespace: kube-system
 `
 
+///////////////////////
 type X struct {
 	A string
 }
@@ -33,7 +35,7 @@ type Y X
 
 func (y *Y) Do() {}
 
-func PlainMain() {
+func doX() {
 	x := &X{
 		"test",
 	}
@@ -41,6 +43,47 @@ func PlainMain() {
 	y := (*Y)(x)
 	fmt.Printf("%t\n", (*Y)(x) == y)
 	y.Do()
+}
+
+////////////////////////
+
+type A interface {
+	Do()
+}
+
+type AS struct {
+	DoFunc func()
+}
+
+func (a AS) Do() {
+	if a.DoFunc != nil {
+		a.DoFunc()
+	}
+}
+
+func doA() {
+	m := map[A]struct{}{}
+	as := AS{
+		nil,
+	}
+
+	var a A = as
+	var b A = a
+	var c A = &as
+
+	if utils.IsComparable(a) {
+		m[a] = struct{}{}
+		fmt.Printf("a==b %t\n", a == b)
+		fmt.Printf("a==c %t\n", a == c)
+	} else {
+		fmt.Printf("not comparable\n")
+	}
+}
+
+/////////////////////////
+func PlainMain() {
+	doX()
+	doA()
 
 	ctx := plain.NewResourceContext(context.TODO(), plain.DefaultScheme())
 
