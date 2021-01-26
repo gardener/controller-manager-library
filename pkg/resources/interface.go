@@ -80,16 +80,64 @@ type EventRecorder interface {
 	AnnotatedEventf(annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{})
 }
 
+type ResourceEventHandler interface {
+	OnAdd(obj Object)
+	OnUpdate(oldObj, newObj Object)
+	OnDelete(obj Object)
+}
+
 type ResourceEventHandlerFuncs struct {
 	AddFunc    func(obj Object)
 	UpdateFunc func(oldObj, newObj Object)
 	DeleteFunc func(obj Object)
 }
 
+func (f ResourceEventHandlerFuncs) OnAdd(obj Object) {
+	if f.AddFunc != nil {
+		f.AddFunc(obj)
+	}
+}
+
+func (f ResourceEventHandlerFuncs) OnUpdate(oldObj, newObj Object) {
+	if f.UpdateFunc != nil {
+		f.UpdateFunc(oldObj, newObj)
+	}
+}
+
+func (f ResourceEventHandlerFuncs) OnDelete(obj Object) {
+	if f.DeleteFunc != nil {
+		f.DeleteFunc(obj)
+	}
+}
+
+type ResourceInfoEventHandler interface {
+	OnAdd(obj ObjectInfo)
+	OnUpdate(oldObj, newObj ObjectInfo)
+	OnDelete(obj ObjectInfo)
+}
+
 type ResourceInfoEventHandlerFuncs struct {
 	AddFunc    func(obj ObjectInfo)
 	UpdateFunc func(oldObj, newObj ObjectInfo)
 	DeleteFunc func(obj ObjectInfo)
+}
+
+func (f ResourceInfoEventHandlerFuncs) OnAdd(obj ObjectInfo) {
+	if f.AddFunc != nil {
+		f.AddFunc(obj)
+	}
+}
+
+func (f ResourceInfoEventHandlerFuncs) OnUpdate(oldObj, newObj ObjectInfo) {
+	if f.UpdateFunc != nil {
+		f.UpdateFunc(oldObj, newObj)
+	}
+}
+
+func (f ResourceInfoEventHandlerFuncs) OnDelete(obj ObjectInfo) {
+	if f.DeleteFunc != nil {
+		f.DeleteFunc(obj)
+	}
 }
 
 type Modifier func(ObjectData) (bool, error)
@@ -139,14 +187,14 @@ type Interface interface {
 	Info() *Info
 	ResourceContext() ResourceContext
 
-	AddSelectedEventHandler(eventHandlers ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error
-	AddEventHandler(eventHandlers ResourceEventHandlerFuncs) error
+	AddSelectedEventHandler(eventHandler ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error
+	AddEventHandler(eventHandler ResourceEventHandler) error
 
-	AddSelectedInfoEventHandler(eventHandlers ResourceInfoEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error
-	AddInfoEventHandler(eventHandlers ResourceInfoEventHandlerFuncs) error
+	AddSelectedInfoEventHandler(eventHandler ResourceInfoEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error
+	AddInfoEventHandler(eventHandler ResourceInfoEventHandler) error
 
-	AddRawEventHandler(handlers cache.ResourceEventHandlerFuncs) error
-	AddRawInfoEventHandler(handlers cache.ResourceEventHandlerFuncs) error
+	AddRawEventHandler(handler cache.ResourceEventHandler) error
+	AddRawInfoEventHandler(handler cache.ResourceEventHandler) error
 
 	Wrap(ObjectData) (Object, error)
 	New(ObjectName) Object

@@ -88,23 +88,23 @@ func (this *_resource) GetParameterCodec() runtime.ParameterCodec {
 	return this.ResourceContext().GetParameterCodec()
 }
 
-func (this *_resource) AddRawEventHandler(handlers cache.ResourceEventHandlerFuncs) error {
+func (this *_resource) AddRawEventHandler(handlers cache.ResourceEventHandler) error {
 	return this.AddRawSelectedEventHandler(handlers, "", nil)
 }
 
-func (this *_resource) AddRawInfoEventHandler(handlers cache.ResourceEventHandlerFuncs) error {
+func (this *_resource) AddRawInfoEventHandler(handlers cache.ResourceEventHandler) error {
 	return this.AddRawSelectedInfoEventHandler(handlers, "", nil)
 }
 
-func (this *_resource) AddRawSelectedEventHandler(handlers cache.ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error {
+func (this *_resource) AddRawSelectedEventHandler(handlers cache.ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
 	return this.addRawSelectedEventHandler(false, handlers, namespace, optionsFunc)
 }
 
-func (this *_resource) AddRawSelectedInfoEventHandler(handlers cache.ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error {
+func (this *_resource) AddRawSelectedInfoEventHandler(handlers cache.ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
 	return this.addRawSelectedEventHandler(true, handlers, namespace, optionsFunc)
 }
 
-func (this *_resource) addRawSelectedEventHandler(minimal bool, handlers cache.ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error {
+func (this *_resource) addRawSelectedEventHandler(minimal bool, handlers cache.ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
 	withNamespace := "global"
 	if namespace != "" {
 		withNamespace = fmt.Sprintf("namespace %s", namespace)
@@ -114,24 +114,24 @@ func (this *_resource) addRawSelectedEventHandler(minimal bool, handlers cache.R
 	if err != nil {
 		return err
 	}
-	informer.AddEventHandler(&handlers)
+	informer.AddEventHandler(handlers)
 	return nil
 }
 
-func (this *_resource) AddEventHandler(handlers ResourceEventHandlerFuncs) error {
-	return this.AddRawEventHandler(*convert(this, &handlers))
+func (this *_resource) AddEventHandler(handler ResourceEventHandler) error {
+	return this.AddRawEventHandler(convert(this, handler))
 }
 
-func (this *_resource) AddSelectedEventHandler(handlers ResourceEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error {
-	return this.AddRawSelectedEventHandler(*convert(this, &handlers), namespace, optionsFunc)
+func (this *_resource) AddSelectedEventHandler(handler ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
+	return this.AddRawSelectedEventHandler(convert(this, handler), namespace, optionsFunc)
 }
 
-func (this *_resource) AddInfoEventHandler(handlers ResourceInfoEventHandlerFuncs) error {
-	return this.AddRawInfoEventHandler(*convertInfo(this, &handlers))
+func (this *_resource) AddInfoEventHandler(handler ResourceInfoEventHandler) error {
+	return this.AddRawInfoEventHandler(convertInfo(this, handler))
 }
 
-func (this *_resource) AddSelectedInfoEventHandler(handlers ResourceInfoEventHandlerFuncs, namespace string, optionsFunc TweakListOptionsFunc) error {
-	return this.AddRawSelectedInfoEventHandler(*convertInfo(this, &handlers), namespace, optionsFunc)
+func (this *_resource) AddSelectedInfoEventHandler(handler ResourceInfoEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
+	return this.AddRawSelectedInfoEventHandler(convertInfo(this, handler), namespace, optionsFunc)
 }
 
 func (this *_resource) NormalEventf(name ObjectDataName, reason, msgfmt string, args ...interface{}) {

@@ -14,105 +14,189 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/resources/minimal"
 )
 
-func convert(resource Interface, funcs *ResourceEventHandlerFuncs) *cache.ResourceEventHandlerFuncs {
-	return &cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			if funcs.AddFunc == nil {
-				return
-			}
-			o, err := resource.Wrap(obj.(ObjectData))
-			if err == nil {
-				funcs.AddFunc(o)
-			}
-		},
-		DeleteFunc: func(obj interface{}) {
-			if funcs.DeleteFunc == nil {
-				return
-			}
-			data, ok := obj.(ObjectData)
-			if !ok {
-				stale, ok := obj.(cache.DeletedFinalStateUnknown)
-				if !ok {
-					logger.Errorf("informer %q reported unknown object to be deleted (%T)", resource.Name(), obj)
+func convert(resource Interface, hndlr ResourceEventHandler) cache.ResourceEventHandler {
+	if funcs, ok := hndlr.(*ResourceEventHandlerFuncs); ok {
+		return &cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				if funcs.AddFunc == nil {
 					return
 				}
-				if stale.Obj == nil {
-					logger.Errorf("informer %q reported no stale object to be deleted", resource.Name())
-					return
-				}
-				data, ok = stale.Obj.(ObjectData)
-				if !ok {
-					logger.Errorf("informer %q reported unknown stale object to be deleted (%T)", resource.Name(), stale.Obj)
-					return
-				}
-			}
-			o, err := resource.Wrap(data)
-			if err == nil {
-				funcs.DeleteFunc(o)
-			}
-		},
-		UpdateFunc: func(old, new interface{}) {
-			if funcs.UpdateFunc == nil {
-				return
-			}
-			o, err := resource.Wrap(old.(ObjectData))
-			if err == nil {
-				n, err := resource.Wrap(new.(ObjectData))
+				o, err := resource.Wrap(obj.(ObjectData))
 				if err == nil {
-					funcs.UpdateFunc(o, n)
+					funcs.AddFunc(o)
 				}
-			}
-		},
+			},
+			DeleteFunc: func(obj interface{}) {
+				if funcs.DeleteFunc == nil {
+					return
+				}
+				data, ok := obj.(ObjectData)
+				if !ok {
+					stale, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						logger.Errorf("informer %q reported unknown object to be deleted (%T)", resource.Name(), obj)
+						return
+					}
+					if stale.Obj == nil {
+						logger.Errorf("informer %q reported no stale object to be deleted", resource.Name())
+						return
+					}
+					data, ok = stale.Obj.(ObjectData)
+					if !ok {
+						logger.Errorf("informer %q reported unknown stale object to be deleted (%T)", resource.Name(), stale.Obj)
+						return
+					}
+				}
+				o, err := resource.Wrap(data)
+				if err == nil {
+					funcs.DeleteFunc(o)
+				}
+			},
+			UpdateFunc: func(old, new interface{}) {
+				if funcs.UpdateFunc == nil {
+					return
+				}
+				o, err := resource.Wrap(old.(ObjectData))
+				if err == nil {
+					n, err := resource.Wrap(new.(ObjectData))
+					if err == nil {
+						funcs.UpdateFunc(o, n)
+					}
+				}
+			},
+		}
+	} else {
+		return &cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				o, err := resource.Wrap(obj.(ObjectData))
+				if err == nil {
+					hndlr.OnAdd(o)
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				data, ok := obj.(ObjectData)
+				if !ok {
+					stale, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						logger.Errorf("informer %q reported unknown object to be deleted (%T)", resource.Name(), obj)
+						return
+					}
+					if stale.Obj == nil {
+						logger.Errorf("informer %q reported no stale object to be deleted", resource.Name())
+						return
+					}
+					data, ok = stale.Obj.(ObjectData)
+					if !ok {
+						logger.Errorf("informer %q reported unknown stale object to be deleted (%T)", resource.Name(), stale.Obj)
+						return
+					}
+				}
+				o, err := resource.Wrap(data)
+				if err == nil {
+					hndlr.OnDelete(o)
+				}
+			},
+			UpdateFunc: func(old, new interface{}) {
+				o, err := resource.Wrap(old.(ObjectData))
+				if err == nil {
+					n, err := resource.Wrap(new.(ObjectData))
+					if err == nil {
+						hndlr.OnUpdate(o, n)
+					}
+				}
+			},
+		}
 	}
 }
 
-func convertInfo(resource Interface, funcs *ResourceInfoEventHandlerFuncs) *cache.ResourceEventHandlerFuncs {
-	return &cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			if funcs.AddFunc == nil {
-				return
-			}
-			o := wrapInfo(resource, obj)
-			if o != nil {
-				funcs.AddFunc(o)
-			}
-		},
-		DeleteFunc: func(obj interface{}) {
-			if funcs.DeleteFunc == nil {
-				return
-			}
-			data, ok := toMinimalObject(resource, obj)
-			if !ok {
-				stale, ok := obj.(cache.DeletedFinalStateUnknown)
+func convertInfo(resource Interface, hndlr ResourceInfoEventHandler) cache.ResourceEventHandler {
+	if funcs, ok := hndlr.(*ResourceInfoEventHandlerFuncs); ok {
+		return &cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				if funcs.AddFunc == nil {
+					return
+				}
+				o := wrapInfo(resource, obj)
+				if o != nil {
+					funcs.AddFunc(o)
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				if funcs.DeleteFunc == nil {
+					return
+				}
+				data, ok := toMinimalObject(resource, obj)
 				if !ok {
-					logger.Errorf("informer %q reported unknown object to be deleted (%T)", resource.Name(), obj)
+					stale, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						logger.Errorf("informer %q reported unknown object to be deleted (%T)", resource.Name(), obj)
+						return
+					}
+					if stale.Obj == nil {
+						logger.Errorf("informer %q reported no stale object to be deleted", resource.Name())
+						return
+					}
+					data, ok = toMinimalObject(resource, stale.Obj)
+					if !ok {
+						logger.Errorf("informer %q reported unknown stale object to be deleted (%T)", resource.Name(), stale.Obj)
+						return
+					}
+				}
+				o := wrapInfo(resource, data)
+				if o != nil {
+					funcs.DeleteFunc(o)
+				}
+			},
+			UpdateFunc: func(old, new interface{}) {
+				if funcs.UpdateFunc == nil {
 					return
 				}
-				if stale.Obj == nil {
-					logger.Errorf("informer %q reported no stale object to be deleted", resource.Name())
-					return
+				o := wrapInfo(resource, old)
+				n := wrapInfo(resource, new)
+				if o != nil && n != nil {
+					funcs.UpdateFunc(o, n)
 				}
-				data, ok = toMinimalObject(resource, stale.Obj)
+			},
+		}
+	} else {
+		return &cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				o := wrapInfo(resource, obj)
+				if o != nil {
+					hndlr.OnAdd(o)
+				}
+			},
+			DeleteFunc: func(obj interface{}) {
+				data, ok := toMinimalObject(resource, obj)
 				if !ok {
-					logger.Errorf("informer %q reported unknown stale object to be deleted (%T)", resource.Name(), stale.Obj)
-					return
+					stale, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						logger.Errorf("informer %q reported unknown object to be deleted (%T)", resource.Name(), obj)
+						return
+					}
+					if stale.Obj == nil {
+						logger.Errorf("informer %q reported no stale object to be deleted", resource.Name())
+						return
+					}
+					data, ok = toMinimalObject(resource, stale.Obj)
+					if !ok {
+						logger.Errorf("informer %q reported unknown stale object to be deleted (%T)", resource.Name(), stale.Obj)
+						return
+					}
 				}
-			}
-			o := wrapInfo(resource, data)
-			if o != nil {
-				funcs.DeleteFunc(o)
-			}
-		},
-		UpdateFunc: func(old, new interface{}) {
-			if funcs.UpdateFunc == nil {
-				return
-			}
-			o := wrapInfo(resource, old)
-			n := wrapInfo(resource, new)
-			if o != nil && n != nil {
-				funcs.UpdateFunc(o, n)
-			}
-		},
+				o := wrapInfo(resource, data)
+				if o != nil {
+					hndlr.OnDelete(o)
+				}
+			},
+			UpdateFunc: func(old, new interface{}) {
+				o := wrapInfo(resource, old)
+				n := wrapInfo(resource, new)
+				if o != nil && n != nil {
+					hndlr.OnUpdate(o, n)
+				}
+			},
+		}
 	}
 }
 
