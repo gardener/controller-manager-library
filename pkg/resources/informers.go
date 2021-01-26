@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gardener/controller-manager-library/pkg/ctxutil"
+	"github.com/gardener/controller-manager-library/pkg/kutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,16 +24,207 @@ import (
 )
 
 type GenericInformer interface {
-	cache.SharedIndexInformer
-	Informer() cache.SharedIndexInformer
+	// Selected Methods from cache.SharedInformer
+
+	AddEventHandler(handler cache.ResourceEventHandler)
+	HasSynced() bool
+	LastSyncResourceVersion() string
+	Run()
+
+	//Informer() cache.SharedIndexInformer
 	Lister() Lister
 	Context() context.Context
 }
 
+type event struct {
+	New interface{}
+	Old interface{}
+}
+
+type wrappedHandler struct {
+	handler   cache.ResourceEventHandler
+	processor *kutil.Processor
+}
+
+func newWrappedHandler(ctx context.Context, handler cache.ResourceEventHandler) *wrappedHandler {
+	ret := &wrappedHandler{
+		handler: handler,
+	}
+	ret.processor = kutil.NewProcessor(ctx, ret.handle, 100)
+	return ret
+}
+
+func (w *wrappedHandler) handle(e interface{}) {
+	evt := e.(*event)
+	if evt.New == nil {
+		w.handler.OnDelete(evt.Old)
+	} else if evt.Old == nil {
+		w.handler.OnAdd(evt.New)
+	} else {
+		w.handler.OnUpdate(evt.Old, evt.New)
+	}
+}
+
+func (w *wrappedHandler) OnAdd(obj interface{}) {
+	w.processor.Add(&event{obj, nil})
+}
+func (w *wrappedHandler) OnUpdate(oldObj, newObj interface{}) {
+	w.processor.Add(&event{newObj, oldObj})
+}
+func (w *wrappedHandler) OnDelete(obj interface{}) {
+	w.processor.Add(&event{nil, obj})
+}
+
+type genericHandler struct {
+	lock     sync.RWMutex
+	ctx      context.Context
+	handlers map[cache.ResourceEventHandler]*wrappedHandler
+}
+
+func newGenericHandlerr(ctx context.Context) *genericHandler {
+	ret := &genericHandler{handlers: map[cache.ResourceEventHandler]*wrappedHandler{}, ctx: ctx}
+	return ret
+}
+
+func (w *genericHandler) StopAndWait() {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+	for _, p := range w.handlers {
+		p.processor.Stop()
+	}
+	for h, p := range w.handlers {
+		delete(w.handlers, h)
+		p.processor.Wait()
+	}
+}
+
+func (w *genericHandler) Size() int {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+	return len(w.handlers)
+}
+
+func (w *genericHandler) AddEventHandler(h cache.ResourceEventHandler) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+	if _, ok := w.handlers[h]; !ok {
+		w.handlers[h] = newWrappedHandler(w.ctx, h)
+	}
+}
+
+func (w *genericHandler) RemoveEventHandler(h cache.ResourceEventHandler) {
+	var p *wrappedHandler
+	var ok bool
+
+	func() {
+		w.lock.Lock()
+		defer w.lock.Unlock()
+
+		if p, ok = w.handlers[h]; ok {
+			delete(w.handlers, h)
+		}
+	}()
+
+	if p != nil {
+		p.processor.Stop()
+		p.processor.Wait()
+	}
+}
+
+func (w *genericHandler) OnAdd(obj interface{}) {
+	w.lock.RLock()
+	defer w.lock.RUnlock()
+	for _, h := range w.handlers {
+		h.OnAdd(obj)
+	}
+}
+func (w *genericHandler) OnUpdate(oldObj, newObj interface{}) {
+	w.lock.RLock()
+	defer w.lock.RUnlock()
+	for _, h := range w.handlers {
+		h.OnUpdate(oldObj, newObj)
+	}
+}
+func (w *genericHandler) OnDelete(obj interface{}) {
+	w.lock.RLock()
+	defer w.lock.RUnlock()
+	for _, h := range w.handlers {
+		h.OnDelete(obj)
+	}
+}
+
 type genericInformer struct {
+	lock        sync.Mutex
+	lw          listWatchFactory
+	namespace   string
+	optionsFunc TweakListOptionsFunc
+
 	cache.SharedIndexInformer
-	resource *Info
-	context  context.Context
+	context context.Context
+	lister  Lister
+	generic *genericHandler
+}
+
+func newGenericInformer(ctx context.Context, lw listWatchFactory, namespace string, optionsFunc TweakListOptionsFunc) (*genericInformer, error) {
+	ret := &genericInformer{
+		lw:          lw,
+		namespace:   namespace,
+		optionsFunc: optionsFunc,
+		context:     ctx,
+	}
+	err := ret.new()
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (f *genericInformer) new() error {
+	logger.Infof("new generic informer for %s (%s) %s (%d seconds)", f.lw.ElemType(), f.lw.GroupVersionKind(), f.lw.ListType(), f.lw.Resync()/time.Second)
+
+	ctx := ctxutil.CancelContext(f.context)
+	listWatch, err := f.lw.CreateListWatch(ctx, f.namespace, f.optionsFunc)
+	if err != nil {
+		return err
+	}
+	f.SharedIndexInformer = cache.NewSharedIndexInformer(listWatch, f.lw.ExampleObject(), resyncPeriod(f.lw.Resync())(),
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	f.generic = newGenericHandlerr(ctx)
+	return nil
+}
+
+func (f *genericInformer) Run() {
+	f.SharedIndexInformer.AddEventHandler(f.generic)
+	f.SharedIndexInformer.Run(f.context.Done())
+}
+
+func (w *genericInformer) AddEventHandler(h cache.ResourceEventHandler) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	if w.SharedIndexInformer == nil {
+		w.new()
+		go w.Run()
+		cache.WaitForCacheSync(w.context.Done(), w.HasSynced)
+	}
+	w.generic.AddEventHandler(h)
+}
+
+func (w *genericInformer) RemoveEventHandler(h cache.ResourceEventHandler) {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+	w.generic.RemoveEventHandler(h)
+	if w.lister == nil && w.generic.Size() == 0 {
+		w.generic.StopAndWait()
+		w.SharedIndexInformer = nil
+		w.generic = nil
+	}
+}
+
+func (w *genericInformer) IsUsed() bool {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+	return w.lister == nil && w.generic.Size() == 0
 }
 
 func (f *genericInformer) Informer() cache.SharedIndexInformer {
@@ -39,20 +232,19 @@ func (f *genericInformer) Informer() cache.SharedIndexInformer {
 }
 
 func (f *genericInformer) Lister() Lister {
-	return NewLister(f.Informer().GetIndexer(), f.resource)
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	if f.lister == nil {
+		if f.SharedIndexInformer == nil {
+			f.new()
+		}
+		f.lister = NewLister(f.SharedIndexInformer.GetIndexer(), f.lw.Info())
+	}
+	return f.lister
 }
 
 func (f *genericInformer) Context() context.Context {
 	return f.context
-}
-
-func (f *genericInformer) Active() bool {
-	select {
-	case <-f.context.Done():
-		return false
-	default:
-		return f.SharedIndexInformer.HasSynced()
-	}
 }
 
 func (f *genericInformer) HasSynced() bool {

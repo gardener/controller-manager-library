@@ -12,8 +12,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 
-	"github.com/gardener/controller-manager-library/pkg/informerfactories"
-
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -129,7 +127,7 @@ func (this *_i_resource) I_getInformer(minimal bool, namespace string, optionsFu
 	if err != nil {
 		return nil, err
 	}
-	if err := informerfactories.Start(this.ResourceContext(), informers, informer.Informer().HasSynced); err != nil {
+	if err := Start(this.ResourceContext(), informers, informer.HasSynced); err != nil {
 		return nil, err
 	}
 
@@ -158,7 +156,7 @@ func (this *_i_resource) I_lookupInformer(minimal bool, namespace string) (Gener
 	if err != nil {
 		return nil, err
 	}
-	if err := informerfactories.Start(this.ResourceContext(), informers, informer.Informer().HasSynced); err != nil {
+	if err := Start(this.ResourceContext(), informers, informer.HasSynced); err != nil {
 		return nil, err
 	}
 

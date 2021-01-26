@@ -7,12 +7,11 @@
 package resources
 
 import (
+	"context"
+	"fmt"
 	"math/rand"
 	"sync"
 	"time"
-
-	"github.com/gardener/controller-manager-library/pkg/ctxutil"
-	"github.com/gardener/controller-manager-library/pkg/logger"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
@@ -64,7 +63,7 @@ func (f *genericInformerFactory) Start() {
 
 	for informerType, informer := range f.informers {
 		if !f.startedInformers[informerType] {
-			go informer.Run(informer.Context().Done())
+			go informer.Run()
 			f.startedInformers[informerType] = true
 		}
 	}
@@ -125,16 +124,7 @@ func (f *genericInformerFactory) getClient(gv schema.GroupVersion) (restclient.I
 }
 
 func (f *genericInformerFactory) newInformer(lw listWatchFactory) (GenericInformer, error) {
-	logger.Infof("new generic informer for %s (%s) %s (%d seconds)", lw.ElemType(), lw.GroupVersionKind(), lw.ListType(), lw.Resync()/time.Second)
-
-	ctx := ctxutil.CancelContext(f.context)
-	listWatch, err := lw.CreateListWatch(ctx, f.namespace, f.optionsFunc)
-	if err != nil {
-		return nil, err
-	}
-	informer := cache.NewSharedIndexInformer(listWatch, lw.ExampleObject(), resyncPeriod(lw.Resync())(),
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	return &genericInformer{informer, lw.Info(), ctx}, nil
+	return newGenericInformer(f.context, lw, f.namespace, f.optionsFunc)
 }
 
 // resyncPeriod returns a function which generates a duration each time it is
@@ -146,4 +136,16 @@ func resyncPeriod(resync time.Duration) func() time.Duration {
 		factor := rand.Float64()/5.0 + 0.9
 		return time.Duration(float64(resync.Nanoseconds()) * factor)
 	}
+}
+
+type StartInterface interface {
+	Start()
+}
+
+func Start(ctx context.Context, startInterface StartInterface, synched ...cache.InformerSynced) error {
+	startInterface.Start()
+	if ok := cache.WaitForCacheSync(ctx.Done(), synched...); !ok {
+		return fmt.Errorf("failed to wait for caches to sync")
+	}
+	return nil
 }

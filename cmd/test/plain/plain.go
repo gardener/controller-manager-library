@@ -9,8 +9,10 @@ package plain
 import (
 	"context"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/resources/plain"
+
 	"k8s.io/api/core/v1"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/plain"
 )
 
 var serviceAccountYAML = `
@@ -23,7 +25,23 @@ var serviceAccountYAML = `
     namespace: kube-system
 `
 
+type X struct {
+	A string
+}
+
+type Y X
+
+func (y *Y) Do() {}
+
 func PlainMain() {
+	x := &X{
+		"test",
+	}
+
+	y := (*Y)(x)
+	fmt.Printf("%t\n", (*Y)(x) == y)
+	y.Do()
+
 	ctx := plain.NewResourceContext(context.TODO(), plain.DefaultScheme())
 
 	resources := ctx.Resources()

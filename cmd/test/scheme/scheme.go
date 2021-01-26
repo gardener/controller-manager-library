@@ -125,11 +125,12 @@ func SchemeMain() {
 	}
 
 	fmt.Printf("# add handler\n")
-	h.AddEventHandler(resources.ResourceEventHandlerFuncs{
+	handler := resources.ResourceEventHandlerFuncs{
 		AddFunc:    add,
 		UpdateFunc: update,
 		DeleteFunc: delete,
-	})
+	}
+	h.AddEventHandler(handler)
 	factory.Start()
 	factory.WaitForCacheSync()
 
