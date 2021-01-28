@@ -140,16 +140,55 @@ type watchdef struct {
 	rescdef
 	reconciler string
 	pool       string
+	cluster    string
+}
+
+func NewWatch(cluster string, reconciler, pool string, keyspec interface{}) Watch {
+	var key ResourceKey
+	switch k := keyspec.(type) {
+	case schema.GroupKind:
+		key = GetResourceKey(k)
+	case ResourceKey:
+		key = k
+	default:
+		return nil
+	}
+
+	if reconciler == "" {
+		reconciler = DEFAULT_RECONCILER
+	}
+	if pool == "" {
+		pool = DEFAULT_POOL
+	}
+	return &watchdef{
+		rescdef: rescdef{
+			rtype: key,
+		},
+		reconciler: reconciler,
+		pool:       pool,
+		cluster:    cluster,
+	}
 }
 
 type rescdef struct {
-	rtype      ResourceKey
-	selectFunc WatchSelectionFunction
-	minimal    bool
+	rtype        ResourceKey
+	unstructured bool
+	selectFunc   WatchSelectionFunction
+	minimal      bool
 }
 
 func (this *rescdef) ResourceType() ResourceKey {
 	return this.rtype
+}
+func (this *rescdef) WatchKey() WatchKey {
+	return WatchKey{
+		rtype:        this.rtype,
+		unstructured: this.unstructured,
+		minimal:      this.minimal,
+	}
+}
+func (this *rescdef) Unstructured() bool {
+	return this.unstructured
 }
 func (this *rescdef) WatchSelectionFunction() WatchSelectionFunction {
 	return this.selectFunc
@@ -173,6 +212,25 @@ func (this *watchdef) Reconciler() string {
 }
 func (this *watchdef) PoolName() string {
 	return this.pool
+}
+func (this *watchdef) Cluster() string {
+	return this.cluster
+}
+
+func (this *watchdef) WithSelectionFunction(selectFunc WatchSelectionFunction) Watch {
+	n := *this
+	n.rescdef.selectFunc = selectFunc
+	return &n
+}
+func (this *watchdef) ForMinimal(b bool) Watch {
+	n := *this
+	n.minimal = b
+	return &n
+}
+func (this *watchdef) ForUnstructured(b bool) Watch {
+	n := *this
+	n.unstructured = b
+	return &n
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -679,7 +737,8 @@ func (this Configuration) ReconcilerWatches(reconciler string, keys ...ResourceK
 	this.assureWatches()
 	for _, key := range keys {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil, false}, reconciler, this.pool})
+		w := NewWatch(this.cluster, reconciler, this.pool, key)
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], w)
 	}
 	return this
 }
@@ -689,7 +748,8 @@ func (this Configuration) ReconcilerWatchesByGK(reconciler string, gks ...schema
 	for _, gk := range gks {
 		key := NewResourceKeyByGK(gk)
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil, false}, reconciler, this.pool})
+		w := NewWatch(this.cluster, reconciler, this.pool, key)
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], w)
 	}
 	return this
 }
@@ -698,7 +758,8 @@ func (this Configuration) ReconcilerSelectedWatches(reconciler string, sel Watch
 	this.assureWatches()
 	for _, key := range keys {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel, false}, reconciler, this.pool})
+		w := NewWatch(this.cluster, reconciler, this.pool, key).WithSelectionFunction(sel)
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], w)
 	}
 	return this
 }
@@ -708,7 +769,8 @@ func (this Configuration) ReconcilerSelectedWatchesByGK(reconciler string, sel W
 	for _, gk := range gks {
 		key := NewResourceKeyByGK(gk)
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel, false}, reconciler, this.pool})
+		w := NewWatch(this.cluster, reconciler, this.pool, key).WithSelectionFunction(sel)
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], w)
 	}
 	return this
 }

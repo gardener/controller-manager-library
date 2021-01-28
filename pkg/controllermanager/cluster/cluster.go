@@ -21,6 +21,7 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	rerrors "github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -60,7 +61,7 @@ type Interface interface {
 	GetObject(interface{}) (resources.Object, error)
 	GetObjectInto(resources.ObjectName, resources.ObjectData) (resources.Object, error)
 	GetCachedObject(interface{}) (resources.Object, error)
-	GetResource(groupKind schema.GroupKind) (resources.Interface, error)
+	GetResource(groupKind schema.GroupKind, unstructured ...bool) (resources.Interface, error)
 	Config() restclient.Config
 	Resources() resources.Resources
 	ResourceContext() resources.ResourceContext
@@ -160,8 +161,18 @@ func (this *_Cluster) GetCachedObject(spec interface{}) (resources.Object, error
 	return this.resources.GetCachedObject(spec)
 }
 
-func (this *_Cluster) GetResource(groupKind schema.GroupKind) (resources.Interface, error) {
-	return this.resources.GetByGK(groupKind)
+func (this *_Cluster) GetResource(groupKind schema.GroupKind, unstructured ...bool) (resources.Interface, error) {
+	unstructuredFallback := false
+	for _, u := range unstructured {
+		if u {
+			unstructuredFallback = true
+		}
+	}
+	r, err := this.resources.GetByGK(groupKind)
+	if rerrors.IsKind(rerrors.ERR_UNKNOWN_RESOURCE, err) && unstructuredFallback {
+		return this.resources.GetUnstructuredByGK(groupKind)
+	}
+	return r, err
 }
 
 func (this *_Cluster) GetServerVersion() *semver.Version {

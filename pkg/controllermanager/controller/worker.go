@@ -16,6 +16,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/server/healthz"
 
 	corev1 "k8s.io/api/core/v1"
@@ -67,6 +68,16 @@ func (w *worker) internalErr(obj interface{}, err error) bool {
 func (w *worker) loggerForKey(key string) func() {
 	w.LogContext = w.logContext.NewContext("resources", key)
 	return func() { w.LogContext = w.logContext }
+}
+
+func convert(reconciler *reconcilerInfo, obj resources.Object) resources.Object {
+	if reconciler.unstructured {
+		o, err := resources.UnstructuredObject(obj)
+		if err == nil {
+			return o
+		}
+	}
+	return obj
 }
 
 func (w *worker) processNextWorkItem() bool {
@@ -131,22 +142,24 @@ func (w *worker) processNextWorkItem() bool {
 		}
 		reconcilers := w.pool.getReconcilers(rkey.GroupKind())
 
-		var f func(reconcile.Interface) reconcile.Status
+		var f func(*reconcilerInfo) reconcile.Status
 		switch {
 		case r == nil:
 			deleted = true
 			if w.pool.Owning().GroupKind() == (*rkey).GroupKind() {
 				ctxutil.Tick(w.ctx, DeletionActivity)
 			}
-			f = func(reconciler reconcile.Interface) reconcile.Status { return reconciler.Deleted(w, *rkey) }
+			f = func(reconciler *reconcilerInfo) reconcile.Status { return reconciler.Deleted(w, *rkey) }
 		case r.IsDeleting():
 			deleted = true
 			if w.pool.Owning().GroupKind() == r.GroupKind() {
 				ctxutil.Tick(w.ctx, DeletionActivity)
 			}
-			f = func(reconciler reconcile.Interface) reconcile.Status { return reconciler.Delete(w, r) }
+			f = func(reconciler *reconcilerInfo) reconcile.Status { return reconciler.Delete(w, convert(reconciler, r)) }
 		default:
-			f = func(reconciler reconcile.Interface) reconcile.Status { return reconciler.Reconcile(w, r) }
+			f = func(reconciler *reconcilerInfo) reconcile.Status {
+				return reconciler.Reconcile(w, convert(reconciler, r))
+			}
 		}
 
 		for _, reconciler := range reconcilers {

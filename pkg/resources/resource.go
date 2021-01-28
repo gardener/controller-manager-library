@@ -121,20 +121,85 @@ func (this *_resource) addRawSelectedEventHandler(minimal bool, handlers cache.R
 	return nil
 }
 
+func (this *_resource) RemoveRawEventHandler(handlers cache.ResourceEventHandler) error {
+	return this.RemoveRawSelectedEventHandler(handlers, "", nil)
+}
+
+func (this *_resource) RemoveRawInfoEventHandler(handlers cache.ResourceEventHandler) error {
+	return this.RemoveRawSelectedInfoEventHandler(handlers, "", nil)
+}
+
+func (this *_resource) RemoveRawSelectedEventHandler(handlers cache.ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
+	return this.removeRawSelectedEventHandler(false, handlers, namespace, optionsFunc)
+}
+
+func (this *_resource) RemoveRawSelectedInfoEventHandler(handlers cache.ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
+	return this.removeRawSelectedEventHandler(true, handlers, namespace, optionsFunc)
+}
+
+func (this *_resource) removeRawSelectedEventHandler(minimal bool, handler cache.ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
+	withNamespace := "global"
+	if namespace != "" {
+		withNamespace = fmt.Sprintf("namespace %s", namespace)
+	}
+	logger.Infof("adding watch for %s (cluster %s, %s)", this.GroupVersionKind(), this.GetCluster().GetId(), withNamespace)
+	informer, err := this.helper.Internal.I_getInformer(minimal, namespace, optionsFunc)
+	if err != nil {
+		return err
+	}
+	return informer.RemoveEventHandler(handler)
+}
+
 func (this *_resource) AddEventHandler(handler ResourceEventHandler) error {
-	return this.AddRawEventHandler(this.mapHandler(handler))
+	h, _ := this.mapHandler(handler)
+	return this.AddRawEventHandler(h)
 }
 
 func (this *_resource) AddSelectedEventHandler(handler ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
-	return this.AddRawSelectedEventHandler(this.mapHandler(handler), namespace, optionsFunc)
+	h, _ := this.mapHandler(handler)
+	return this.AddRawSelectedEventHandler(h, namespace, optionsFunc)
 }
 
 func (this *_resource) AddInfoEventHandler(handler ResourceInfoEventHandler) error {
-	return this.AddRawInfoEventHandler(this.mapInfoHandler(handler))
+	h, _ := this.mapInfoHandler(handler)
+	return this.AddRawInfoEventHandler(h)
 }
 
 func (this *_resource) AddSelectedInfoEventHandler(handler ResourceInfoEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
-	return this.AddRawSelectedInfoEventHandler(this.mapInfoHandler(handler), namespace, optionsFunc)
+	h, _ := this.mapInfoHandler(handler)
+	return this.AddRawSelectedInfoEventHandler(h, namespace, optionsFunc)
+}
+
+func (this *_resource) RemoveEventHandler(handler ResourceEventHandler) error {
+	h, removable := this.mapHandler(handler)
+	if !removable {
+		return fmt.Errorf("handler is not removable")
+	}
+	return this.RemoveRawEventHandler(h)
+}
+
+func (this *_resource) RemoveSelectedEventHandler(handler ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
+	h, removable := this.mapHandler(handler)
+	if !removable {
+		return fmt.Errorf("handler is not removable")
+	}
+	return this.AddRawSelectedEventHandler(h, namespace, optionsFunc)
+}
+
+func (this *_resource) RemoveInfoEventHandler(handler ResourceInfoEventHandler) error {
+	h, removable := this.mapInfoHandler(handler)
+	if !removable {
+		return fmt.Errorf("handler is not removable")
+	}
+	return this.AddRawInfoEventHandler(h)
+}
+
+func (this *_resource) RemoveSelectedInfoEventHandler(handler ResourceInfoEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
+	h, removable := this.mapInfoHandler(handler)
+	if !removable {
+		return fmt.Errorf("handler is not removable")
+	}
+	return this.AddRawSelectedInfoEventHandler(h, namespace, optionsFunc)
 }
 
 func (this *_resource) NormalEventf(name ObjectDataName, reason, msgfmt string, args ...interface{}) {

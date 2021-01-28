@@ -196,6 +196,15 @@ type Interface interface {
 	AddRawEventHandler(handler cache.ResourceEventHandler) error
 	AddRawInfoEventHandler(handler cache.ResourceEventHandler) error
 
+	RemoveSelectedEventHandler(eventHandler ResourceEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error
+	RemoveEventHandler(eventHandler ResourceEventHandler) error
+
+	RemoveSelectedInfoEventHandler(eventHandler ResourceInfoEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error
+	RemoveInfoEventHandler(eventHandler ResourceInfoEventHandler) error
+
+	RemoveRawEventHandler(handler cache.ResourceEventHandler) error
+	RemoveRawInfoEventHandler(handler cache.ResourceEventHandler) error
+
 	Wrap(ObjectData) (Object, error)
 	New(ObjectName) Object
 

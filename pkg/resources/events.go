@@ -15,32 +15,34 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
-func (r *_resource) mapHandler(hndlr ResourceEventHandler) cache.ResourceEventHandler {
+func (r *_resource) mapHandler(hndlr ResourceEventHandler) (cache.ResourceEventHandler, bool) {
 	var h cache.ResourceEventHandler
+	removable := false
 	if utils.IsComparable(hndlr) {
-		if h = r.handlers[hndlr]; h != nil {
-			return h
+		removable = true
+		if h = r.handlers[hndlr]; h == nil {
+			h = convert(r, hndlr)
+			r.handlers[hndlr] = h
 		}
-		h = convert(r, hndlr)
-		r.handlers[hndlr] = h
 	} else {
 		h = convert(r, hndlr)
 	}
-	return h
+	return h, removable
 }
 
-func (r *_resource) mapInfoHandler(hndlr ResourceInfoEventHandler) cache.ResourceEventHandler {
+func (r *_resource) mapInfoHandler(hndlr ResourceInfoEventHandler) (cache.ResourceEventHandler, bool) {
 	var h cache.ResourceEventHandler
+	removable := false
 	if utils.IsComparable(hndlr) {
-		if h = r.handlers[hndlr]; h != nil {
-			return h
+		removable = true
+		if h = r.handlers[hndlr]; h == nil {
+			h = convertInfo(r, hndlr)
+			r.handlers[hndlr] = h
 		}
-		h = convertInfo(r, hndlr)
-		r.handlers[hndlr] = h
 	} else {
 		h = convertInfo(r, hndlr)
 	}
-	return h
+	return h, removable
 }
 
 func convert(resource Interface, hndlr ResourceEventHandler) cache.ResourceEventHandler {

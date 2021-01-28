@@ -75,12 +75,17 @@ type Interface interface {
 
 	GetObject(key resources.ClusterObjectKey) (resources.Object, error)
 	GetCachedObject(key resources.ClusterObjectKey) (resources.Object, error)
+
+	RegisterWatch(Watch) (bool, error)
+	UnregisterWatch(Watch) (bool, error)
 }
 
 type WatchSelectionFunction func(c Interface) (namespace string, tweaker resources.TweakListOptionsFunc)
 
 type WatchResource interface {
 	ResourceType() ResourceKey
+	WatchKey() WatchKey
+	Unstructured() bool
 	WatchSelectionFunction() WatchSelectionFunction
 	ShouldEnforceMinimal() bool
 }
@@ -89,7 +94,13 @@ type Watch interface {
 	WatchResource
 	Reconciler() string
 	PoolName() string
+	Cluster() string
+
+	WithSelectionFunction(WatchSelectionFunction) Watch
+	ForMinimal(bool) Watch
+	ForUnstructured(bool) Watch
 }
+
 type Command interface {
 	Key() utils.Matcher
 	Reconciler() string

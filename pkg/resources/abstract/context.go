@@ -22,7 +22,7 @@ import (
 type Factory interface {
 	NewResources(ResourceContext, Factory) Resources
 	NewResource(resources Resources, gvk schema.GroupVersionKind, otype, ltype reflect.Type) (Resource, error)
-	ResolveGVK(ResourceContext, schema.GroupKind, []schema.GroupVersionKind) (schema.GroupVersionKind, error)
+	ResolveGVK(ctx ResourceContext, gk schema.GroupKind, gvks []schema.GroupVersionKind, unrestricted bool) (schema.GroupVersionKind, error)
 }
 
 type AbstractResourceContext struct {
@@ -86,7 +86,7 @@ func (this *AbstractResourceContext) GetGroups() []schema.GroupVersion {
 	return grps
 }
 
-func (this *AbstractResourceContext) GetGVKForGK(gk schema.GroupKind) (schema.GroupVersionKind, error) {
+func (this *AbstractResourceContext) GetGVKForGK(gk schema.GroupKind, unrestricted bool) (schema.GroupVersionKind, error) {
 	found := []schema.GroupVersionKind{}
 
 	for gvk := range this.Scheme().AllKnownTypes() {
@@ -94,7 +94,7 @@ func (this *AbstractResourceContext) GetGVKForGK(gk schema.GroupKind) (schema.Gr
 			found = append(found, gvk)
 		}
 	}
-	return this.factory.ResolveGVK(this.self, gk, found)
+	return this.factory.ResolveGVK(this.self, gk, found, unrestricted)
 }
 
 func (this *AbstractResourceContext) GetGVK(obj runtime.Object) (schema.GroupVersionKind, error) {
@@ -120,7 +120,7 @@ func (this *AbstractResourceContext) GetGVK(obj runtime.Object) (schema.GroupVer
 	if len(found) == 0 {
 		return empty, errors.ErrUnexpectedType.New("resource object", obj)
 	}
-	return this.factory.ResolveGVK(this.self, found[0].GroupKind(), gvks)
+	return this.factory.ResolveGVK(this.self, found[0].GroupKind(), gvks, false)
 }
 
 func (this *AbstractResourceContext) Resources() Resources {

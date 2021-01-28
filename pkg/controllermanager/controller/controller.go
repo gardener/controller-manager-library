@@ -53,7 +53,12 @@ type _ReconcilationKey struct {
 	reconciler string
 }
 
-type _Reconcilations map[_ReconcilationKey]string
+type _Reconcilation struct {
+	pool     string
+	useCount int
+}
+
+type _Reconcilations map[_ReconcilationKey]*_Reconcilation
 
 func (this _Reconcilations) Get(cluster resources.Cluster, gk schema.GroupKind) utils.StringSet {
 	reconcilers := utils.StringSet{}
@@ -112,7 +117,8 @@ type controller struct {
 	options  *ControllerConfig
 	handlers map[string]*ClusterHandler
 
-	pools map[string]*pool
+	pools   map[string]*pool
+	dynamic map[Watch]struct{}
 }
 
 func Filter(owning ResourceKey, resc resources.Object) bool {
@@ -133,6 +139,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		handlers:        map[string]*ClusterHandler{},
 		watches:         map[string][]Watch{},
 		pools:           map[string]*pool{},
+		dynamic:         map[Watch]struct{}{},
 		reconcilers:     map[string]reconcile.Interface{},
 		reconcilerNames: map[reconcile.Interface]string{},
 		mappings:        _Reconcilations{},
@@ -182,7 +189,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 
 	for cname, watches := range this.definition.Watches() {
 		for _, w := range watches {
-			ok, err := this.addReconciler(cname, w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler())
+			ok, err := this.addReconciler(cname, w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler(), w.Unstructured())
 			if err != nil {
 				this.Errorf("GOT error: %s", err)
 				return nil, err
@@ -192,14 +199,14 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 			}
 		}
 	}
-	_, err = this.addReconciler(required[0], this.Owning().GroupKind(), DEFAULT_POOL, DEFAULT_RECONCILER)
+	_, err = this.addReconciler(required[0], this.Owning().GroupKind(), DEFAULT_POOL, DEFAULT_RECONCILER, false)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, cmds := range this.GetDefinition().Commands() {
 		for _, cmd := range cmds {
-			_, err := this.addReconciler("", cmd.Key(), cmd.PoolName(), cmd.Reconciler())
+			_, err := this.addReconciler("", cmd.Key(), cmd.PoolName(), cmd.Reconciler(), false)
 			if err != nil {
 				return nil, fmt.Errorf("Add matcher for reconciler %s failed: %s", cmd.Reconciler(), err)
 			}
@@ -318,7 +325,7 @@ func (this *controller) GetReconciler(name string) reconcile.Interface {
 	return this.reconcilers[name]
 }
 
-func (this *controller) addReconciler(cname string, spec ReconcilationElementSpec, pool string, reconciler string) (bool, error) {
+func (this *controller) addReconciler(cname string, spec ReconcilationElementSpec, pool string, reconciler string, unstructured bool) (bool, error) {
 	r := this.reconcilers[reconciler]
 	if r == nil {
 		return false, fmt.Errorf("reconciler %q not found for %q", reconciler, spec)
@@ -350,11 +357,12 @@ func (this *controller) addReconciler(cname string, spec ReconcilationElementSpe
 	src := _ReconcilationKey{key: spec, cluster: cluster_name, reconciler: reconciler}
 	mapping, ok := this.mappings[src]
 	if ok {
-		if mapping != pool {
+		if mapping.pool != pool {
 			return false, fmt.Errorf("a key (%s) for the same cluster %q (used for %s) and reconciler (%s) can only be handled by one pool (found %q and %q)", spec, cluster_name, aliases, reconciler, pool, mapping)
 		}
 	} else {
-		this.mappings[src] = pool
+		mapping = &_Reconcilation{pool: pool}
+		this.mappings[src] = mapping
 	}
 
 	if cname == "" {
@@ -362,17 +370,65 @@ func (this *controller) addReconciler(cname string, spec ReconcilationElementSpe
 	} else {
 		this.Infof("*** adding reconciler %q for %q in cluster %q (used for %q) using pool %q", reconciler, spec, cluster_name, mappings.ClusterName(cname), pool)
 	}
-	this.getPool(pool).addReconciler(spec, r)
+	p, err := this.getPool(pool)
+	if err != nil {
+		return false, err
+	}
+	mapping.useCount++
+	p.addReconciler(spec, &reconcilerInfo{r, unstructured})
 	return true, nil
 }
 
-func (this *controller) getPool(name string) *pool {
+func (this *controller) removeReconciler(cname string, spec ReconcilationElementSpec, pool string, reconciler string) (bool, error) {
+	r := this.reconcilers[reconciler]
+	if r == nil {
+		return false, fmt.Errorf("reconciler %q not found for %q", reconciler, spec)
+	}
+
+	cluster := this.cluster
+	cluster_name := ""
+	aliases := utils.StringSet{}
+	if cname != "" {
+		cluster = this.clusters.GetCluster(cname)
+		if cluster == nil {
+			return false, fmt.Errorf("cluster %q not found for %q", mappings.ClusterName(cname), spec)
+		}
+		cluster_name = cluster.GetName()
+		aliases = this.clusters.GetAliases(cluster.GetName())
+	}
+
+	src := _ReconcilationKey{key: spec, cluster: cluster_name, reconciler: reconciler}
+	mapping, ok := this.mappings[src]
+	if ok {
+		if mapping.pool != pool {
+			return false, fmt.Errorf("a key (%s) for the same cluster %q (used for %s) and reconciler (%s) can only be handled by one pool (found %q and %q)", spec, cluster_name, aliases, reconciler, pool, mapping)
+		}
+	}
+
+	if cname == "" {
+		this.Infof("*** removing reconciler %q for %q using pool %q", reconciler, spec, pool)
+	} else {
+		this.Infof("*** removing reconciler %q for %q in cluster %q (used for %q) using pool %q", reconciler, spec, cluster_name, mappings.ClusterName(cname), pool)
+	}
+	p, err := this.getPool(pool)
+	if err != nil {
+		return false, err
+	}
+	mapping.useCount--
+	if mapping.useCount == 0 {
+		p.removeReconciler(spec, r)
+		return true, nil
+	}
+	return false, nil
+}
+
+func (this *controller) getPool(name string) (*pool, error) {
 	pool := this.pools[name]
 	if pool == nil {
 		def := this.definition.Pools()[name]
 
 		if def == nil {
-			panic(fmt.Sprintf("unknown pool %q for controller %q", name, this.GetName()))
+			return nil, fmt.Errorf("unknown pool %q for controller %q", name, this.GetName())
 		}
 		this.Infof("get pool config %q", def.GetName())
 		options := this.options.PrefixedShared().GetSource(def.GetName()).(config.OptionSet)
@@ -383,8 +439,11 @@ func (this *controller) getPool(name string) *pool {
 		}
 		pool = NewPool(this, name, size, period)
 		this.pools[name] = pool
+		if this.IsReady() {
+			this.startPool(pool)
+		}
 	}
-	return pool
+	return pool, nil
 }
 
 func (this *controller) GetPool(name string) Pool {
@@ -544,14 +603,78 @@ func (this *controller) AddCluster(cluster cluster.Interface) error {
 	return nil
 }
 
-func (this *controller) registerWatch(h *ClusterHandler, r WatchResource, p string) error {
+func (this *controller) registerWatch(h *ClusterHandler, r WatchResource, pool string) error {
 	var optionsFunc resources.TweakListOptionsFunc
 	var ns = ""
 
 	if r.WatchSelectionFunction() != nil {
 		ns, optionsFunc = r.WatchSelectionFunction()(this)
 	}
-	return h.register(r, ns, optionsFunc, this.getPool(p))
+	p, err := this.getPool(pool)
+	if err != nil {
+		return err
+	}
+	return h.register(r, ns, optionsFunc, p)
+}
+
+func (this *controller) UnregisterWatch(w Watch) (bool, error) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	if _, ok := this.dynamic[w]; !ok {
+		return false, nil
+	}
+	set, err := this.removeReconciler(w.Cluster(), w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler())
+	if !set || err != nil {
+		return set, err
+	}
+	var optionsFunc resources.TweakListOptionsFunc
+	var ns = ""
+
+	if w.WatchSelectionFunction() != nil {
+		ns, optionsFunc = w.WatchSelectionFunction()(this)
+	}
+	h, err := this.getClusterHandler(w.Cluster())
+	if err != nil {
+		return false, err
+	}
+	p, err := this.getPool(w.PoolName())
+	if err != nil {
+		return false, err
+	}
+	err = h.unregister(w, ns, optionsFunc, p)
+	if err == nil {
+		delete(this.dynamic, w)
+	}
+	return false, err
+}
+
+func (this *controller) RegisterWatch(w Watch) (bool, error) {
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	set, err := this.addReconciler(w.Cluster(), w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler(), w.Unstructured())
+	if !set || err != nil {
+		return set, err
+	}
+	var optionsFunc resources.TweakListOptionsFunc
+	var ns = ""
+
+	if w.WatchSelectionFunction() != nil {
+		ns, optionsFunc = w.WatchSelectionFunction()(this)
+	}
+	h, err := this.getClusterHandler(w.Cluster())
+	if err != nil {
+		return false, err
+	}
+	p, err := this.getPool(w.PoolName())
+	if err != nil {
+		return false, err
+	}
+	err = h.register(w, ns, optionsFunc, p)
+	if err == nil {
+		this.dynamic[w] = struct{}{}
+	}
+	return false, err
 }
 
 // Prepare finally prepares the controller to run
@@ -595,12 +718,16 @@ func (this *controller) prepare() error {
 	return nil
 }
 
+func (this *controller) startPool(p *pool) {
+	ctxutil.WaitGroupRunAndCancelOnExit(this.GetContext(), p.Run)
+}
+
 func (this *controller) Run() {
 
 	this.ready.ready()
 	this.Infof("starting pools...")
 	for _, p := range this.pools {
-		ctxutil.WaitGroupRunAndCancelOnExit(this.GetContext(), p.Run)
+		this.startPool(p)
 	}
 
 	this.Infof("starting reconcilers...")

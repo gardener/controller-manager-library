@@ -54,10 +54,10 @@ func NewAbstractResources(ctx ResourceContext, self Resources, factory Factory) 
 			return nil, errors.ErrUnknownResource.New("group version kind", gvk)
 		}
 		return this._newResource(gvk, informerType)
-	})
+	}, false)
 	this.unstructuredHandlers = newHandlersByGxK(func(gvk schema.GroupVersionKind) (Resource, error) {
 		return this._newResource(gvk, nil)
-	})
+	}, true)
 	return this
 }
 
@@ -198,13 +198,15 @@ type getResource func(gvk schema.GroupVersionKind) (Resource, error)
 
 type handlersByGxK struct {
 	lock                       sync.Mutex
+	unrestricted               bool
 	handlersByGroupKind        map[schema.GroupKind]Resource
 	handlersByGroupVersionKind map[schema.GroupVersionKind]Resource
 	getResource                getResource
 }
 
-func newHandlersByGxK(getResource getResource) handlersByGxK {
+func newHandlersByGxK(getResource getResource, unrestricted bool) handlersByGxK {
 	return handlersByGxK{
+		unrestricted:               unrestricted,
 		handlersByGroupKind:        map[schema.GroupKind]Resource{},
 		handlersByGroupVersionKind: map[schema.GroupVersionKind]Resource{},
 		getResource:                getResource,
@@ -219,7 +221,7 @@ func (this *handlersByGxK) getByGK(ctx ResourceContext, gk schema.GroupKind) (Re
 		return handler, nil
 	}
 
-	gvk, err := ctx.GetGVKForGK(gk)
+	gvk, err := ctx.GetGVKForGK(gk, this.unrestricted)
 	if err != nil {
 		return nil, err
 	}

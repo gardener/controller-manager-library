@@ -32,15 +32,29 @@ func init() {
 	poolkey, _ = utils.TypeKey((*Pool)(nil))
 }
 
-type reconcilers []reconcile.Interface
+type reconcilerInfo struct {
+	reconcile.Interface
+	unstructured bool
+}
 
-func (this reconcilers) add(reconciler reconcile.Interface) reconcilers {
+type reconcilers []*reconcilerInfo
+
+func (this reconcilers) add(reconciler *reconcilerInfo) reconcilers {
 	for _, r := range this {
-		if r == reconciler {
+		if r.Interface == reconciler {
 			return this
 		}
 	}
 	return append(this, reconciler)
+}
+
+func (this reconcilers) remove(reconciler reconcile.Interface) reconcilers {
+	for i, r := range this {
+		if r.Interface == reconciler {
+			return append(this[:i], this[i+1:]...)
+		}
+	}
+	return this
 }
 
 type reconcilerMapping struct {
@@ -71,14 +85,25 @@ func (this *reconcilerMapping) getReconcilers(key interface{}) reconcilers {
 	return i
 }
 
-func (this *reconcilerMapping) addReconciler(key ReconcilationElementSpec, reconciler reconcile.Interface) {
+func (this *reconcilerMapping) addReconciler(key ReconcilationElementSpec, info *reconcilerInfo) {
 	switch k := key.(type) {
 	case utils.StringMatcher:
-		this.values[string(k)] = this.values[string(k)].add(reconciler)
+		this.values[string(k)] = this.values[string(k)].add(info)
 	case utils.Matcher:
-		this.matchers[k] = this.matchers[k].add(reconciler)
+		this.matchers[k] = this.matchers[k].add(info)
 	default:
-		this.values[k] = this.values[k].add(reconciler)
+		this.values[k] = this.values[k].add(info)
+	}
+}
+
+func (this *reconcilerMapping) removeReconciler(key ReconcilationElementSpec, reconciler reconcile.Interface) {
+	switch k := key.(type) {
+	case utils.StringMatcher:
+		this.values[string(k)] = this.values[string(k)].remove(reconciler)
+	case utils.Matcher:
+		this.matchers[k] = this.matchers[k].remove(reconciler)
+	default:
+		this.values[k] = this.values[k].remove(reconciler)
 	}
 }
 
@@ -122,12 +147,17 @@ func (p *pool) whenReady() {
 	p.controller.whenReady()
 }
 
-func (p *pool) addReconciler(key ReconcilationElementSpec, reconciler reconcile.Interface) {
-	p.Infof("adding reconciler %T for key %q", reconciler, key)
-	p.reconcilers.addReconciler(key, reconciler)
+func (p *pool) addReconciler(key ReconcilationElementSpec, info *reconcilerInfo) {
+	p.Infof("adding reconciler %T for key %q", info.Interface, key)
+	p.reconcilers.addReconciler(key, info)
 }
 
-func (p *pool) getReconcilers(key interface{}) []reconcile.Interface {
+func (p *pool) removeReconciler(key ReconcilationElementSpec, reconciler reconcile.Interface) {
+	p.Infof("removing reconciler %T for key %q", reconciler, key)
+	p.reconcilers.removeReconciler(key, reconciler)
+}
+
+func (p *pool) getReconcilers(key interface{}) []*reconcilerInfo {
 	p.whenReady()
 	return p.reconcilers.getReconcilers(key)
 }

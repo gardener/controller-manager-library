@@ -13,6 +13,8 @@ import (
 	"sync"
 
 	"golang.org/x/sync/semaphore"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +23,28 @@ import (
 	rerrors "github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
+
+func UnstructuredResource(r Interface) (Interface, error) {
+	if r.ObjectType() == unstructuredType {
+		return r, nil
+	}
+	return r.Resources().GetUnstructured(r.GroupVersionKind())
+}
+
+func UnstructuredObject(o Object) (Object, error) {
+	if o.GetResource().ObjectType() == unstructuredType {
+		return o, nil
+	}
+	u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(o.Data())
+	if err != nil {
+		return nil, err
+	}
+	r, err := o.Resources().GetUnstructured(o.GroupVersionKind())
+	if err != nil {
+		return nil, err
+	}
+	return r.Wrap(&unstructured.Unstructured{u})
+}
 
 func SetAnnotation(o ObjectData, key, value string) bool {
 	annos := o.GetAnnotations()

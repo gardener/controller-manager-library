@@ -29,6 +29,7 @@ type GenericInformer interface {
 	// Selected Methods from cache.SharedInformer
 
 	AddEventHandler(handler cache.ResourceEventHandler)
+	RemoveEventHandler(handler cache.ResourceEventHandler) error
 	HasSynced() bool
 	LastSyncResourceVersion() string
 	Run()
@@ -131,12 +132,12 @@ func (w *genericHandler) AddEventHandler(h cache.ResourceEventHandler) {
 	}
 }
 
-func (w *genericHandler) RemoveEventHandler(h cache.ResourceEventHandler) {
+func (w *genericHandler) RemoveEventHandler(h cache.ResourceEventHandler) error {
 	var p *wrappedHandler
 	var ok bool
 
 	if !utils.IsComparable(h) {
-		return
+		return fmt.Errorf("uncomparable event handler cannot be removed")
 	}
 
 	func() {
@@ -152,10 +153,10 @@ func (w *genericHandler) RemoveEventHandler(h cache.ResourceEventHandler) {
 		p.processor.Stop()
 		p.processor.Wait()
 	}
+	return nil
 }
 
 func (w *genericHandler) OnAdd(obj interface{}) {
-	fmt.Printf("ADD(generic): %T\n", obj)
 	w.lock.RLock()
 	defer w.lock.RUnlock()
 	for _, h := range w.comparable {
@@ -163,7 +164,6 @@ func (w *genericHandler) OnAdd(obj interface{}) {
 	}
 }
 func (w *genericHandler) OnUpdate(oldObj, newObj interface{}) {
-	fmt.Printf("UPDATE(generic): %T\n", newObj)
 	w.lock.RLock()
 	defer w.lock.RUnlock()
 	for _, h := range w.comparable {
@@ -171,7 +171,6 @@ func (w *genericHandler) OnUpdate(oldObj, newObj interface{}) {
 	}
 }
 func (w *genericHandler) OnDelete(obj interface{}) {
-	fmt.Printf("DELETE(generic): %T\n", obj)
 	w.lock.RLock()
 	defer w.lock.RUnlock()
 	for _, h := range w.comparable {
@@ -236,15 +235,18 @@ func (w *genericInformer) AddEventHandler(h cache.ResourceEventHandler) {
 	w.generic.AddEventHandler(h)
 }
 
-func (w *genericInformer) RemoveEventHandler(h cache.ResourceEventHandler) {
+func (w *genericInformer) RemoveEventHandler(h cache.ResourceEventHandler) error {
 	w.lock.Lock()
 	defer w.lock.Unlock()
-	w.generic.RemoveEventHandler(h)
-	if w.lister == nil && w.generic.Size() == 0 {
-		w.generic.StopAndWait()
-		w.SharedIndexInformer = nil
-		w.generic = nil
+	err := w.generic.RemoveEventHandler(h)
+	if err == nil {
+		if w.lister == nil && w.generic.Size() == 0 {
+			w.generic.StopAndWait()
+			w.SharedIndexInformer = nil
+			w.generic = nil
+		}
 	}
+	return err
 }
 
 func (w *genericInformer) IsUsed() bool {

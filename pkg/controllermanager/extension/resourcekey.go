@@ -43,10 +43,10 @@ func (k resourceKey) String() string {
 	return fmt.Sprintf("%s/%s", k.key.Group, k.key.Kind)
 }
 
+var _ resources.GroupKindProvider = resources.Object(nil)
+
 func GetResourceKey(objspec interface{}) ResourceKey {
 	switch s := objspec.(type) {
-	case resources.Object:
-		return NewResourceKey(s.GroupKind().Group, s.GroupKind().Kind)
 	case resources.ObjectKey:
 		return NewResourceKey(s.Group(), s.Kind())
 	case schema.GroupKind:
@@ -56,6 +56,9 @@ func GetResourceKey(objspec interface{}) ResourceKey {
 	case resources.ObjectInfo:
 		key := s.Key()
 		return NewResourceKey(key.Group(), key.Kind())
+	case resources.GroupKindProvider:
+		gk := s.GroupKind()
+		return NewResourceKey(gk.Group, gk.Kind)
 	default:
 		panic(fmt.Errorf("invalid object spec %T for resource key", objspec))
 	}

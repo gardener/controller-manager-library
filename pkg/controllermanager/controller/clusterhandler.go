@@ -21,11 +21,46 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
+type poolInfo struct {
+	useCount int
+}
+
 type clusterResourceInfo struct {
 	resource    resources.Interface
-	pools       []*pool
+	pools       map[*pool]*poolInfo
+	minimal     bool
 	namespace   string
 	optionsFunc resources.TweakListOptionsFunc
+}
+
+func (this *clusterResourceInfo) Check(minimal bool, namespace string, optionsFunc resources.TweakListOptionsFunc) error {
+	if this.minimal != minimal {
+		return fmt.Errorf("watch namespace minimal mismatch for resource %s (%q != %q)", GetResourceKey(this.resource), this.minimal, minimal)
+	}
+	if this.namespace != namespace {
+		return fmt.Errorf("watch namespace mismatch for resource %s (%q != %q)", GetResourceKey(this.resource), this.namespace, namespace)
+	}
+	if (this.optionsFunc == nil) != (optionsFunc == nil) {
+		return fmt.Errorf("watch options mismatch for resource %s", GetResourceKey(this.resource))
+	}
+	return nil
+}
+
+func (this *clusterResourceInfo) IsUsed() bool {
+	for _, i := range this.pools {
+		if i.useCount > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func (this *clusterResourceInfo) UsePool(usedpool *pool) {
+	if i := this.pools[usedpool]; i != nil {
+		i.useCount++
+	} else {
+		this.pools[usedpool] = &poolInfo{1}
+	}
 }
 
 func (this *clusterResourceInfo) List() ([]resources.Object, error) {
@@ -39,21 +74,47 @@ func (this *clusterResourceInfo) List() ([]resources.Object, error) {
 	return this.resource.List(opts)
 }
 
+type WatchKey struct {
+	rtype        ResourceKey
+	unstructured bool
+	minimal      bool
+}
+
+func (this WatchKey) ResourceKey() ResourceKey { return this.rtype }
+func (this WatchKey) Unstructured() bool       { return this.unstructured }
+func (this WatchKey) Minimal() bool            { return this.minimal }
+
 type ClusterHandler struct {
 	logger.LogContext
 	controller *controller
 	cluster    cluster.Interface
 	resources  map[ResourceKey]*clusterResourceInfo
 	cache      sync.Map
+
+	regularHandler resources.ResourceEventHandler
+	infoHandler    resources.ResourceInfoEventHandler
 }
 
 func newClusterHandler(controller *controller, cluster cluster.Interface) (*ClusterHandler, error) {
-	return &ClusterHandler{
+	c := &ClusterHandler{
 		LogContext: controller.NewContext("cluster", cluster.GetName()),
 		controller: controller,
 		cluster:    cluster,
 		resources:  map[ResourceKey]*clusterResourceInfo{},
-	}, nil
+	}
+
+	c.regularHandler = &resources.ResourceEventHandlerFuncs{
+		AddFunc:    c.objectAdd,
+		UpdateFunc: c.objectUpdate,
+		DeleteFunc: c.objectDelete,
+	}
+
+	c.infoHandler = &resources.ResourceInfoEventHandlerFuncs{
+		AddFunc:    c.objectInfoAdd,
+		UpdateFunc: c.objectInfoUpdate,
+		DeleteFunc: c.objectInfoDelete,
+	}
+	return c, nil
 }
 
 func (c *ClusterHandler) whenReady() {
@@ -72,39 +133,67 @@ func (c *ClusterHandler) GetResource(resourceKey ResourceKey) (resources.Interfa
 	return c.cluster.GetResource(resourceKey.GroupKind())
 }
 
-func (c *ClusterHandler) register(watchResource WatchResource, namespace string, optionsFunc resources.TweakListOptionsFunc, usedpool *pool) error {
+func (c *ClusterHandler) newResourceInfo(key WatchKey, resource resources.Interface, namespace string, optionsFunc resources.TweakListOptionsFunc) *clusterResourceInfo {
+	i := &clusterResourceInfo{
+		pools:       map[*pool]*poolInfo{},
+		namespace:   namespace,
+		optionsFunc: optionsFunc,
+		resource:    resource,
+		minimal:     key.Minimal(),
+	}
+	c.resources[key.ResourceKey()] = i
+	return i
+}
+
+func (c *ClusterHandler) unregister(watchResource WatchResource, namespace string, optionsFunc resources.TweakListOptionsFunc, usedpool *pool) error {
+	watchKey := watchResource.WatchKey()
 	resourceKey := watchResource.ResourceType()
+	watchKey.minimal = watchResource.ShouldEnforceMinimal() || c.cluster.Definition().IsMinimalWatchEnforced(resourceKey.GroupKind())
+	i := c.resources[resourceKey]
+	if i != nil && i.pools[usedpool] != nil && i.pools[usedpool].useCount > 0 {
+		if err := i.Check(watchKey.Minimal(), namespace, optionsFunc); err != nil {
+			return err
+		}
+		i.pools[usedpool].useCount--
+		if i.pools[usedpool].useCount == 0 {
+			if watchKey.Minimal() {
+				i.resource.RemoveSelectedInfoEventHandler(c.infoHandler, namespace, optionsFunc)
+			} else {
+				i.resource.RemoveSelectedEventHandler(c.regularHandler, namespace, optionsFunc)
+			}
+			delete(c.resources, resourceKey)
+		}
+	}
+	return nil
+}
+
+func (c *ClusterHandler) register(watchResource WatchResource, namespace string, optionsFunc resources.TweakListOptionsFunc, usedpool *pool) error {
+	watchKey := watchResource.WatchKey()
+	resourceKey := watchResource.ResourceType()
+	watchKey.minimal = watchResource.ShouldEnforceMinimal() || c.cluster.Definition().IsMinimalWatchEnforced(resourceKey.GroupKind())
 	i := c.resources[resourceKey]
 	if i == nil {
-		resource, err := c.cluster.GetResource(resourceKey.GroupKind())
+		resource, err := c.cluster.GetResource(resourceKey.GroupKind(), watchResource.Unstructured())
 		if err != nil {
 			return err
 		}
+		i = c.newResourceInfo(watchKey, resource, namespace, optionsFunc)
+	}
 
-		i = &clusterResourceInfo{
-			pools:       []*pool{usedpool},
-			namespace:   namespace,
-			optionsFunc: optionsFunc,
-			resource:    resource,
-		}
-		c.resources[resourceKey] = i
-
-		if watchResource.ShouldEnforceMinimal() || c.cluster.Definition().IsMinimalWatchEnforced(resourceKey.GroupKind()) {
-			if err := resource.AddSelectedInfoEventHandler(c.GetInfoEventHandlerFuncs(), namespace, optionsFunc); err != nil {
+	if err := i.Check(watchKey.Minimal(), namespace, optionsFunc); err != nil {
+		return err
+	}
+	if !i.IsUsed() {
+		if watchKey.Minimal() {
+			if err := i.resource.AddSelectedInfoEventHandler(c.infoHandler, namespace, optionsFunc); err != nil {
 				return err
 			}
 		} else {
-			if err := resource.AddSelectedEventHandler(c.GetEventHandlerFuncs(), namespace, optionsFunc); err != nil {
+			if err := i.resource.AddSelectedEventHandler(c.regularHandler, namespace, optionsFunc); err != nil {
 				return err
 			}
 		}
 	} else {
-		if i.namespace != namespace {
-			return fmt.Errorf("watch namespace mismatch for resource %s (%q != %q)", resourceKey, i.namespace, namespace)
-		}
-		if (i.optionsFunc == nil) != (optionsFunc == nil) {
-			return fmt.Errorf("watch options mismatch for resource %s", resourceKey)
-		}
 		if optionsFunc != nil {
 			opts1 := &v1.ListOptions{}
 			opts2 := &v1.ListOptions{}
@@ -114,31 +203,10 @@ func (c *ClusterHandler) register(watchResource WatchResource, namespace string,
 				return fmt.Errorf("watch options mismatch for resource %s (%+v != %+v)", resourceKey, opts1, opts2)
 			}
 		}
-		for _, p := range i.pools {
-			if p == usedpool {
-				return nil
-			}
-		}
-		i.pools = append(i.pools, usedpool)
 	}
+	i.UsePool(usedpool)
 
 	return nil
-}
-
-func (c *ClusterHandler) GetEventHandlerFuncs() resources.ResourceEventHandlerFuncs {
-	return resources.ResourceEventHandlerFuncs{
-		AddFunc:    c.objectAdd,
-		UpdateFunc: c.objectUpdate,
-		DeleteFunc: c.objectDelete,
-	}
-}
-
-func (c *ClusterHandler) GetInfoEventHandlerFuncs() resources.ResourceInfoEventHandlerFuncs {
-	return resources.ResourceInfoEventHandlerFuncs{
-		AddFunc:    c.objectInfoAdd,
-		UpdateFunc: c.objectInfoUpdate,
-		DeleteFunc: c.objectInfoDelete,
-	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -154,7 +222,7 @@ func (c *ClusterHandler) EnqueueKey(key resources.ClusterObjectKey) error {
 	if i.pools == nil || len(i.pools) == 0 {
 		return fmt.Errorf("cluster %q: no worker pool for type %s", c, rk)
 	}
-	for _, p := range i.pools {
+	for p := range i.pools {
 		p.EnqueueKey(key)
 	}
 	return nil
@@ -167,7 +235,7 @@ func (c *ClusterHandler) enqueue(obj resources.ObjectInfo, e func(p *pool, r res
 	if i.pools == nil || len(i.pools) == 0 {
 		return fmt.Errorf("no worker pool for type %s", obj.Key().GroupKind())
 	}
-	for _, p := range i.pools {
+	for p := range i.pools {
 		// p.Infof("enqueue %s", resources.ObjectrKey(obj))
 		e(p, obj)
 	}

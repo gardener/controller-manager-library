@@ -68,7 +68,7 @@ type ResourceContext interface {
 
 	GetGroups() []schema.GroupVersion
 	GetGVK(obj runtime.Object) (schema.GroupVersionKind, error)
-	GetGVKForGK(gk schema.GroupKind) (schema.GroupVersionKind, error)
+	GetGVKForGK(gk schema.GroupKind, unrestricted bool) (schema.GroupVersionKind, error)
 }
 
 type Resources interface {
