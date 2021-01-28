@@ -8,6 +8,7 @@ package resources
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -78,11 +79,12 @@ func (w *wrappedHandler) OnDelete(obj interface{}) {
 type genericHandler struct {
 	lock     sync.RWMutex
 	ctx      context.Context
+	informer cache.SharedIndexInformer
 	handlers map[cache.ResourceEventHandler]*wrappedHandler
 }
 
-func newGenericHandlerr(ctx context.Context) *genericHandler {
-	ret := &genericHandler{handlers: map[cache.ResourceEventHandler]*wrappedHandler{}, ctx: ctx}
+func newGenericHandler(ctx context.Context, informer cache.SharedIndexInformer) *genericHandler {
+	ret := &genericHandler{handlers: map[cache.ResourceEventHandler]*wrappedHandler{}, ctx: ctx, informer: informer}
 	return ret
 }
 
@@ -108,7 +110,14 @@ func (w *genericHandler) AddEventHandler(h cache.ResourceEventHandler) {
 	w.lock.Lock()
 	defer w.lock.Unlock()
 	if _, ok := w.handlers[h]; !ok {
-		w.handlers[h] = newWrappedHandler(w.ctx, h)
+		n := newWrappedHandler(w.ctx, h)
+		w.handlers[h] = n
+		// TODO: this is not safe: there might be older EVENts coming after
+		// the list, if before the list and lock events are reported
+		list := w.informer.GetIndexer().List()
+		for _, o := range list {
+			n.OnAdd(o)
+		}
 	}
 }
 
@@ -132,6 +141,7 @@ func (w *genericHandler) RemoveEventHandler(h cache.ResourceEventHandler) {
 }
 
 func (w *genericHandler) OnAdd(obj interface{}) {
+	fmt.Printf("ADD(generic): %T\n", obj)
 	w.lock.RLock()
 	defer w.lock.RUnlock()
 	for _, h := range w.handlers {
@@ -139,6 +149,7 @@ func (w *genericHandler) OnAdd(obj interface{}) {
 	}
 }
 func (w *genericHandler) OnUpdate(oldObj, newObj interface{}) {
+	fmt.Printf("UPDATE(generic): %T\n", newObj)
 	w.lock.RLock()
 	defer w.lock.RUnlock()
 	for _, h := range w.handlers {
@@ -146,6 +157,7 @@ func (w *genericHandler) OnUpdate(oldObj, newObj interface{}) {
 	}
 }
 func (w *genericHandler) OnDelete(obj interface{}) {
+	fmt.Printf("DELETE(generic): %T\n", obj)
 	w.lock.RLock()
 	defer w.lock.RUnlock()
 	for _, h := range w.handlers {
@@ -189,7 +201,7 @@ func (f *genericInformer) new() error {
 	}
 	f.SharedIndexInformer = cache.NewSharedIndexInformer(listWatch, f.lw.ExampleObject(), resyncPeriod(f.lw.Resync())(),
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	f.generic = newGenericHandlerr(ctx)
+	f.generic = newGenericHandler(ctx, f.SharedIndexInformer)
 	return nil
 }
 
