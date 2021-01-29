@@ -232,6 +232,10 @@ func (c *ClusterHandler) enqueue(obj resources.ObjectInfo, e func(p *pool, r res
 	c.whenReady()
 	// c.Infof("enqueue %s", obj.Description())
 	i := c.resources[GetResourceKey(obj)]
+	if i == nil {
+		c.Infof("@@@ trying to enqueue %s for cluster %a", obj.Key(), c.String())
+		return nil
+	}
 	if i.pools == nil || len(i.pools) == 0 {
 		return fmt.Errorf("no worker pool for type %s", obj.Key().GroupKind())
 	}

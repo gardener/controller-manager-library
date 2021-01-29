@@ -353,6 +353,10 @@ func (this *controller) addReconciler(cname string, spec ReconcilationElementSpe
 				reconciler, gk, cluster.GetName())
 		}
 	}
+	p, err := this.getPool(pool)
+	if err != nil {
+		return false, err
+	}
 
 	src := _ReconcilationKey{key: spec, cluster: cluster_name, reconciler: reconciler}
 	mapping, ok := this.mappings[src]
@@ -370,19 +374,15 @@ func (this *controller) addReconciler(cname string, spec ReconcilationElementSpe
 	} else {
 		this.Infof("*** adding reconciler %q for %q in cluster %q (used for %q) using pool %q", reconciler, spec, cluster_name, mappings.ClusterName(cname), pool)
 	}
-	p, err := this.getPool(pool)
-	if err != nil {
-		return false, err
-	}
 	mapping.useCount++
 	p.addReconciler(spec, &reconcilerInfo{r, unstructured})
 	return true, nil
 }
 
-func (this *controller) removeReconciler(cname string, spec ReconcilationElementSpec, pool string, reconciler string) (bool, error) {
+func (this *controller) getReconcilationInfo(cname string, spec ReconcilationElementSpec, pool string, reconciler string) (reconcile.Interface, *pool, *_Reconcilation, error) {
 	r := this.reconcilers[reconciler]
 	if r == nil {
-		return false, fmt.Errorf("reconciler %q not found for %q", reconciler, spec)
+		return nil, nil, nil, fmt.Errorf("reconciler %q not found for %q", reconciler, spec)
 	}
 
 	cluster := this.cluster
@@ -391,7 +391,7 @@ func (this *controller) removeReconciler(cname string, spec ReconcilationElement
 	if cname != "" {
 		cluster = this.clusters.GetCluster(cname)
 		if cluster == nil {
-			return false, fmt.Errorf("cluster %q not found for %q", mappings.ClusterName(cname), spec)
+			return nil, nil, nil, fmt.Errorf("cluster %q not found for %q", mappings.ClusterName(cname), spec)
 		}
 		cluster_name = cluster.GetName()
 		aliases = this.clusters.GetAliases(cluster.GetName())
@@ -401,25 +401,14 @@ func (this *controller) removeReconciler(cname string, spec ReconcilationElement
 	mapping, ok := this.mappings[src]
 	if ok {
 		if mapping.pool != pool {
-			return false, fmt.Errorf("a key (%s) for the same cluster %q (used for %s) and reconciler (%s) can only be handled by one pool (found %q and %q)", spec, cluster_name, aliases, reconciler, pool, mapping)
+			return nil, nil, nil, fmt.Errorf("a key (%s) for the same cluster %q (used for %s) and reconciler (%s) can only be handled by one pool (found %q and %q)", spec, cluster_name, aliases, reconciler, pool, mapping)
 		}
-	}
-
-	if cname == "" {
-		this.Infof("*** removing reconciler %q for %q using pool %q", reconciler, spec, pool)
-	} else {
-		this.Infof("*** removing reconciler %q for %q in cluster %q (used for %q) using pool %q", reconciler, spec, cluster_name, mappings.ClusterName(cname), pool)
 	}
 	p, err := this.getPool(pool)
 	if err != nil {
-		return false, err
+		return nil, nil, nil, err
 	}
-	mapping.useCount--
-	if mapping.useCount == 0 {
-		p.removeReconciler(spec, r)
-		return true, nil
-	}
-	return false, nil
+	return r, p, mapping, nil
 }
 
 func (this *controller) getPool(name string) (*pool, error) {
@@ -624,16 +613,6 @@ func (this *controller) UnregisterWatch(w Watch) (bool, error) {
 	if _, ok := this.dynamic[w]; !ok {
 		return false, nil
 	}
-	set, err := this.removeReconciler(w.Cluster(), w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler())
-	if !set || err != nil {
-		return set, err
-	}
-	var optionsFunc resources.TweakListOptionsFunc
-	var ns = ""
-
-	if w.WatchSelectionFunction() != nil {
-		ns, optionsFunc = w.WatchSelectionFunction()(this)
-	}
 	h, err := this.getClusterHandler(w.Cluster())
 	if err != nil {
 		return false, err
@@ -642,26 +621,48 @@ func (this *controller) UnregisterWatch(w Watch) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	err = h.unregister(w, ns, optionsFunc, p)
-	if err == nil {
-		delete(this.dynamic, w)
+
+	var optionsFunc resources.TweakListOptionsFunc
+	var ns = ""
+
+	if w.WatchSelectionFunction() != nil {
+		ns, optionsFunc = w.WatchSelectionFunction()(this)
 	}
-	return false, err
+
+	dropped := false
+	r, p, mapping, err := this.getReconcilationInfo(w.Cluster(), w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler())
+	if err != nil {
+		return false, err
+	}
+	// first check if the last reconcilation would vanish and
+	// unregiister the watch to prevent orphaned events
+	if mapping.useCount == 1 {
+		err = h.unregister(w, ns, optionsFunc, p)
+		if err != nil {
+			return false, err
+		}
+		dropped = true
+	}
+	// then really remove the reconciler if required
+	mapping.useCount--
+	if dropped {
+		if w.Cluster() == "" {
+			this.Infof("*** removing reconciler %q for %q using pool %q",
+				w.Reconciler(), w.ResourceType().GroupKind(), w.PoolName())
+		} else {
+			this.Infof("*** removing reconciler %q for %q in cluster %q (used for %q) using pool %q",
+				w.Reconciler(), w.ResourceType().GroupKind(), w.Cluster(), mappings.ClusterName(w.Cluster()), w.PoolName())
+		}
+		p.removeReconciler(w.ResourceType().GroupKind(), r)
+	}
+	delete(this.dynamic, w)
+	return dropped, nil
 }
 
 func (this *controller) RegisterWatch(w Watch) (bool, error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	set, err := this.addReconciler(w.Cluster(), w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler(), w.Unstructured())
-	if !set || err != nil {
-		return set, err
-	}
-	var optionsFunc resources.TweakListOptionsFunc
-	var ns = ""
 
-	if w.WatchSelectionFunction() != nil {
-		ns, optionsFunc = w.WatchSelectionFunction()(this)
-	}
 	h, err := this.getClusterHandler(w.Cluster())
 	if err != nil {
 		return false, err
@@ -669,6 +670,18 @@ func (this *controller) RegisterWatch(w Watch) (bool, error) {
 	p, err := this.getPool(w.PoolName())
 	if err != nil {
 		return false, err
+	}
+
+	var optionsFunc resources.TweakListOptionsFunc
+	var ns = ""
+
+	if w.WatchSelectionFunction() != nil {
+		ns, optionsFunc = w.WatchSelectionFunction()(this)
+	}
+
+	set, err := this.addReconciler(w.Cluster(), w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler(), w.Unstructured())
+	if !set || err != nil {
+		return set, err
 	}
 	err = h.register(w, ns, optionsFunc, p)
 	if err == nil {

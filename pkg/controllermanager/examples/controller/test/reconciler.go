@@ -24,6 +24,8 @@ type reconciler struct {
 	reconcile.DefaultReconciler
 	controller controller.Interface
 	secrets    *reconcilers.SecretUsageCache
+	dynamic    controller.Watch
+	count      int
 }
 
 var _ reconcile.Interface = &reconciler{}
@@ -55,28 +57,24 @@ func (h *reconciler) Setup() error {
 func (h *reconciler) Start() {
 	h.controller.EnqueueCommand("poll")
 	h.controller.Infof("registering dynamic resources")
-	w := controller.NewWatch(controller.CLUSTER_MAIN, "dynamic", "dynamic", controller.NewResourceKey("core", "Pod"))
-	h.controller.RegisterWatch(w)
+	h.dynamic = controller.NewWatch(controller.CLUSTER_MAIN, "dynamic", "dynamic", controller.NewResourceKey("core", "Pod"))
+	h.controller.RegisterWatch(h.dynamic)
 }
 
 func (h *reconciler) Command(logger logger.LogContext, cmd string) reconcile.Status {
 	logger.Infof("got command %q", cmd)
+	h.count++
+	if h.count == 10 {
+		h.controller.UnregisterWatch(h.dynamic)
+	}
 	return reconcile.Succeeded(logger).RescheduleAfter(10 * time.Second)
 }
 
 func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
-	/*
-		o, err := resources.UnstructuredObject(obj)
-		if err != nil {
-			return reconcile.Failed(logger, err)
-		}
-		logger.Infof("GOT %s: %+#v\n", o.GroupVersionKind(), o.Data())
-	*/
 	switch o := obj.Data().(type) {
 	case *corev1.ConfigMap:
 		return h.reconcileConfigMap(logger, obj.ClusterKey(), o)
 	}
-
 	return reconcile.Succeeded(logger)
 }
 

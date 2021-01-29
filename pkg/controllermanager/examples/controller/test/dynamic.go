@@ -17,6 +17,7 @@ import (
 type dynamic struct {
 	reconcile.DefaultReconciler
 	controller controller.Interface
+	notified   bool
 }
 
 var _ reconcile.Interface = &dynamic{}
@@ -29,7 +30,12 @@ func Dynamic(controller controller.Interface) (reconcile.Interface, error) {
 
 func (h *dynamic) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
 
-	logger.Infof("GOT dynamic %s: %+#v\n", obj.GroupVersionKind(), obj.Data())
+	if h.notified {
+		logger.Infof("GOT dynamic %s", obj.ClusterKey())
+	} else {
+		h.notified = true
+		logger.Infof("GOT dynamic %s: %+#v\n", obj.GroupVersionKind(), obj.Data())
+	}
 
 	return reconcile.Succeeded(logger)
 }
