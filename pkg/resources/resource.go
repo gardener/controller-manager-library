@@ -142,12 +142,16 @@ func (this *_resource) removeRawSelectedEventHandler(minimal bool, handler cache
 	if namespace != "" {
 		withNamespace = fmt.Sprintf("namespace %s", namespace)
 	}
-	logger.Infof("adding watch for %s (cluster %s, %s)", this.GroupVersionKind(), this.GetCluster().GetId(), withNamespace)
+	logger.Infof("removing watch for %s (cluster %s, %s)", this.GroupVersionKind(), this.GetCluster().GetId(), withNamespace)
 	informer, err := this.helper.Internal.I_getInformer(minimal, namespace, optionsFunc)
 	if err != nil {
 		return err
 	}
-	return informer.RemoveEventHandler(handler)
+	stopped, err := informer.RemoveEventHandler(handler)
+	if stopped {
+		logger.Infof("watch stopped for (cluster %s, %s)", this.GroupVersionKind(), this.GetCluster().GetId(), withNamespace)
+	}
+	return err
 }
 
 func (this *_resource) AddEventHandler(handler ResourceEventHandler) error {
@@ -183,7 +187,7 @@ func (this *_resource) RemoveSelectedEventHandler(handler ResourceEventHandler, 
 	if !removable {
 		return fmt.Errorf("handler is not removable")
 	}
-	return this.AddRawSelectedEventHandler(h, namespace, optionsFunc)
+	return this.RemoveRawSelectedEventHandler(h, namespace, optionsFunc)
 }
 
 func (this *_resource) RemoveInfoEventHandler(handler ResourceInfoEventHandler) error {
@@ -191,7 +195,7 @@ func (this *_resource) RemoveInfoEventHandler(handler ResourceInfoEventHandler) 
 	if !removable {
 		return fmt.Errorf("handler is not removable")
 	}
-	return this.AddRawInfoEventHandler(h)
+	return this.RemoveRawInfoEventHandler(h)
 }
 
 func (this *_resource) RemoveSelectedInfoEventHandler(handler ResourceInfoEventHandler, namespace string, optionsFunc TweakListOptionsFunc) error {
@@ -199,7 +203,7 @@ func (this *_resource) RemoveSelectedInfoEventHandler(handler ResourceInfoEventH
 	if !removable {
 		return fmt.Errorf("handler is not removable")
 	}
-	return this.AddRawSelectedInfoEventHandler(h, namespace, optionsFunc)
+	return this.RemoveRawSelectedInfoEventHandler(h, namespace, optionsFunc)
 }
 
 func (this *_resource) NormalEventf(name ObjectDataName, reason, msgfmt string, args ...interface{}) {
