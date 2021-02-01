@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
@@ -110,6 +111,7 @@ func (this *reconcilerMapping) removeReconciler(key ReconcilationElementSpec, re
 type pool struct {
 	logger.LogContext
 	*controller
+	lock        sync.RWMutex
 	name        string
 	size        int
 	ctx         context.Context
@@ -148,17 +150,23 @@ func (p *pool) whenReady() {
 }
 
 func (p *pool) addReconciler(key ReconcilationElementSpec, info *reconcilerInfo) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	p.Infof("adding reconciler %T for key %q", info.Interface, key)
 	p.reconcilers.addReconciler(key, info)
 }
 
 func (p *pool) removeReconciler(key ReconcilationElementSpec, reconciler reconcile.Interface) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	p.Infof("removing reconciler %T for key %q", reconciler, key)
 	p.reconcilers.removeReconciler(key, reconciler)
 }
 
 func (p *pool) getReconcilers(key interface{}) []*reconcilerInfo {
 	p.whenReady()
+	p.lock.RLock()
+	defer p.lock.RUnlock()
 	return p.reconcilers.getReconcilers(key)
 }
 

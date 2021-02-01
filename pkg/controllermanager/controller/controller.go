@@ -326,63 +326,29 @@ func (this *controller) GetReconciler(name string) reconcile.Interface {
 }
 
 func (this *controller) addReconciler(cname string, spec ReconcilationElementSpec, pool string, reconciler string, unstructured bool) (bool, error) {
-	r := this.reconcilers[reconciler]
-	if r == nil {
-		return false, fmt.Errorf("reconciler %q not found for %q", reconciler, spec)
-	}
-
-	cluster := this.cluster
-	cluster_name := ""
-	aliases := utils.StringSet{}
-	if cname != "" {
-		cluster = this.clusters.GetCluster(cname)
-		if cluster == nil {
-			return false, fmt.Errorf("cluster %q not found for %q", mappings.ClusterName(cname), spec)
-		}
-		cluster_name = cluster.GetName()
-		aliases = this.clusters.GetAliases(cluster.GetName())
-	}
-	if gk, ok := spec.(schema.GroupKind); ok {
-		if reject, ok := r.(reconcile.ReconcilationRejection); ok {
-			if reject.RejectResourceReconcilation(cluster, gk) {
-				this.Infof("reconciler %s rejects resource reconcilation resource %s for cluster %s",
-					reconciler, gk, cluster.GetName())
-				return false, nil
-			}
-			this.Infof("reconciler %s supports reconcilation rejection and accepts resource %s for cluster %s",
-				reconciler, gk, cluster.GetName())
-		}
-	}
-	p, err := this.getPool(pool)
-	if err != nil {
+	r, p, src, mapping, err := this.getReconcilationInfo(true, cname, spec, pool, reconciler)
+	if r == nil || err != nil {
 		return false, err
 	}
-
-	src := _ReconcilationKey{key: spec, cluster: cluster_name, reconciler: reconciler}
-	mapping, ok := this.mappings[src]
-	if ok {
-		if mapping.pool != pool {
-			return false, fmt.Errorf("a key (%s) for the same cluster %q (used for %s) and reconciler (%s) can only be handled by one pool (found %q and %q)", spec, cluster_name, aliases, reconciler, pool, mapping)
-		}
-	} else {
+	if mapping == nil {
 		mapping = &_Reconcilation{pool: pool}
-		this.mappings[src] = mapping
+		this.mappings[*src] = mapping
 	}
 
 	if cname == "" {
 		this.Infof("*** adding reconciler %q for %q using pool %q", reconciler, spec, pool)
 	} else {
-		this.Infof("*** adding reconciler %q for %q in cluster %q (used for %q) using pool %q", reconciler, spec, cluster_name, mappings.ClusterName(cname), pool)
+		this.Infof("*** adding reconciler %q for %q in cluster %q (used for %q) using pool %q", reconciler, spec, cname, mappings.ClusterName(cname), pool)
 	}
 	mapping.useCount++
 	p.addReconciler(spec, &reconcilerInfo{r, unstructured})
 	return true, nil
 }
 
-func (this *controller) getReconcilationInfo(cname string, spec ReconcilationElementSpec, pool string, reconciler string) (reconcile.Interface, *pool, *_Reconcilation, error) {
+func (this *controller) getReconcilationInfo(checkReject bool, cname string, spec ReconcilationElementSpec, pool string, reconciler string) (reconcile.Interface, *pool, *_ReconcilationKey, *_Reconcilation, error) {
 	r := this.reconcilers[reconciler]
 	if r == nil {
-		return nil, nil, nil, fmt.Errorf("reconciler %q not found for %q", reconciler, spec)
+		return nil, nil, nil, nil, fmt.Errorf("reconciler %q not found for %q", reconciler, spec)
 	}
 
 	cluster := this.cluster
@@ -391,24 +357,35 @@ func (this *controller) getReconcilationInfo(cname string, spec ReconcilationEle
 	if cname != "" {
 		cluster = this.clusters.GetCluster(cname)
 		if cluster == nil {
-			return nil, nil, nil, fmt.Errorf("cluster %q not found for %q", mappings.ClusterName(cname), spec)
+			return nil, nil, nil, nil, fmt.Errorf("cluster %q not found for %q", mappings.ClusterName(cname), spec)
 		}
 		cluster_name = cluster.GetName()
 		aliases = this.clusters.GetAliases(cluster.GetName())
+	}
+	if gk, ok := spec.(schema.GroupKind); ok && checkReject {
+		if reject, ok := r.(reconcile.ReconcilationRejection); ok {
+			if reject.RejectResourceReconcilation(cluster, gk) {
+				this.Infof("reconciler %s rejects resource reconcilation resource %s for cluster %s",
+					reconciler, gk, cluster.GetName())
+				return nil, nil, nil, nil, nil
+			}
+			this.Infof("reconciler %s supports reconcilation rejection and accepts resource %s for cluster %s",
+				reconciler, gk, cluster.GetName())
+		}
 	}
 
 	src := _ReconcilationKey{key: spec, cluster: cluster_name, reconciler: reconciler}
 	mapping, ok := this.mappings[src]
 	if ok {
 		if mapping.pool != pool {
-			return nil, nil, nil, fmt.Errorf("a key (%s) for the same cluster %q (used for %s) and reconciler (%s) can only be handled by one pool (found %q and %q)", spec, cluster_name, aliases, reconciler, pool, mapping)
+			return nil, nil, nil, nil, fmt.Errorf("a key (%s) for the same cluster %q (used for %s) and reconciler (%s) can only be handled by one pool (found %q and %q)", spec, cluster_name, aliases, reconciler, pool, mapping)
 		}
 	}
 	p, err := this.getPool(pool)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
-	return r, p, mapping, nil
+	return r, p, &src, mapping, nil
 }
 
 func (this *controller) getPool(name string) (*pool, error) {
@@ -629,8 +606,7 @@ func (this *controller) UnregisterWatch(w Watch) (bool, error) {
 		ns, optionsFunc = w.WatchSelectionFunction()(this)
 	}
 
-	dropped := false
-	r, p, mapping, err := this.getReconcilationInfo(w.Cluster(), w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler())
+	r, p, _, mapping, err := this.getReconcilationInfo(false, w.Cluster(), w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler())
 	if err != nil {
 		return false, err
 	}
@@ -641,11 +617,10 @@ func (this *controller) UnregisterWatch(w Watch) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		dropped = true
 	}
 	// then really remove the reconciler if required
 	mapping.useCount--
-	if dropped {
+	if mapping.useCount == 0 {
 		if w.Cluster() == "" {
 			this.Infof("*** removing reconciler %q for %q using pool %q",
 				w.Reconciler(), w.ResourceType().GroupKind(), w.PoolName())
@@ -656,7 +631,7 @@ func (this *controller) UnregisterWatch(w Watch) (bool, error) {
 		p.removeReconciler(w.ResourceType().GroupKind(), r)
 	}
 	delete(this.dynamic, w)
-	return dropped, nil
+	return mapping.useCount == 0, nil
 }
 
 func (this *controller) RegisterWatch(w Watch) (bool, error) {

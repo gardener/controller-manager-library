@@ -9,9 +9,11 @@ package plain
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"k8s.io/api/core/v1"
 
+	"github.com/gardener/controller-manager-library/pkg/goutils"
 	"github.com/gardener/controller-manager-library/pkg/resources/plain"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -80,11 +82,32 @@ func doA() {
 	}
 }
 
+func doStack() {
+	list := goutils.ListGoRoutines(true)
+	for _, l := range list {
+		fmt.Printf("%3d: [%s] %s\n", l.Id, l.Status, l.Current.Name)
+		fmt.Printf("     cur:    %s\n", l.Current.Location)
+		fmt.Printf("     first:  %s\n", l.First.Name)
+		fmt.Printf("     creat:  %s\n", l.Creator.Name)
+
+		for _, f := range l.Stack {
+			fmt.Printf("     stack:  %s\n", f.Location)
+		}
+	}
+}
+
 /////////////////////////
 func PlainMain() {
 	doX()
 	doA()
 
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		doStack()
+		wg.Done()
+	}()
+	wg.Wait()
 	ctx := plain.NewResourceContext(context.TODO(), plain.DefaultScheme())
 
 	resources := ctx.Resources()

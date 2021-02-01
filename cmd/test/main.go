@@ -15,6 +15,7 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/config"
 	"github.com/gardener/controller-manager-library/cmd/test/errors"
 	"github.com/gardener/controller-manager-library/cmd/test/field"
+	"github.com/gardener/controller-manager-library/cmd/test/informer"
 	"github.com/gardener/controller-manager-library/cmd/test/match"
 	"github.com/gardener/controller-manager-library/cmd/test/misc"
 	"github.com/gardener/controller-manager-library/cmd/test/plain"
@@ -76,6 +77,8 @@ func main() {
 			preferred.PreferredMain()
 		case "misc":
 			misc.MiscMain()
+		case "informer":
+			informer.InformerMain()
 		}
 	}
 }

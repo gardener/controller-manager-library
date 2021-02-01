@@ -32,9 +32,9 @@ func init() {
 }
 
 type Config struct {
-	option string
+	interval int
 }
 
 func (this *Config) AddOptionsToSet(set config.OptionSet) {
-	set.AddStringOption(&this.option, "option", "", "", "2nd controller argument")
+	set.AddIntOption(&this.interval, "interval", "", 10, "dynamic watch toggle interval")
 }

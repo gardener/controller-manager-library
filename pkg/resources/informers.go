@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -57,15 +56,15 @@ func newGenericInformer(ctx context.Context, lw listWatchFactory, namespace stri
 		optionsFunc: optionsFunc,
 		context:     ctx,
 	}
-	err := ret.new()
+	err := ret.new("new")
 	if err != nil {
 		return nil, err
 	}
 	return ret, nil
 }
 
-func (f *genericInformer) new() error {
-	logger.Infof("new generic informer for %s (%s) %s (%d seconds)", f.lw.ElemType(), f.lw.GroupVersionKind(), f.lw.ListType(), f.lw.Resync()/time.Second)
+func (f *genericInformer) new(msg string) error {
+	logger.Infof("%s generic informer for %s (%s) %s (%d seconds)", msg, f.lw.ElemType(), f.lw.GroupVersionKind(), f.lw.ListType(), f.lw.Resync()/time.Second)
 
 	f.current = ctxutil.CancelContext(f.context)
 	listWatch, err := f.lw.CreateListWatch(f.current, f.namespace, f.optionsFunc)
@@ -87,9 +86,9 @@ func (w *genericInformer) AddEventHandler(h cache.ResourceEventHandler) {
 	defer w.lock.Unlock()
 
 	if w.SharedIndexInformer == nil {
-		w.new()
+		w.new("renew")
 		go w.Run()
-		cache.WaitForCacheSync(w.context.Done(), w.HasSynced)
+		cache.WaitForCacheSync(w.current.Done(), w.HasSynced)
 	}
 	w.SharedIndexInformer.AddEventHandler(h)
 }
@@ -121,7 +120,7 @@ func (f *genericInformer) Lister() Lister {
 	defer f.lock.Unlock()
 	if f.lister == nil {
 		if f.SharedIndexInformer == nil {
-			f.new()
+			f.new("renew (for lister)")
 			f.Run()
 		}
 		f.lister = NewLister(f.SharedIndexInformer.GetIndexer(), f.lw.Info())
@@ -379,48 +378,12 @@ func (f *sharedFilteredInformerFactory) LookupInformerFor(gvk schema.GroupVersio
 	return f.lookupInformerFor(gvk, namespace)
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Watch
-
-type watchWrapper struct {
-	ctx        context.Context
-	orig       watch.Interface
-	origChan   <-chan watch.Event
-	resultChan chan watch.Event
-}
-
-func NewWatchWrapper(ctx context.Context, orig watch.Interface) watch.Interface {
-	logger.Infof("*************** new wrapper ********************")
-	w := &watchWrapper{ctx, orig, orig.ResultChan(), make(chan watch.Event)}
-	go w.Run()
-	return w
-}
-
-func (w *watchWrapper) Stop() {
-	w.orig.Stop()
-}
-
-func (w *watchWrapper) ResultChan() <-chan watch.Event {
-	return w.resultChan
-}
-func (w *watchWrapper) Run() {
-loop:
-	for {
-		select {
-		case <-w.ctx.Done():
-			break loop
-		case e, ok := <-w.origChan:
-			if !ok {
-				logger.Infof("watch aborted")
-				break loop
-			} else {
-				logger.Infof("WATCH: %#v\n", e)
-				w.resultChan <- e
-			}
-		}
+func (this *resourceContext) NewRawSharedIndexInformer(ctx context.Context, gvk schema.GroupVersionKind) (cache.SharedIndexInformer, error) {
+	lwf, err := newUnstructuredListWatchFactory(this, gvk)
+	if err != nil {
+		return nil, err
 	}
-	logger.Infof("stop wrapper ***************")
-	close(w.resultChan)
+	lw, err := lwf.CreateListWatch(ctx, "", nil)
+	return informer.NewSharedIndexInformer(lw, lwf.ExampleObject(), 0,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}), nil
 }
-
-var _ watch.Interface = &watchWrapper{}

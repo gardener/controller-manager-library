@@ -54,7 +54,7 @@ func (s *sharedIndexInformer) RemoveEventHandler(handler cache.ResourceEventHand
 	defer s.startedLock.Unlock()
 
 	if s.stopped {
-		klog.V(2).Infof("Handler %v was not added to shared informer because it has stopped already", handler)
+		klog.V(2).Infof("Handler %v was not removed from shared informer because it has stopped already", handler)
 		return nil
 	}
 
@@ -92,7 +92,7 @@ func (p *sharedProcessor) removeListenerLockedFor(handler cache.ResourceEventHan
 	}
 	for i, l := range p.syncingListeners {
 		if utils.IsComparable(l.handler) && l.handler == handler {
-			p.listeners = append(p.syncingListeners[:i], p.syncingListeners[i+1:]...)
+			p.syncingListeners = append(p.syncingListeners[:i], p.syncingListeners[i+1:]...)
 		}
 	}
 	return listener

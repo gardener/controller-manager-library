@@ -16,6 +16,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile/reconcilers"
+	"github.com/gardener/controller-manager-library/pkg/goutils"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
@@ -24,26 +25,31 @@ type reconciler struct {
 	reconcile.DefaultReconciler
 	controller controller.Interface
 	secrets    *reconcilers.SecretUsageCache
+	config     *Config
 	dynamic    controller.Watch
 	count      int
+	last       goutils.GoRoutines
+	lastadded  goutils.GoRoutines
 }
 
 var _ reconcile.Interface = &reconciler{}
 
-func Create(controller controller.Interface) (reconcile.Interface, error) {
-	val, err := controller.GetStringOption("test")
+func Create(cntr controller.Interface) (reconcile.Interface, error) {
+	val, err := cntr.GetStringOption("test")
 	if err == nil {
-		controller.Infof("found option test: %s", val)
+		cntr.Infof("found option test: %s", val)
 	}
 
-	config, err := controller.GetOptionSource("test")
+	config, err := cntr.GetOptionSource("test")
 	if err == nil {
-		controller.Infof("found option option: %s", config.(*Config).option)
+		cntr.Infof("found interval option: %d", config.(*Config).interval)
 	}
 
 	return &reconciler{
-		controller: controller,
-		secrets:    reconcilers.AccessSecretUsageCache(controller),
+		controller: cntr,
+		config:     config.(*Config),
+		secrets:    reconcilers.AccessSecretUsageCache(cntr),
+		dynamic:    controller.NewWatch(controller.CLUSTER_MAIN, "dynamic", "dynamic", controller.NewResourceKey("core", "Pod")),
 	}, nil
 }
 
@@ -57,14 +63,54 @@ func (h *reconciler) Setup() error {
 func (h *reconciler) Start() {
 	h.controller.EnqueueCommand("poll")
 	h.controller.Infof("registering dynamic resources")
-	h.dynamic = controller.NewWatch(controller.CLUSTER_MAIN, "dynamic", "dynamic", controller.NewResourceKey("core", "Pod"))
-	h.controller.RegisterWatch(h.dynamic)
 }
 
 func (h *reconciler) Command(logger logger.LogContext, cmd string) reconcile.Status {
-	logger.Infof("got command %q", cmd)
+
 	h.count++
-	if h.count == 10 {
+	logger.Infof("got command %q (%d): %d goroutines", cmd, h.count, goutils.NumberOfGoRoutines())
+	cur := goutils.ListGoRoutines(true)
+	if h.last != nil {
+		add, del := goutils.GoRoutineDiff(h.last, cur)
+		for _, r := range add {
+			logger.Infof("added   %3d [%s] %s", r.Id, r.Status, r.Current.Location)
+			logger.Infof("            %s", r.First.Location)
+		}
+		for _, r := range del {
+			logger.Infof("deleted %3d [%s] %s", r.Id, r.Status, r.Current.Location)
+			logger.Infof("            %s", r.First.Location)
+		}
+		if len(del) > 0 && h.lastadded != nil {
+			add, del := goutils.GoRoutineDiff(h.lastadded, del)
+			h.lastadded = nil
+			if len(add)+len(del) > 0 {
+				logger.Warnf("*********************  mismatch in add/del of goroutines *******************")
+				for _, r := range add {
+					logger.Infof("additional  %3d [%s]", r.Id, r.Status)
+					logger.Infof("      creator  %s", r.Creator.Location)
+					for _, s := range r.Stack {
+						logger.Infof("      stack    %s", s.Location)
+					}
+				}
+				for _, r := range del {
+					logger.Infof("missing     %3d [%s]", r.Id, r.Status)
+					logger.Infof("      creator  %s", r.Creator.Location)
+					for _, s := range r.Stack {
+						logger.Infof("      stack    %s", s.Location)
+					}
+				}
+			}
+		}
+		if len(add) > 0 {
+			h.lastadded = add
+		}
+	}
+	h.last = cur
+
+	switch h.count % (h.config.interval * 2) {
+	case h.config.interval:
+		h.controller.RegisterWatch(h.dynamic)
+	case 0:
 		h.controller.UnregisterWatch(h.dynamic)
 	}
 	return reconcile.Succeeded(logger).RescheduleAfter(10 * time.Second)
@@ -103,7 +149,7 @@ func (h *reconciler) secretRef(namespace, name string) *resources.ClusterObjectK
 }
 
 func (h *reconciler) reconcileConfigMap(logger logger.LogContext, key resources.ClusterObjectKey, configMap *corev1.ConfigMap) reconcile.Status {
-	logger.Infof("should reconcile configmap")
+	//logger.Infof("should reconcile configmap")
 	// Example how to add to workqueue
 	// resources, _ := h.controller.Data(configMap)
 	// key, _ := controller.ObjectKeyFunc(resources)

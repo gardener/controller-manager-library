@@ -25,13 +25,14 @@ var _ reconcile.Interface = &dynamic{}
 func Dynamic(controller controller.Interface) (reconcile.Interface, error) {
 	return &dynamic{
 		controller: controller,
+		notified:   true,
 	}, nil
 }
 
 func (h *dynamic) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
 
 	if h.notified {
-		logger.Infof("GOT dynamic %s", obj.ClusterKey())
+		//logger.Infof("GOT dynamic %s", obj.ClusterKey())
 	} else {
 		h.notified = true
 		logger.Infof("GOT dynamic %s: %+#v\n", obj.GroupVersionKind(), obj.Data())
