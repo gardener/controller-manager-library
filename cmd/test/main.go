@@ -138,11 +138,14 @@ func doInterface() {
 
 func main() {
 
-	PV(E("err"))
-	doStruct()
-	doInterface()
-	doTypedInterface()
-	os.Exit(0)
+	/*
+		PV(E("err"))
+		doStruct()
+		doInterface()
+		doTypedInterface()
+		os.Exit(0)
+
+	*/
 
 	//doit()
 	for i := 1; i < len(os.Args); i++ {
@@ -157,7 +160,7 @@ func main() {
 			match.MatchMain()
 		case "certs":
 			certs.CertsMain()
-		case "configmain":
+		case "config":
 			config.ConfigMain()
 		case "errors":
 			errors.ErrorsMain()

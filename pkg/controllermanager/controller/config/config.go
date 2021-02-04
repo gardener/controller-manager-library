@@ -30,7 +30,7 @@ var _ config.OptionSource = (*Config)(nil)
 
 func NewConfig() *Config {
 	cfg := &Config{
-		OptionSet: config.NewDefaultOptionSet(OPTION_SOURCE, ""),
+		OptionSet: config.NewSharedOptionSet(OPTION_SOURCE, ""),
 	}
 	cfg.AddStringOption(&cfg.Controllers, "controllers", "c", "all", "comma separated list of controllers to start (<name>,<group>,all)")
 	cfg.AddStringOption(&cfg.LeaseName, "lease-name", "", "", "name for lease object")

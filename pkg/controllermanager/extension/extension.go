@@ -25,6 +25,10 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
+type ConfigValidation interface {
+	Prepare() error
+}
+
 type SharedAttributes interface {
 	GetSharedValue(key interface{}) interface{}
 	GetOrCreateSharedValue(key interface{}, create func() interface{}) interface{}
@@ -438,4 +442,33 @@ func (this *DefaultOptionSourceSefinition) GetName() string {
 
 func (this *DefaultOptionSourceSefinition) Create() config.OptionSource {
 	return this.creator()
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+func ValidateElementConfigs(elemtype string, areacfg config.OptionSourceSource, active utils.StringSet) error {
+	for n := range active {
+		var cerr error
+		options := areacfg.GetSource(n).(config.OptionSourceSource)
+		var f func(n string, s config.OptionSource) bool
+		f = func(n string, s config.OptionSource) bool {
+			if p, ok := s.(ConfigValidation); ok {
+				err := p.Prepare()
+				if err != nil {
+					cerr = err
+					return false
+				}
+			}
+			if p, ok := s.(config.OptionSourceSource); ok {
+				if !p.VisitSources(f) {
+					return false
+				}
+			}
+			return true
+		}
+		if !options.VisitSources(f) {
+			return fmt.Errorf("invalid config for %s %q: %s", elemtype, n, cerr)
+		}
+	}
+	return nil
 }

@@ -160,6 +160,11 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		return nil, err
 	}
 
+	err = extension.ValidateElementConfigs(TYPE, cfg, active)
+	if err != nil {
+		return nil, err
+	}
+
 	spec := cfg.Service + "--" + cm.GetNamespace()
 	if len(cfg.Hostnames) > 0 {
 		spec = cfg.Hostnames[0]

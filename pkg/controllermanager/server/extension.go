@@ -120,6 +120,11 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 		return nil, err
 	}
 
+	err = extension.ValidateElementConfigs(TYPE, cfg, active)
+	if err != nil {
+		return nil, err
+	}
+
 	this := &Extension{
 		Environment:   ext,
 		config:        cfg,

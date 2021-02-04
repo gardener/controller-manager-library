@@ -23,7 +23,7 @@ var _ config.OptionSource = (*Config)(nil)
 
 func NewConfig() *Config {
 	cfg := &Config{
-		OptionSet: config.NewSharedOptionSet(OPTION_SOURCE, OPTION_SOURCE[:len(OPTION_SOURCE)-1], nil),
+		OptionSet: config.NewSharedOptionSet(OPTION_SOURCE, OPTION_SOURCE[:len(OPTION_SOURCE)-1]),
 	}
 	cfg.AddStringOption(&cfg.Servers, "servers", "", "all", "comma separated list of servers to start (<name>,<group>,all)")
 	return cfg

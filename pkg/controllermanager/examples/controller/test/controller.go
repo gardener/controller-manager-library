@@ -7,6 +7,7 @@
 package test
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -40,6 +41,13 @@ type Config struct {
 
 func (this *Config) AddOptionsToSet(set config.OptionSet) {
 	set.AddStringOption(&this.option, "option", "", "", "2nd controller argument")
+}
+
+func (this *Config) Prepare() error {
+	if this.option == "abort" {
+		return fmt.Errorf("test validation failed")
+	}
+	return nil
 }
 
 type reconciler struct {
