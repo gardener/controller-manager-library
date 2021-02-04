@@ -89,11 +89,13 @@ func (this *ServerConfig) Reconfigure(def Definition) (Definition, error) {
 			if this.MaintainSecret && this.CommonName == "" {
 				this.CommonName = def.Name()
 			}
-			if len(this.Hostnames) == 0 && this.Service == "" {
-				return def, fmt.Errorf("server requires at least service name or hostname")
-			}
-			if len(this.Hostnames) > 1 {
-				return def, fmt.Errorf("server requires only one hostname")
+			if this.MaintainSecret {
+				if len(this.Hostnames) == 0 && this.Service == "" {
+					return def, fmt.Errorf("server requires at least service name or hostname")
+				}
+				if len(this.Hostnames) > 1 {
+					return def, fmt.Errorf("server requires only one hostname")
+				}
 			}
 		}
 		if this.CertFile != "" && this.KeyFile == "" {

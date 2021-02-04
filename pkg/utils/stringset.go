@@ -115,6 +115,10 @@ func NonEmptyStringElement(s string) (string, bool) {
 	return s, s != ""
 }
 
+func StringElement(s string) (string, bool) {
+	return strings.TrimSpace(s), true
+}
+
 func (this StringSet) AddAllSplittedSelected(n string, sel func(s string) (string, bool), seps ...string) StringSet {
 	sep := ","
 	if len(seps) > 0 {

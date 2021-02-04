@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	server.Configure("test").
+	server.Configure("test").AllowSecretMaintenance(true).
 		RegisterHandler("demo", server.HandlerFunc("demo", http.HandlerFunc(demo))).
 		RegisterHandler("message", Create).
 		Register()

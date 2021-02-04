@@ -151,12 +151,12 @@ func (this *aggregation) String() string {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-func (this *_Definitions) GetEffective(controller string, grps groups.Definitions) (Definition, error) {
+func (this *_Definitions) GetEffective(elem string, grps groups.Definitions) (Definition, error) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
 	aggr := &aggregation{elemType: this.elemType}
-	direct, ok := this.definitions[this.elemType][controller]
+	direct, ok := this.definitions[this.elemType][elem]
 	if ok {
 		aggr.list = append(aggr.list, direct)
 	}
@@ -164,14 +164,14 @@ func (this *_Definitions) GetEffective(controller string, grps groups.Definition
 	for g, m := range this.getForType(TYPE_GROUP) {
 		grp := grps.Get(g)
 		if grp == nil {
-			return nil, fmt.Errorf("unknown controller group %q", g)
+			return nil, fmt.Errorf("unknown %s group %q", this.elemType, g)
 		}
-		if grp.Members().Contains(controller) {
+		if grp.Members().Contains(elem) {
 			for cluster := range m.MappedClusters() {
 				new := m.MapCluster(cluster)
 				if old := aggr.MapCluster(cluster); old != cluster && old != new {
-					return nil, fmt.Errorf("ambigious cluster mapping for controller %q in group %q: %q -> %q and %q",
-						controller, g, cluster, old, new)
+					return nil, fmt.Errorf("ambigious cluster mapping for %s %q in group %q: %q -> %q and %q",
+						this.elemType, elem, g, cluster, old, new)
 				}
 			}
 			aggr.list = append(aggr.list, m)

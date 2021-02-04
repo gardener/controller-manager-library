@@ -53,6 +53,31 @@ func GetValue(f reflect.Value) interface{} {
 	return f.Interface()
 }
 
+func SplitString(n string, sel func(s string) (string, bool), seps ...string) []string {
+	var result []string
+	sep := ","
+	if len(seps) > 0 {
+		sep = seps[0]
+	}
+	for _, p := range strings.Split(n, sep) {
+		if v, ok := sel(p); ok {
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func Sanitize(list []string, sel func(s string) (string, bool)) []string {
+	for i := 0; i < len(list); i++ {
+		if v, ok := sel(list[i]); ok {
+			list[i] = v
+		} else {
+			list = append(list[:i], list[i+1:]...)
+		}
+	}
+	return list
+}
+
 func IsEmptyString(s *string) bool {
 	return s == nil || *s == ""
 }
