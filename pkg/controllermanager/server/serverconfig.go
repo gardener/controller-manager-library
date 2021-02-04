@@ -74,8 +74,12 @@ func (this *ServerConfig) Reconfigure(def Definition) (Definition, error) {
 
 	if def.Kind() == HTTPS {
 		if this.Secret == "" && this.CertFile == "" {
-			this.Secret = def.Name()
-			this.MaintainSecret = true
+			if !this.CertConfig.IsSecretMaintenanceDisabled() {
+				this.Secret = def.Name()
+				this.MaintainSecret = true
+			} else {
+				return def, fmt.Errorf("server certificate file or secret name required for HTTPS server")
+			}
 		}
 		if this.Secret != "" && this.CertFile != "" {
 			return def, fmt.Errorf("only one of server certificate file or secret name possible")
@@ -103,6 +107,9 @@ func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 
 	for name, def := range this.definitions {
 		ccfg := NewServerConfig(name)
+		if !def.AllowSecretMaintenance() {
+			ccfg.DisableSecretMaintenance()
+		}
 		cfg.AddSource(name, ccfg)
 
 		set := ccfg.OptionSet
@@ -110,7 +117,9 @@ func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 		ccfg.CertConfig.AddOptionsToSet(set)
 		set.AddIntOption(&ccfg.ServerPort, PORT_OPTION, "", def.ServerPort(), "server port")
 		set.AddBoolOption(&ccfg.UseTLS, TLS_OPTION, "", def.Kind() == HTTPS, "use tls (https)")
-		set.AddBoolOption(&ccfg.MaintainSecret, MAINTAIN_OPTION, "", false, "maintaintls secret")
+		if def.AllowSecretMaintenance() {
+			set.AddBoolOption(&ccfg.MaintainSecret, MAINTAIN_OPTION, "", false, "maintain tls secret")
+		}
 		for oname, o := range def.ConfigOptions() {
 			set.AddOption(o.Type(), nil, oname, "", o.Default(), o.Description())
 		}

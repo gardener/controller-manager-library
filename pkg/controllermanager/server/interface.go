@@ -67,6 +67,7 @@ type Definition interface {
 	Cluster() string
 	RequiredClusters() []string
 	ActivateExplicitly() bool
+	AllowSecretMaintenance() bool
 
 	ConfigOptions() extension.OptionDefinitions
 	ConfigOptionSources() extension.OptionSourceDefinitions

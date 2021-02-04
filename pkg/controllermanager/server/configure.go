@@ -21,14 +21,15 @@ func OptionSourceCreator(proto config.OptionSource) extension.OptionSourceCreato
 }
 
 type _Definition struct {
-	name               string
-	kind               ServerKind
-	serverport         int
-	required_clusters  []string
-	handlers           map[string]HandlerType
-	configs            extension.OptionDefinitions
-	configsources      extension.OptionSourceDefinitions
-	activateExplicitly bool
+	name                   string
+	kind                   ServerKind
+	serverport             int
+	required_clusters      []string
+	handlers               map[string]HandlerType
+	configs                extension.OptionDefinitions
+	configsources          extension.OptionSourceDefinitions
+	activateExplicitly     bool
+	allowSecretMaintenance bool
 }
 
 var _ Definition = &_Definition{}
@@ -98,6 +99,10 @@ func (this *_Definition) ActivateExplicitly() bool {
 	return this.activateExplicitly
 }
 
+func (this *_Definition) AllowSecretMaintenance() bool {
+	return this.allowSecretMaintenance
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Configuration
 ////////////////////////////////////////////////////////////////////////////////
@@ -158,6 +163,11 @@ func (this Configuration) TLS(tls bool) Configuration {
 	} else {
 		this.settings.kind = HTTP
 	}
+	return this
+}
+
+func (this Configuration) AllowSecretMaintenance(b bool) Configuration {
+	this.settings.allowSecretMaintenance = b
 	return this
 }
 
