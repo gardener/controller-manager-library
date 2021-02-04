@@ -96,8 +96,21 @@ func doStack() {
 	}
 }
 
+func doList() {
+
+	list:=[]int{1,2,3,4}
+
+	for i, v := range list {
+		if v==1 {
+			list=append(list[:i], list[i+1:]...)
+		}
+	}
+	fmt.Printf("list %v\n", list)
+}
+
 /////////////////////////
 func PlainMain() {
+	doList()
 	doX()
 	doA()
 
