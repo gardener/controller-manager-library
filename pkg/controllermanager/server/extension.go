@@ -107,12 +107,8 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 	ext.Infof("configured groups: %s", groups.AllGroups())
 
 	active, err := groups.Members(ext, strings.Split(cfg.Servers, ","))
-	if err != nil {
+	if err != nil || active.IsEmpty() {
 		return nil, err
-	}
-	if len(active) == 0 {
-		ext.Infof("no servers activated")
-		return nil, nil
 	}
 
 	registrations, err := defs.Registrations(active.AsArray()...)

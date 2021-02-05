@@ -9,6 +9,7 @@ package config
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type SharedOptionSet struct {
@@ -68,6 +69,10 @@ func (this *SharedOptionSet) AddOptionsToSet(set OptionSet) {
 			if old := set.GetOption(name); old != nil {
 				if o.Type != old.Type {
 					panic(fmt.Sprintf("type mismatch for shared option %s (%s)", name, this.prefix))
+				}
+				if strings.Index(old.Description, o.Description) < 0 {
+					old.Description += ", " + o.Description
+					old.Flag().Usage = o.Description
 				}
 			} else {
 				set.AddOption(o.Type, nil, o.Name, o.Flag().Shorthand, nil, o.Description)

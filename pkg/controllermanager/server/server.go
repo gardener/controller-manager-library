@@ -12,6 +12,7 @@ import (
 	"net/http"
 
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
+	"github.com/gardener/controller-manager-library/pkg/certmgmt/secret"
 	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
@@ -151,7 +152,7 @@ func (this *httpserver) handleSetup() error {
 
 func (this *httpserver) Start() error {
 	var err error
-	this.certificate, err = this.config.CertConfig.CreateAccess(this.GetContext(), this, this.cluster, this.env.Namespace())
+	this.certificate, err = this.config.CertConfig.CreateAccess(this.GetContext(), this, this.cluster, this.env.Namespace(), secret.TLSKeys())
 	if err != nil {
 		return err
 	}

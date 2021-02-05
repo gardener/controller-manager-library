@@ -148,6 +148,7 @@ func doB() {
 	flags := pflag.NewFlagSet("test", pflag.ExitOnError)
 	main.AddToFlags(flags)
 
+	fmt.Printf(flags.FlagUsages())
 	fmt.Printf("setting args\n")
 	flags.Set("a", "test")
 
