@@ -250,6 +250,28 @@ func (this *environment) ClusterDefinitions() cluster.Definitions {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+const configSource = "source"
+
+type ElementConfigDefinition interface {
+	ConfigOptions() OptionDefinitions
+	ConfigOptionSources() OptionSourceDefinitions
+}
+
+func AddElementConfigDefinitionToSet(def ElementConfigDefinition, setprefix string, set config.OptionSet) {
+	for oname, o := range def.ConfigOptions() {
+		set.AddOption(o.Type(), nil, oname, "", o.Default(), o.Description())
+	}
+	for oname, o := range def.ConfigOptionSources() {
+		if src := o.Create(); src != nil {
+			shared := config.NewSharedOptionSet(setprefix+oname, "")
+			shared.AddSource("source", src)
+			set.AddSource(shared.Name(), shared)
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 type ElementBase interface {
 	logger.LogContext
 
@@ -314,7 +336,7 @@ func (this *elementBase) GetOptionSource(name string) (config.OptionSource, erro
 	if src == nil {
 		return nil, fmt.Errorf("unknown option source %q for %s %q", name, this.GetType(), this.GetName())
 	}
-	return src, nil
+	return src.(config.OptionSet).GetSource(configSource), nil
 }
 
 func (this *elementBase) GetBoolOption(name string) (bool, error) {
@@ -368,6 +390,14 @@ type OptionDefinition interface {
 
 type OptionDefinitions map[string]OptionDefinition
 
+func (this OptionDefinitions) Copy() OptionDefinitions {
+	cfgs := OptionDefinitions{}
+	for n, d := range this {
+		cfgs[n] = d
+	}
+	return cfgs
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 type OptionSourceCreator func() config.OptionSource
@@ -393,6 +423,14 @@ type OptionSourceDefinition interface {
 }
 
 type OptionSourceDefinitions map[string]OptionSourceDefinition
+
+func (this OptionSourceDefinitions) Copy() OptionSourceDefinitions {
+	cfgs := OptionSourceDefinitions{}
+	for n, d := range this {
+		cfgs[n] = d
+	}
+	return cfgs
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -427,20 +465,20 @@ var _ OptionDefinition = &DefaultOptionDefinition{}
 
 ///////////////////////////////////////////////////////////////////////////////
 
-type DefaultOptionSourceSefinition struct {
+type DefaultOptionSourceDefinition struct {
 	name    string
 	creator OptionSourceCreator
 }
 
 func NewOptionSourceDefinition(name string, creator OptionSourceCreator) OptionSourceDefinition {
-	return &DefaultOptionSourceSefinition{name, creator}
+	return &DefaultOptionSourceDefinition{name, creator}
 }
 
-func (this *DefaultOptionSourceSefinition) GetName() string {
+func (this *DefaultOptionSourceDefinition) GetName() string {
 	return this.name
 }
 
-func (this *DefaultOptionSourceSefinition) Create() config.OptionSource {
+func (this *DefaultOptionSourceDefinition) Create() config.OptionSource {
 	return this.creator()
 }
 

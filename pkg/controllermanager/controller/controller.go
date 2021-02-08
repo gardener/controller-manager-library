@@ -375,7 +375,7 @@ func (this *controller) getPool(name string) *pool {
 			panic(fmt.Sprintf("unknown pool %q for controller %q", name, this.GetName()))
 		}
 		this.Infof("get pool config %q", def.GetName())
-		options := this.options.PrefixedShared().GetSource(def.GetName()).(config.OptionSet)
+		options := this.options.GetSource(def.GetName()).(config.OptionSet)
 		size := options.GetOption(POOL_SIZE_OPTION).IntValue()
 		period := def.Period()
 		if period != 0 {
@@ -401,14 +401,6 @@ func (this *controller) GetEnvironment() Environment {
 
 func (this *controller) GetDefinition() Definition {
 	return this.definition
-}
-
-func (this *controller) GetOptionSource(name string) (config.OptionSource, error) {
-	src := this.options.PrefixedShared().GetSource(CONTROLLER_SET_PREFIX + name)
-	if src == nil {
-		return nil, fmt.Errorf("option source %s not found for controller %s", name, this.GetName())
-	}
-	return src, nil
 }
 
 func (this *controller) getClusterHandler(name string) (*ClusterHandler, error) {

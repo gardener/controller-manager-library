@@ -12,6 +12,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cert"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/server/config"
 )
 
@@ -122,13 +123,6 @@ func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 		if def.AllowSecretMaintenance() {
 			set.AddBoolOption(&ccfg.MaintainSecret, MAINTAIN_OPTION, "", false, "maintain tls secret")
 		}
-		for oname, o := range def.ConfigOptions() {
-			set.AddOption(o.Type(), nil, oname, "", o.Default(), o.Description())
-		}
-		for oname, o := range def.ConfigOptionSources() {
-			if src := o.Create(); src != nil {
-				set.AddSource(SERVER_SET_PREFIX+oname, src)
-			}
-		}
+		extension.AddElementConfigDefinitionToSet(def, SERVER_SET_PREFIX, set)
 	}
 }

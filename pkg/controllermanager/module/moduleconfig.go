@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/module/config"
 )
 
@@ -43,13 +44,6 @@ func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 
 		set := ccfg.OptionSet
 
-		for oname, o := range def.ConfigOptions() {
-			set.AddOption(o.Type(), nil, oname, "", o.Default(), o.Description())
-		}
-		for oname, o := range def.ConfigOptionSources() {
-			if src := o.Create(); src != nil {
-				set.AddSource(MODULE_SET_PREFIX+oname, src)
-			}
-		}
+		extension.AddElementConfigDefinitionToSet(def, MODULE_SET_PREFIX, set)
 	}
 }

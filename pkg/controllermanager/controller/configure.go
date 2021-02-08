@@ -343,6 +343,7 @@ func (this *_Definition) Syncers() map[string]SyncerDefinition {
 	}
 	return syncers
 }
+
 func (this *_Definition) Pools() map[string]PoolDefinition {
 	pools := map[string]PoolDefinition{}
 	for n, d := range this.pools {
@@ -353,20 +354,13 @@ func (this *_Definition) Pools() map[string]PoolDefinition {
 	}
 	return pools
 }
-func (this *_Definition) ConfigOptions() map[string]OptionDefinition {
-	cfgs := map[string]OptionDefinition{}
-	for n, d := range this.configs {
-		cfgs[n] = d
-	}
-	return cfgs
+
+func (this *_Definition) ConfigOptions() extension.OptionDefinitions {
+	return this.configs.Copy()
 }
 
 func (this *_Definition) ConfigOptionSources() extension.OptionSourceDefinitions {
-	cfgs := extension.OptionSourceDefinitions{}
-	for n, d := range this.configsources {
-		cfgs[n] = d
-	}
-	return cfgs
+	return this.configsources.Copy()
 }
 
 func (this *_Definition) ActivateExplicitly() bool {

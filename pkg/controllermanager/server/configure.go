@@ -80,19 +80,11 @@ func (this *_Definition) Handlers() map[string]HandlerType {
 }
 
 func (this *_Definition) ConfigOptions() extension.OptionDefinitions {
-	cfgs := extension.OptionDefinitions{}
-	for n, d := range this.configs {
-		cfgs[n] = d
-	}
-	return cfgs
+	return this.configs.Copy()
 }
 
 func (this *_Definition) ConfigOptionSources() extension.OptionSourceDefinitions {
-	cfgs := extension.OptionSourceDefinitions{}
-	for n, d := range this.configsources {
-		cfgs[n] = d
-	}
-	return cfgs
+	return this.configsources.Copy()
 }
 
 func (this *_Definition) ActivateExplicitly() bool {

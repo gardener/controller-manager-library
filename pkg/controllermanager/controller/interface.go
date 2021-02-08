@@ -215,6 +215,7 @@ func (this CrossClusterRefs) Map(mapping controllermanager.Mapping) CrossCluster
 
 type Definition interface {
 	extension.OrderedElem
+	extension.ElementConfigDefinition
 
 	// Create(Object) (Reconciler, error)
 	Reconcilers() map[string]ReconcilerType
@@ -233,8 +234,6 @@ type Definition interface {
 	LeaseClusterName() string
 	FinalizerName() string
 	ActivateExplicitly() bool
-	ConfigOptions() map[string]OptionDefinition
-	ConfigOptionSources() extension.OptionSourceDefinitions
 
 	Scheme() *runtime.Scheme
 
