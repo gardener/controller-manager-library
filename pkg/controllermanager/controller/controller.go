@@ -7,16 +7,19 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/record"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/lease"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/mappings"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
@@ -113,6 +116,9 @@ type controller struct {
 	handlers map[string]*ClusterHandler
 
 	pools map[string]*pool
+
+	lock   sync.Mutex
+	leases map[string]map[string]bool
 }
 
 func Filter(owning ResourceKey, resc resources.Object) bool {
@@ -134,6 +140,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		watches:         map[string][]Watch{},
 		pools:           map[string]*pool{},
 		reconcilers:     map[string]reconcile.Interface{},
+		leases:          map[string]map[string]bool{},
 		reconcilerNames: map[reconcile.Interface]string{},
 		mappings:        _Reconcilations{},
 		finalizer:       NewDefaultFinalizer(def.FinalizerName()),
@@ -659,4 +666,128 @@ func (this *controller) Synchronize(log logger.LogContext, name string, initiato
 
 func (this *controller) requestHandled(log logger.LogContext, reconciler reconcile.Interface, key resources.ClusterObjectKey) {
 	this.syncRequests.requestHandled(log, this.reconcilerNames[reconciler], key)
+}
+
+func (this *controller) leaseMeta(name string, cnames ...string) (leasename string, cname string, c cluster.Interface) {
+	cname = CLUSTER_MAIN
+	if len(cnames) > 0 {
+		cname = cnames[0]
+	}
+	leasename = this.env.GetConfig().Lease.LeaseName + "-" + this.GetName() + "-" + name
+	c = this.GetCluster(cname)
+	return
+}
+
+func (this *controller) HasLeaseRequest(name string, cnames ...string) bool {
+	leasename, _, c := this.leaseMeta(name, cnames...)
+	if c == nil {
+		return false
+	}
+
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	cl, _ := this.leases[c.GetId()]
+	if cl == nil {
+		return false
+	}
+	_, ok := cl[leasename]
+	return ok
+}
+
+func (this *controller) IsLeaseActive(name string, cnames ...string) bool {
+	leasename, _, c := this.leaseMeta(name, cnames...)
+	if c == nil {
+		return false
+	}
+
+	this.lock.Lock()
+	defer this.lock.Unlock()
+	cl, _ := this.leases[c.GetId()]
+	return cl != nil && cl[leasename]
+}
+
+func (this *controller) WithLease(name string, regain bool, action func(ctx context.Context), cnames ...string) error {
+	leasename, cname, c := this.leaseMeta(name, cnames...)
+	if c == nil {
+		return fmt.Errorf("unknown cluster %q", cname)
+	}
+
+	cfg := this.env.GetConfig().Lease
+	cfg.LeaseName = leasename
+
+	leaderElectionConfig, err := lease.MakeLeaderElectionConfig(c, this.env.Namespace(), &cfg)
+	if err != nil {
+		return err
+	}
+	this.lock.Lock()
+	defer this.lock.Unlock()
+
+	cl, _ := this.leases[c.GetId()]
+	if cl == nil {
+		cl = map[string]bool{}
+		this.leases[c.GetId()] = cl
+	}
+	_, ok := cl[cfg.LeaseName]
+	if ok {
+		return fmt.Errorf("lease request already pending")
+	}
+
+	leasectx := ctxutil.CancelContext(this.GetContext())
+	leaderElectionConfig.Callbacks = leaderelection.LeaderCallbacks{
+		OnStartedLeading: func(ctx context.Context) {
+			this.lock.Lock()
+			cl[cfg.LeaseName] = true
+			this.lock.Unlock()
+
+			this.Infof("starting lease function for %s", cfg.LeaseName)
+			action(ctx)
+			this.lock.Lock()
+			defer this.lock.Unlock()
+			delete(cl, cfg.LeaseName)
+			select {
+			case <-ctx.Done():
+				this.Infof("lease function for %s stopped", cfg.LeaseName)
+			default:
+				this.Infof("lease function for %s done -> stopping lease", cfg.LeaseName)
+				ctxutil.Cancel(leasectx)
+			}
+		},
+		OnStoppedLeading: func() {
+			this.Infof("lost leadership %s.", cfg.LeaseName)
+			this.lock.Lock()
+			defer this.lock.Unlock()
+			if _, ok := cl[cfg.LeaseName]; ok {
+				cl[cfg.LeaseName] = false
+			}
+		},
+	}
+
+	leaderElector, err := leaderelection.NewLeaderElector(*leaderElectionConfig)
+	if err != nil {
+		return fmt.Errorf("couldn't create leader elector: %v", err)
+	}
+
+	cl[cfg.LeaseName] = false
+	go func() {
+		ctxutil.WaitGroupAdd(leasectx)
+		defer ctxutil.WaitGroupDone(leasectx)
+		for {
+			this.Infof("requesting lease execution %q for cluster %s in namespace %q",
+				cfg.LeaseName, c, this.env.Namespace())
+
+			leaderElector.Run(leasectx)
+			this.Infof("lease %s gone", cfg.LeaseName)
+			select {
+			case <-leasectx.Done():
+				return
+			default:
+				if !regain {
+					this.Infof("stopping controller manager because of lost lease %s", cfg.LeaseName)
+					ctxutil.Cancel(this.env.ControllerManager().GetContext())
+					return
+				}
+			}
+		}
+	}()
+	return nil
 }

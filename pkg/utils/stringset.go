@@ -57,6 +57,9 @@ func (this StringSet) IsEmpty() bool {
 }
 
 func (this StringSet) Contains(n string) bool {
+	if this == nil {
+		return false
+	}
 	_, ok := this[n]
 	return ok
 }

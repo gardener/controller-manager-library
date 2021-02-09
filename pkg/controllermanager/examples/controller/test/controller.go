@@ -7,6 +7,7 @@
 package test
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -87,6 +88,8 @@ func (h *reconciler) Setup() error {
 
 func (h *reconciler) Start() {
 	h.controller.EnqueueCommand("poll")
+	h.controller.WithLease("temporary", false, h.temporary)
+	h.controller.WithLease("ongoing", true, h.exclusive)
 }
 
 func (h *reconciler) Command(logger logger.LogContext, cmd string) reconcile.Status {
@@ -137,4 +140,23 @@ func (h *reconciler) reconcileConfigMap(logger logger.LogContext, key resources.
 	secret := h.secretRef(configMap.Namespace, configMap.Name)
 	h.secrets.SetUsesFor(key, secret)
 	return reconcile.Succeeded(logger)
+}
+
+func (h *reconciler) temporary(ctx context.Context) {
+	h.controller.Infof("executing exclusive singleton")
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(20 * time.Second):
+		// nomal return -> just stop the action
+		return
+	}
+}
+
+func (h *reconciler) exclusive(ctx context.Context) {
+	h.controller.Infof("executing exclusive action")
+	select {
+	case <-ctx.Done():
+		return
+	}
 }

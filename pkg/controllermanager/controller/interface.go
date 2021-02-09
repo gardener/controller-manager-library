@@ -7,6 +7,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -74,6 +75,10 @@ type Interface interface {
 
 	GetObject(key resources.ClusterObjectKey) (resources.Object, error)
 	GetCachedObject(key resources.ClusterObjectKey) (resources.Object, error)
+
+	WithLease(name string, regain bool, action func(ctx context.Context), cnames ...string) error
+	HasLeaseRequest(name string, cnames ...string) bool
+	IsLeaseActive(name string, cnames ...string) bool
 }
 
 type WatchSelectionFunction func(c Interface) (namespace string, tweaker resources.TweakListOptionsFunc)
