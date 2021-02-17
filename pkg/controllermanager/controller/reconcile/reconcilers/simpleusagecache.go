@@ -20,6 +20,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/filter"
 )
 
 var usersKey = ctxutil.SimpleKey("users")
@@ -218,6 +219,14 @@ func (this *SimpleUsageCache) SetupFilteredFor(log logger.LogContext, resc resou
 	})
 }
 
+func (this *SimpleUsageCache) SetupForRelation(log logger.LogContext, c cluster.Interface, from, to schema.GroupKind, extractor resources.UsedExtractor) error {
+	res, err := c.GetResource(from)
+	if err == nil {
+		err = this.SetupFilteredFor(log, res, filter.GroupKindFilter(to), extractor)
+	}
+	return err
+}
+
 func (this *SimpleUsageCache) CleanupUser(log logger.LogContext, msg string, controller controller.Interface, user resources.ClusterObjectKey, actions ...KeyAction) error {
 	used := this.GetUsesFor(user)
 	if len(actions) > 0 {
@@ -325,6 +334,7 @@ type usageReconciler struct {
 	cache       *SimpleUsageCache
 	clusterId   string
 	responsible resources.GroupKindSet
+	relation    *UsageRelation
 }
 
 var _ reconcile.Interface = &usageReconciler{}
@@ -335,6 +345,20 @@ func (this *usageReconciler) RejectResourceReconcilation(cluster cluster.Interfa
 		return true
 	}
 	return !this.responsible.Contains(gk)
+}
+
+func (this *usageReconciler) Setup() error {
+	if this.relation != nil {
+		c := this.Controller().GetCluster(this.relation.FromCluster)
+		for _, r := range this.relation.To {
+			this.Controller().Infof("setting up usages of %q for %q", this.relation.From, r.Resource)
+			err := this.cache.SetupForRelation(this.Controller(), c, this.relation.From, r.Resource, r.Extractor)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (this *usageReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
@@ -370,6 +394,80 @@ func CreateSimpleUsageReconcilerTypeFor(clusterName string, gks ...schema.GroupK
 			cache:             cache,
 			clusterId:         cluster.GetId(),
 			responsible:       cache.reconcilerFor(cluster, gks...),
+		}
+		return this, nil
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+type UsedResourceSpec struct {
+	Resource  schema.GroupKind        // used resource
+	Extractor resources.UsedExtractor // extractor for using resource
+}
+
+func UsedResource(gk schema.GroupKind, extractor resources.UsedExtractor) UsedResourceSpec {
+	return UsedResourceSpec{gk, extractor}
+}
+
+type UsageRelation struct {
+	FromCluster string             // cluster for From Resource
+	From        schema.GroupKind   // using Resource
+	ToCluster   string             // cluster for To Resource
+	To          []UsedResourceSpec // used resources
+}
+
+func UsageRelationFor(fromCluster string, gk schema.GroupKind, toCluster string, specs ...UsedResourceSpec) *UsageRelation {
+	return &UsageRelation{
+		FromCluster: fromCluster,
+		From:        gk,
+		ToCluster:   toCluster,
+		To:          specs,
+	}
+}
+
+func UsageRelationForGK(fromCluster string, gk schema.GroupKind, toCluster string, used schema.GroupKind, extractor resources.UsedExtractor) *UsageRelation {
+	return UsageRelationFor(fromCluster, gk, toCluster, UsedResource(used, extractor))
+}
+
+func MainClusterUsageRelationFor(gk schema.GroupKind, specs ...UsedResourceSpec) *UsageRelation {
+	return UsageRelationFor(controller.CLUSTER_MAIN, gk, controller.CLUSTER_MAIN, specs...)
+}
+
+func MainClusterUsageRelationForGK(gk schema.GroupKind, used schema.GroupKind, extractor resources.UsedExtractor) *UsageRelation {
+	return UsageRelationFor(controller.CLUSTER_MAIN, gk, controller.CLUSTER_MAIN, UsedResource(used, extractor))
+}
+
+func (this *UsageRelation) GKs() []schema.GroupKind {
+	gks := []schema.GroupKind{}
+	for _, r := range this.To {
+		gks = append(gks, r.Resource)
+	}
+	return gks
+}
+
+func UsageReconcilerForRelation(name string, relation *UsageRelation) controller.ConfigurationModifier {
+	return func(c controller.Configuration) controller.Configuration {
+		if c.Definition().Reconcilers()[name] == nil {
+			c = c.Reconciler(CreateSimpleUsageReconcilerTypeForRelation(relation), name)
+		}
+		return c.Cluster(relation.FromCluster).ReconcilerWatchesByGK(name, relation.GKs()...)
+	}
+}
+
+func CreateSimpleUsageReconcilerTypeForRelation(relation *UsageRelation) controller.ReconcilerType {
+	return func(controller controller.Interface) (reconcile.Interface, error) {
+		cache := GetSharedSimpleUsageCache(controller)
+		cluster := controller.GetCluster(relation.ToCluster)
+		if cluster == nil {
+			return nil, fmt.Errorf("cluster %s not found", relation.ToCluster)
+		}
+		this := &usageReconciler{
+			ReconcilerSupport: NewReconcilerSupport(controller),
+			cache:             cache,
+			clusterId:         cluster.GetId(),
+			responsible:       cache.reconcilerFor(cluster, relation.GKs()...),
+			relation:          relation,
 		}
 		return this, nil
 	}
