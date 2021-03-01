@@ -6,6 +6,10 @@
 
 package handler
 
+import (
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/ready"
+)
+
 /*
   Creation Flow for Handlers
 
@@ -31,4 +35,8 @@ type LegacyInterface interface {
 	Interface
 	SetupInterface
 	StartInterface
+}
+
+type ReadyInterface interface {
+	ready.ReadyReporter
 }

@@ -15,6 +15,8 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
 )
 
+type ValueGetter = fieldpath.ValueGetter
+
 type Matcher interface {
 	Match(obj interface{}) bool
 }
@@ -99,14 +101,14 @@ func MatchFieldValuesByName(path string, values ...interface{}) Matcher {
 	return MatchFieldValues(fieldpath.MustFieldPath(path), values...)
 }
 
-func MatchFieldValue(f fieldpath.ValueGetter, value interface{}) Matcher {
+func MatchFieldValue(f ValueGetter, value interface{}) Matcher {
 	return MatchFunc(func(obj interface{}) bool {
 		v, err := f.Get(obj)
 		return err == nil && reflect.DeepEqual(v, value)
 	})
 }
 
-func MatchFieldValues(f fieldpath.ValueGetter, values ...interface{}) Matcher {
+func MatchFieldValues(f ValueGetter, values ...interface{}) Matcher {
 	return MatchFunc(func(obj interface{}) bool {
 		v, err := f.Get(obj)
 		if err != nil {
@@ -121,7 +123,7 @@ func MatchFieldValues(f fieldpath.ValueGetter, values ...interface{}) Matcher {
 	})
 }
 
-func MatchFieldPattern(f fieldpath.ValueGetter, pattern string) Matcher {
+func MatchFieldPattern(f ValueGetter, pattern string) Matcher {
 	pat, err := regexp.Compile(pattern)
 	if err != nil {
 		panic(fmt.Sprintf("invalid pattern %q: %s", pattern, err))

@@ -16,6 +16,7 @@ import (
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/server/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/ready"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -96,6 +97,8 @@ type Extension struct {
 	certificate    certs.CertificateSource
 	servers        map[string]*httpserver
 	clusters       utils.StringSet
+
+	ready bool
 }
 
 func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension, error) {
@@ -152,7 +155,12 @@ func (this *Extension) RequiredClusterIds(clusters cluster.Clusters) utils.Strin
 }
 
 func (this *Extension) Setup(ctx context.Context) error {
+	ready.Register(this)
 	return nil
+}
+
+func (this *Extension) IsReady() bool {
+	return this.ready
 }
 
 func (this *Extension) Start(ctx context.Context) error {
@@ -195,6 +203,7 @@ func (this *Extension) Start(ctx context.Context) error {
 			return err
 		}
 	}
+	this.ready = true
 	ctxutil.WaitGroupRun(ctx, func() {
 		<-this.GetContext().Done()
 		this.Info("waiting for servers to shutdown")

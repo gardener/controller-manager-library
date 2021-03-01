@@ -18,6 +18,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/handler"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/mappings"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/ready"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/server"
@@ -145,6 +146,9 @@ func (this *httpserver) handleSetup() error {
 			if err != nil {
 				return fmt.Errorf("setup of server %s handler %s failed: %s", this.definition.Name(), n, err)
 			}
+		}
+		if r, ok := h.(handler.ReadyInterface); ok {
+			ready.Register(r)
 		}
 	}
 	return nil

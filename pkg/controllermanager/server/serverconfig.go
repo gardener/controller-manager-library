@@ -52,9 +52,13 @@ func (this *ServerConfig) Reconfigure(def Definition) (Definition, error) {
 	clusters := def.RequiredClusters()
 	mod := false
 
-	if this.UseTLS && def.Kind() != HTTPS {
+	if this.UseTLS != (def.Kind() == HTTPS) {
 		mod = true
-		kind = HTTPS
+		if this.UseTLS {
+			kind = HTTPS
+		} else {
+			kind = HTTP
+		}
 	}
 	if kind == HTTPS && len(clusters) == 0 {
 		mod = true
