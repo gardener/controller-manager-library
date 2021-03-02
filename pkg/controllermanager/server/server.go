@@ -38,6 +38,9 @@ type httpserver struct {
 	certificate certs.CertificateSource
 
 	config *ServerConfig
+
+	readyHandlers []ready.ReadyReporter
+	ready         bool
 }
 
 func NewServer(env Environment, def Definition, cmp mappings.Definition) (*httpserver, error) {
@@ -132,6 +135,18 @@ func (this *httpserver) RegisterHandler(pattern string, handler http.Handler) {
 	this.server.RegisterHandler(pattern, handler)
 }
 
+func (this *httpserver) IsReady() bool {
+	if !this.ready {
+		for _, r := range this.readyHandlers {
+			if !r.IsReady() {
+				return false
+			}
+		}
+		this.ready = true
+	}
+	return this.ready
+}
+
 func (this *httpserver) handleSetup() error {
 	this.Infof("setup server %s", this.definition.Name())
 	for n, t := range this.definition.Handlers() {
@@ -148,8 +163,13 @@ func (this *httpserver) handleSetup() error {
 			}
 		}
 		if r, ok := h.(handler.ReadyInterface); ok {
-			ready.Register(r)
+			this.readyHandlers = append(this.readyHandlers, r)
 		}
+	}
+	if len(this.readyHandlers) > 0 {
+		ready.Register(this)
+	} else {
+		this.ready = true
 	}
 	return nil
 }
@@ -167,8 +187,17 @@ func (this *httpserver) Start() error {
 			this.certificateUpdated()
 		}))
 	}
+	var tweak []server.TLSTweakFunction
+	if this.certificate != nil {
+		for n, h := range this.handlers {
+			if t, ok := h.(handler.TLSTweakInterface); ok {
+				tweak = append(tweak, t.TweakTLSConfig)
+				this.Infof("  using tls tweak function from handler %q", n)
+			}
+		}
+	}
 	this.Infof("starting %s server %s on port %d", this.definition.Kind(), this.definition.Name(), this.config.ServerPort)
-	this.server.Start(this.certificate, "", this.config.ServerPort)
+	this.server.Start(this.certificate, "", this.config.ServerPort, tweak...)
 	return nil
 }
 

@@ -7,6 +7,8 @@
 package handler
 
 import (
+	"crypto/tls"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/ready"
 )
 
@@ -37,6 +39,14 @@ type LegacyInterface interface {
 	StartInterface
 }
 
+// TLSTweakInterface can be implemented by a handler to influence
+// the actual tls config in case of a server of kind HTTPS
+type TLSTweakInterface interface {
+	TweakTLSConfig(ctf *tls.Config)
+}
+
+// ReadyInterface can be implemented by a handler to participate
+// in the pod ready handling
 type ReadyInterface interface {
 	ready.ReadyReporter
 }
