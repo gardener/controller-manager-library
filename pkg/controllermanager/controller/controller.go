@@ -617,6 +617,9 @@ func (this *controller) Run() {
 	<-this.GetContext().Done()
 	this.Info("waiting for worker pools to shutdown")
 	ctxutil.WaitGroupWait(this.GetContext(), 120*time.Second)
+	for n, r := range this.reconcilers {
+		reconcile.CleanupReconciler(this, n, r)
+	}
 	this.Info("exit controller")
 }
 
