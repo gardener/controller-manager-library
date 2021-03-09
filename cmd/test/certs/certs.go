@@ -79,7 +79,7 @@ func CertsMain() {
 		return
 	}
 
-	c, err := cluster.CreateCluster(context.Background(), logger.New(), cluster.Configure("dummy", "", "").Definition(), "", "")
+	c, err := cluster.CreateCluster(context.Background(), logger.New(), cluster.Configure("dummy", "", "").Definition(), "", nil)
 	if err != nil {
 		fmt.Printf("no cluster: %s\n", err)
 		return

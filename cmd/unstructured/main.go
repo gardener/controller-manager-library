@@ -21,7 +21,7 @@ import (
 
 func main() {
 	def := cluster.Configure("default", "kubeconfig", "dummy").Definition()
-	c, err := cluster.CreateCluster(context.Background(), logger.New(), def, "default", "")
+	c, err := cluster.CreateCluster(context.Background(), logger.New(), def, "default", nil)
 
 	if err != nil {
 		log.Fatal(err)

@@ -7,17 +7,19 @@ package scheme
 import (
 	"context"
 	"fmt"
+	"os"
+	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/kutil"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"os"
-	"time"
 )
 
 var listGroups = false
@@ -57,8 +59,10 @@ func SchemeMain() {
 
 	ctx := ctxutil.CancelContext(context.Background())
 
-	cluster.Configure("main", "", "").Definition()
-	c, err := cluster.CreateCluster(ctx, logger.New(), cluster.Configure("main", "", "").Definition(), "", os.Args[1])
+	def := cluster.Configure("main", "", "").Definition()
+	cfg := cluster.NewConfig(def)
+	cfg.KubeConfig = os.Args[1]
+	c, err := cluster.CreateCluster(ctx, logger.New(), def, "", cfg)
 	if err != nil {
 		fmt.Errorf("failed to create kube configmain %s: %s", os.Args[1], err)
 		os.Exit(2)

@@ -32,7 +32,7 @@ func PreferredMain() {
 
 	fmt.Printf("create cluster\n")
 	def := cluster.Configure("main", "", "").Scheme(scheme).Definition()
-	c, err := cluster.CreateCluster(ctx, logger.New(), def, "", "")
+	c, err := cluster.CreateCluster(ctx, logger.New(), def, "", nil)
 	if err != nil {
 		fmt.Errorf("failed to create cluster: %s", err)
 		os.Exit(2)
