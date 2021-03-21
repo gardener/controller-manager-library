@@ -83,6 +83,8 @@ type Interface interface {
 
 type WatchSelectionFunction func(c Interface) (namespace string, tweaker resources.TweakListOptionsFunc)
 
+type WatchCondition func(c cluster.Interface) bool
+
 type WatchResource interface {
 	ResourceType() ResourceKey
 	WatchSelectionFunction() WatchSelectionFunction
