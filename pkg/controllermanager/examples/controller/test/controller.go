@@ -12,10 +12,13 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/api/discovery/v1beta1"
+
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/reconcile/reconcilers"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller/watches"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 
@@ -23,6 +26,8 @@ import (
 )
 
 var secretGK = resources.NewGroupKind("core", "Secret")
+var endpointsGK = resources.NewGroupKind("core", "Endpoints")
+var endpointSliceGK = resources.NewGroupKind("discovery.k8s.io", "EndpointSlice")
 
 func init() {
 	controller.Configure("cm").
@@ -32,16 +37,25 @@ func init() {
 		StringOption("test", "Controller argument").
 		OptionSource("test", controller.OptionSourceCreator(&Config{})).
 		MainResource("core", "ConfigMap", controller.NamespaceSelection("default")).
+		FlavoredWatch(
+			watches.Conditional(
+				watches.FlagOption("endpoints"),
+				watches.ResourceFlavorByGK(endpointsGK, watches.APIServerVersion("<1.19")),
+				watches.ResourceFlavorByGK(endpointSliceGK),
+			),
+		).
 		With(reconcilers.SecretUsageReconciler(controller.CLUSTER_MAIN)).
 		MustRegister()
 }
 
 type Config struct {
-	option string
+	option    string
+	endpoints bool
 }
 
 func (this *Config) AddOptionsToSet(set config.OptionSet) {
 	set.AddStringOption(&this.option, "option", "", "", "2nd controller argument")
+	set.AddBoolOption(&this.endpoints, "endpoints", "", false, "watch endpointst")
 }
 
 func (this *Config) Prepare() error {
@@ -101,6 +115,10 @@ func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) r
 	switch o := obj.Data().(type) {
 	case *corev1.ConfigMap:
 		return h.reconcileConfigMap(logger, obj.ClusterKey(), o)
+	case *corev1.Endpoints:
+		return h.reconcileEndpoints(logger, obj.ClusterKey(), o)
+	case *v1beta1.EndpointSlice:
+		return h.reconcileEndpointSlice(logger, obj.ClusterKey(), o)
 	}
 
 	return reconcile.Succeeded(logger)
@@ -139,6 +157,16 @@ func (h *reconciler) reconcileConfigMap(logger logger.LogContext, key resources.
 
 	secret := h.secretRef(configMap.Namespace, configMap.Name)
 	h.secrets.SetUsesFor(key, secret)
+	return reconcile.Succeeded(logger)
+}
+
+func (h *reconciler) reconcileEndpoints(logger logger.LogContext, key resources.ClusterObjectKey, ep *corev1.Endpoints) reconcile.Status {
+	logger.Infof("should reconcile endpoint")
+	return reconcile.Succeeded(logger)
+}
+
+func (h *reconciler) reconcileEndpointSlice(logger logger.LogContext, key resources.ClusterObjectKey, ep *v1beta1.EndpointSlice) reconcile.Status {
+	logger.Infof("should reconcile endpoint slice instead of endpoint")
 	return reconcile.Succeeded(logger)
 }
 

@@ -92,6 +92,19 @@ func (this *ReadyFlag) start() {
 	this.lock.Lock()
 }
 
+type watchContext struct {
+	cluster cluster.Interface
+	extension.ElementOptions
+}
+
+func newWatchContext(controller Interface, cluster cluster.Interface) WatchContext {
+	return watchContext{cluster, controller}
+}
+
+func (this watchContext) Cluster() cluster.Interface {
+	return this.cluster
+}
+
 type controller struct {
 	extension.ElementBase
 	record.EventRecorder
@@ -105,6 +118,7 @@ type controller struct {
 	clusters        cluster.Clusters
 	filters         []ResourceFilter
 	owning          WatchResource
+	mainresc        ResourceKey
 	watches         map[string][]Watch
 	reconcilers     map[string]reconcile.Interface
 	reconcilerNames map[reconcile.Interface]string
@@ -171,6 +185,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 	this.clusters = clusters
 	this.cluster = clusters.GetCluster(required[0])
 	this.EventRecorder = this.cluster.Resources()
+	this.mainresc = this.owning.ResourceType(newWatchContext(this, this.cluster))
 
 	err = this.deployCRDS()
 	if err != nil {
@@ -187,15 +202,32 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		this.reconcilerNames[reconciler] = n
 	}
 
+	this.Infof("configure reconciler watches...")
 	for cname, watches := range this.definition.Watches() {
+		cluster := this.GetCluster(cname)
+		if cluster == nil {
+			return nil, fmt.Errorf("cluster %q not found for resource definitions", cname)
+		}
+		this.Infof("  for cluster %s", cluster)
+		wctx := newWatchContext(this, cluster)
 		for _, w := range watches {
-			ok, err := this.addReconciler(cname, w.ResourceType().GroupKind(), w.PoolName(), w.Reconciler())
-			if err != nil {
-				this.Errorf("GOT error: %s", err)
-				return nil, err
-			}
-			if ok {
-				this.watches[cname] = append(this.watches[cname], w)
+			key := w.ResourceType(wctx)
+			if key != nil {
+				if w.String() != key.String() {
+					this.Infof("    %s mapped to %s", w, key)
+				} else {
+					this.Infof("    %s", key)
+				}
+				ok, err := this.addReconciler(cname, key.GroupKind(), w.PoolName(), w.Reconciler())
+				if err != nil {
+					this.Errorf("GOT error: %s", err)
+					return nil, err
+				}
+				if ok {
+					this.watches[cname] = append(this.watches[cname], w)
+				}
+			} else {
+				this.Infof("    no resource for %s", w)
 			}
 		}
 	}
@@ -253,9 +285,13 @@ func (this *controller) deployCRDS() error {
 		if cluster == nil {
 			return fmt.Errorf("cluster %q not found for resource definitions", cname)
 		}
+		wctx := newWatchContext(this, cluster)
 		for _, w := range watches {
-			clusterResources.Add(cname, w.ResourceType().GroupKind())
-			effClusterResources.Add(cluster.GetId(), w.ResourceType().GroupKind())
+			key := w.ResourceType(wctx)
+			if key != nil {
+				clusterResources.Add(cname, key.GroupKind())
+				effClusterResources.Add(cluster.GetId(), w.ResourceType(wctx).GroupKind())
+			}
 		}
 	}
 	for n, crds := range this.definition.CustomResourceDefinitions() {
@@ -500,7 +536,7 @@ func (this *controller) EnqueueCommand(cmd string) error {
 }
 
 func (this *controller) Owning() ResourceKey {
-	return this.owning.ResourceType()
+	return this.mainresc
 }
 
 func (this *controller) GetMainWatchResource() WatchResource {
@@ -530,9 +566,12 @@ func (this *controller) check() error {
 			return err
 		}
 		for _, watch := range watches {
-			_, err = h.GetResource(watch.ResourceType())
-			if err != nil {
-				return err
+			key := watch.ResourceType(newWatchContext(this, h.cluster))
+			if key != nil {
+				_, err = h.GetResource(key)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -588,7 +627,7 @@ func (this *controller) prepare() error {
 		}
 
 		for _, watch := range watches {
-			this.Infof("watching additional resources %q at cluster %q (reconciler %s)", watch.ResourceType(), h, watch.Reconciler())
+			this.Infof("watching additional resources %q at cluster %q (reconciler %s)", watch.ResourceType(newWatchContext(this, h.cluster)), h, watch.Reconciler())
 			this.registerWatch(h, watch, watch.PoolName())
 		}
 	}
@@ -625,7 +664,7 @@ func (this *controller) Run() {
 
 func (this *controller) mustHandle(r resources.Object) bool {
 	for _, f := range this.filters {
-		if !f(this.owning.ResourceType(), r) {
+		if !f(this.mainresc, r) {
 			this.Debugf("%s rejected by filter", r.Description())
 			return false
 		}

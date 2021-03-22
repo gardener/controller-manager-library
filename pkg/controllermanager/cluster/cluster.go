@@ -257,6 +257,7 @@ func CreateClusterForScheme(ctx context.Context, logger logger.LogContext, def D
 	if scheme != nil && def.Scheme() != scheme {
 		def = def.Configure().Scheme(scheme).Definition()
 	}
+	scheme.KnownTypes(schema.GroupVersion{Group: "discovery.k8s.io", Version: "v1beta1"})
 	cluster.ctx = ctx
 	cluster.logctx = logger
 	cluster.definition = def

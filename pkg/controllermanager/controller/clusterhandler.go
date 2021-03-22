@@ -73,7 +73,7 @@ func (c *ClusterHandler) GetResource(resourceKey ResourceKey) (resources.Interfa
 }
 
 func (c *ClusterHandler) register(watchResource WatchResource, namespace string, optionsFunc resources.TweakListOptionsFunc, usedpool *pool) error {
-	resourceKey := watchResource.ResourceType()
+	resourceKey := watchResource.ResourceType(newWatchContext(c.controller, c.cluster))
 	i := c.resources[resourceKey]
 	if i == nil {
 		resource, err := c.cluster.GetResource(resourceKey.GroupKind())

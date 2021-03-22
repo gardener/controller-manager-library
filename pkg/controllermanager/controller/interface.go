@@ -83,18 +83,18 @@ type Interface interface {
 
 type WatchSelectionFunction func(c Interface) (namespace string, tweaker resources.TweakListOptionsFunc)
 
-type WatchCondition func(c cluster.Interface) bool
-
 type WatchResource interface {
-	ResourceType() ResourceKey
+	ResourceType(WatchContext) ResourceKey
 	WatchSelectionFunction() WatchSelectionFunction
 	ShouldEnforceMinimal() bool
+	String() string
 }
 
 type Watch interface {
 	WatchResource
 	Reconciler() string
 	PoolName() string
+	String() string
 }
 type Command interface {
 	Key() utils.Matcher
@@ -102,7 +102,6 @@ type Command interface {
 	PoolName() string
 }
 
-// ResourceKey implementations are used as key and MUST therefore be value types
 type ResourceKey = extension.ResourceKey
 
 func NewResourceKey(group, kind string) ResourceKey {
@@ -227,7 +226,7 @@ type Definition interface {
 	// Create(Object) (Reconciler, error)
 	Reconcilers() map[string]ReconcilerType
 	Syncers() map[string]SyncerDefinition
-	MainResource() ResourceKey
+	MainResource(WatchContext) ResourceKey
 	MainWatchResource() WatchResource
 	Watches() Watches
 	Commands() Commands
