@@ -172,6 +172,8 @@ func (this *pooldef) Period() time.Duration {
 
 type WatchContext = watches.WatchContext
 
+type WatchResourceDef = watches.WatchResourceDef
+
 type watchdef struct {
 	rescdef
 	reconciler string
@@ -179,41 +181,22 @@ type watchdef struct {
 }
 
 type rescdef struct {
-	flavors    watches.FlavoredResource
-	selectFunc WatchSelectionFunction
-	minimal    bool
+	flavors watches.FlavoredResource
 }
 
 func (this *rescdef) requestMinimalFor(gk schema.GroupKind) {
-	if this.flavors.HasResource(gk) {
-		this.minimal = true
-	}
+	this.flavors.RequestMinimalFor(gk)
 }
 
-func (this *rescdef) ResourceType(wctx WatchContext) ResourceKey {
-	return this.flavors.ResourceKey(wctx)
+func (this *rescdef) WatchResourceDef(wctx WatchContext) WatchResourceDef {
+	return this.flavors.WatchResourceDef(wctx, WatchResourceDef{})
 }
-func (this *rescdef) WatchSelectionFunction() WatchSelectionFunction {
-	return this.selectFunc
-}
-func (this *rescdef) ShouldEnforceMinimal() bool {
-	return this.minimal
-}
+
 func (this rescdef) String() string {
-	s := this.flavors.String()
-	if this.selectFunc != nil {
-		s += " with selector"
-	}
-	if this.minimal {
-		s += " (minimal)"
-	}
-	return s
+	return this.flavors.String()
 }
 
 func (this *watchdef) requestMinimalFor(gk schema.GroupKind) *watchdef {
-	if this.minimal {
-		return this
-	}
 	n := *this
 	n.rescdef.requestMinimalFor(gk)
 	return &n
@@ -300,11 +283,12 @@ func (this *_Definition) String() string {
 func (this *_Definition) Name() string {
 	return this.name
 }
-func (this *_Definition) MainResource(wctx WatchContext) ResourceKey {
+func (this *_Definition) MainResource(wctx WatchContext) *WatchResourceDef {
 	if this.main == nil {
 		return nil
 	}
-	return this.main.ResourceType(wctx)
+	def := this.main.WatchResourceDef(wctx)
+	return &def
 }
 func (this *_Definition) MainWatchResource() WatchResource {
 	if this.main == nil {
@@ -519,15 +503,11 @@ func (this Configuration) MainResourceByGK(gk schema.GroupKind, sel ...WatchSele
 	return this.MainResourceByKey(NewResourceKeyByGK(gk), sel...)
 }
 func (this Configuration) MainResourceByKey(key ResourceKey, sel ...WatchSelectionFunction) Configuration {
-	return this.FlavoredMainResource(watches.SimpleResourceFlavorsByGK(key.GroupKind()), sel...)
+	return this.FlavoredMainResource(legacy(watches.SimpleResourceFlavorsByGK(key.GroupKind()), sel...))
 }
-func (this Configuration) FlavoredMainResource(flavors watches.FlavoredResource, sel ...WatchSelectionFunction) Configuration {
+func (this Configuration) FlavoredMainResource(flavors watches.FlavoredResource) Configuration {
 	r := &rescdef{
 		flavors: flavors,
-	}
-
-	if len(sel) > 0 {
-		r.selectFunc = sel[0]
 	}
 	this.settings.main = r
 	return this
@@ -756,7 +736,7 @@ func (this Configuration) ReconcilerWatches(reconciler string, keys ...ResourceK
 	this.assureWatches()
 	for _, key := range keys {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{watches.SimpleResourceFlavorsByKey(key), nil, false}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{watches.SimpleResourceFlavorsByKey(key)}, reconciler, this.pool})
 	}
 	return this
 }
@@ -769,7 +749,7 @@ func (this Configuration) FlavoredReconcilerWatches(reconciler string, keys ...w
 	this.assureWatches()
 	for _, key := range keys {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, nil, false}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key}, reconciler, this.pool})
 	}
 	return this
 }
@@ -778,7 +758,7 @@ func (this Configuration) ReconcilerWatchesByGK(reconciler string, gks ...schema
 	this.assureWatches()
 	for _, gk := range gks {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{watches.SimpleResourceFlavors(gk.Group, gk.Kind), nil, false}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{watches.SimpleResourceFlavors(gk.Group, gk.Kind)}, reconciler, this.pool})
 	}
 	return this
 }
@@ -787,7 +767,7 @@ func (this Configuration) ReconcilerSelectedWatches(reconciler string, sel Watch
 	this.assureWatches()
 	for _, key := range keys {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{watches.SimpleResourceFlavorsByKey(key), sel, false}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{legacy(watches.SimpleResourceFlavorsByKey(key), sel)}, reconciler, this.pool})
 	}
 	return this
 }
@@ -795,7 +775,7 @@ func (this Configuration) FlavoredReconcilerSelectedWatches(reconciler string, s
 	this.assureWatches()
 	for _, key := range keys {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{key, sel, false}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{legacy(key, sel)}, reconciler, this.pool})
 	}
 	return this
 }
@@ -804,7 +784,7 @@ func (this Configuration) ReconcilerSelectedWatchesByGK(reconciler string, sel W
 	this.assureWatches()
 	for _, gk := range gks {
 		// logger.Infof("adding watch for %q:%q to pool %q", this.cluster, key, this.pool)
-		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{watches.SimpleResourceFlavors(gk.Group, gk.Kind), sel, false}, reconciler, this.pool})
+		this.settings.watches[this.cluster] = append(this.settings.watches[this.cluster], &watchdef{rescdef{legacy(watches.SimpleResourceFlavors(gk.Group, gk.Kind), sel)}, reconciler, this.pool})
 	}
 	return this
 }
@@ -1011,4 +991,46 @@ func (this Configuration) Register(group ...string) error {
 func (this Configuration) MustRegister(group ...string) Configuration {
 	registry.MustRegisterController(this, group...)
 	return this
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// legacy
+
+func legacy(resc watches.FlavoredResource, sel ...WatchSelectionFunction) watches.FlavoredResource {
+	if len(sel) == 0 {
+		return resc
+	}
+	flavor := selector(sel...)
+	return append(append(resc[:0:0], flavor), resc...)
+}
+
+//
+// Flavor for old watch selector function
+//
+
+func selector(sel ...WatchSelectionFunction) watches.ResourceFlavor {
+	return &selectorFlavor{sel: sel}
+}
+
+type selectorFlavor struct {
+	sel []WatchSelectionFunction
+}
+
+func (this *selectorFlavor) WatchResourceDef(wctx WatchContext, def WatchResourceDef) WatchResourceDef {
+	for _, s := range this.sel {
+		ns, tweak := s(wctx.(watchContext).controller)
+		if ns != "" {
+			def.Namespace = ns
+		}
+		if tweak != nil {
+			def.Tweaker = append(def.Tweaker, tweak)
+		}
+	}
+	return def
+}
+func (this *selectorFlavor) RequestMinimalFor(gk schema.GroupKind) {
+}
+
+func (this *selectorFlavor) String() string {
+	return "{selectors}"
 }

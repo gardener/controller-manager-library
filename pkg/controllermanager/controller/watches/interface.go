@@ -14,6 +14,7 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 // ResourceKey implementations are used as key and MUST therefore be value types
@@ -21,8 +22,17 @@ type ResourceKey = extension.ResourceKey
 
 // WatchContext describes the context to evaluate a resource key for
 type WatchContext interface {
+	Name() string
 	extension.ElementOptions
 	Cluster() cluster.Interface
+	Namespace() string
+}
+
+type WatchResourceDef struct {
+	Key       ResourceKey
+	Namespace string
+	Tweaker   []resources.TweakListOptionsFunc
+	Minimal   bool
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -33,20 +43,20 @@ type WatchContext interface {
 // watch context. The first flavor yielding a result will be chosen.
 type FlavoredResource []ResourceFlavor
 
-func (this FlavoredResource) HasResource(gk schema.GroupKind) bool {
+func (this FlavoredResource) RequestMinimalFor(gk schema.GroupKind) {
 	for _, f := range this {
-		return f.HasResource(gk)
+		f.RequestMinimalFor(gk)
 	}
-	return false
 }
 
-func (this FlavoredResource) ResourceKey(wctx WatchContext) ResourceKey {
+func (this FlavoredResource) WatchResourceDef(wctx WatchContext, def WatchResourceDef) WatchResourceDef {
 	for _, r := range this {
-		if key := r.ResourceType(wctx); key != nil {
-			return key
+		def = r.WatchResourceDef(wctx, def)
+		if def.Key != nil {
+			break
 		}
 	}
-	return nil
+	return def
 }
 
 func (this FlavoredResource) String() string {
@@ -67,6 +77,7 @@ func NewFlavoredResource(flavors ...ResourceFlavor) FlavoredResource {
 // If it matches a dedicated watch context a resource key is returned,
 // nil otherwise
 type ResourceFlavor interface {
-	ResourceType(wctx WatchContext) ResourceKey
-	HasResource(gk schema.GroupKind) bool
+	WatchResourceDef(wctx WatchContext, def WatchResourceDef) WatchResourceDef
+	RequestMinimalFor(gk schema.GroupKind)
+	String() string
 }

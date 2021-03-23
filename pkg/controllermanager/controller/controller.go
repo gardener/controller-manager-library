@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/record"
@@ -93,8 +94,8 @@ func (this *ReadyFlag) start() {
 }
 
 type watchContext struct {
-	cluster cluster.Interface
-	extension.ElementOptions
+	cluster    cluster.Interface
+	controller Interface
 }
 
 func newWatchContext(controller Interface, cluster cluster.Interface) WatchContext {
@@ -103,6 +104,54 @@ func newWatchContext(controller Interface, cluster cluster.Interface) WatchConte
 
 func (this watchContext) Cluster() cluster.Interface {
 	return this.cluster
+}
+
+func (this watchContext) Name() string {
+	return this.controller.GetName()
+}
+
+func (this watchContext) Namespace() string {
+	return this.controller.GetEnvironment().Namespace()
+}
+
+func (this watchContext) GetOptionSource(name string) (config.OptionSource, error) {
+	return this.controller.GetOptionSource(name)
+}
+
+func (this watchContext) GetOption(name string) (*config.ArbitraryOption, error) {
+	return this.controller.GetOption(name)
+}
+
+func (this watchContext) GetBoolOption(name string) (bool, error) {
+	return this.controller.GetBoolOption(name)
+}
+
+func (this watchContext) GetStringOption(name string) (string, error) {
+	return this.controller.GetStringOption(name)
+}
+
+func (this watchContext) GetStringArrayOption(name string) ([]string, error) {
+	return this.controller.GetStringArrayOption(name)
+}
+
+func (this watchContext) GetIntOption(name string) (int, error) {
+	return this.controller.GetIntOption(name)
+}
+
+func (this watchContext) GetDurationOption(name string) (time.Duration, error) {
+	return this.controller.GetDurationOption(name)
+}
+
+type watchDef struct {
+	WatchResourceDef
+	PoolName   string
+	Reconciler string
+}
+
+func (this *watchDef) TweakListOptions(opts *metav1.ListOptions) {
+	for _, t := range this.WatchResourceDef.Tweaker {
+		t(opts)
+	}
 }
 
 type controller struct {
@@ -118,8 +167,8 @@ type controller struct {
 	clusters        cluster.Clusters
 	filters         []ResourceFilter
 	owning          WatchResource
-	mainresc        ResourceKey
-	watches         map[string][]Watch
+	mainresc        *watchDef
+	watches         map[string][]*watchDef
 	reconcilers     map[string]reconcile.Interface
 	reconcilerNames map[reconcile.Interface]string
 	mappings        _Reconcilations
@@ -151,7 +200,7 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		filters: def.ResourceFilters(),
 
 		handlers:        map[string]*ClusterHandler{},
-		watches:         map[string][]Watch{},
+		watches:         map[string][]*watchDef{},
 		pools:           map[string]*pool{},
 		reconcilers:     map[string]reconcile.Interface{},
 		leases:          map[string]map[string]bool{},
@@ -185,7 +234,11 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 	this.clusters = clusters
 	this.cluster = clusters.GetCluster(required[0])
 	this.EventRecorder = this.cluster.Resources()
-	this.mainresc = this.owning.ResourceType(newWatchContext(this, this.cluster))
+	this.mainresc = &watchDef{
+		WatchResourceDef: this.owning.WatchResourceDef(newWatchContext(this, this.cluster)),
+		PoolName:         DEFAULT_POOL,
+		Reconciler:       DEFAULT_RECONCILER,
+	}
 
 	err = this.deployCRDS()
 	if err != nil {
@@ -211,7 +264,12 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		this.Infof("  for cluster %s", cluster)
 		wctx := newWatchContext(this, cluster)
 		for _, w := range watches {
-			key := w.ResourceType(wctx)
+			def := &watchDef{
+				WatchResourceDef: w.WatchResourceDef(wctx),
+				PoolName:         w.PoolName(),
+				Reconciler:       w.Reconciler(),
+			}
+			key := def.Key
 			if key != nil {
 				if w.String() != key.String() {
 					this.Infof("    %s mapped to %s", w, key)
@@ -224,13 +282,16 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 					return nil, err
 				}
 				if ok {
-					this.watches[cname] = append(this.watches[cname], w)
+					this.watches[cname] = append(this.watches[cname], def)
+				} else {
+					this.Infof("    omitted for reconciler", w.Reconciler())
 				}
 			} else {
 				this.Infof("    no resource for %s", w)
 			}
 		}
 	}
+
 	_, err = this.addReconciler(required[0], this.Owning().GroupKind(), DEFAULT_POOL, DEFAULT_RECONCILER)
 	if err != nil {
 		return nil, err
@@ -287,10 +348,11 @@ func (this *controller) deployCRDS() error {
 		}
 		wctx := newWatchContext(this, cluster)
 		for _, w := range watches {
-			key := w.ResourceType(wctx)
+			def := w.WatchResourceDef(wctx)
+			key := def.Key
 			if key != nil {
 				clusterResources.Add(cname, key.GroupKind())
-				effClusterResources.Add(cluster.GetId(), w.ResourceType(wctx).GroupKind())
+				effClusterResources.Add(cluster.GetId(), key.GroupKind())
 			}
 		}
 	}
@@ -536,7 +598,7 @@ func (this *controller) EnqueueCommand(cmd string) error {
 }
 
 func (this *controller) Owning() ResourceKey {
-	return this.mainresc
+	return this.mainresc.Key
 }
 
 func (this *controller) GetMainWatchResource() WatchResource {
@@ -560,18 +622,15 @@ func (this *controller) check() error {
 	}
 
 	// setup and check cluster handlers for all required cluster
-	for cname, watches := range this.GetDefinition().Watches() {
+	for cname, watches := range this.watches {
 		h, err := this.getClusterHandler(cname)
 		if err != nil {
 			return err
 		}
 		for _, watch := range watches {
-			key := watch.ResourceType(newWatchContext(this, h.cluster))
-			if key != nil {
-				_, err = h.GetResource(key)
-				if err != nil {
-					return err
-				}
+			_, err = h.GetResource(watch.Key)
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -582,14 +641,12 @@ func (this *controller) AddCluster(cluster cluster.Interface) error {
 	return nil
 }
 
-func (this *controller) registerWatch(h *ClusterHandler, r WatchResource, p string) error {
+func (this *controller) registerWatch(h *ClusterHandler, r *watchDef) error {
 	var optionsFunc resources.TweakListOptionsFunc
-	var ns = ""
-
-	if r.WatchSelectionFunction() != nil {
-		ns, optionsFunc = r.WatchSelectionFunction()(this)
+	if len(r.Tweaker) > 0 {
+		optionsFunc = r.TweakListOptions
 	}
-	return h.register(r, ns, optionsFunc, this.getPool(p))
+	return h.register(r, r.Namespace, optionsFunc, this.getPool(r.PoolName))
 }
 
 func (this *controller) setup() error {
@@ -616,9 +673,11 @@ func (this *controller) prepare() error {
 	this.Infof("setup watches....")
 	this.Infof("watching main resources %q at cluster %q (reconciler %s)", this.Owning(), h, DEFAULT_RECONCILER)
 
-	err = this.registerWatch(h, this.owning, DEFAULT_POOL)
-	if err != nil {
-		return err
+	if this.mainresc.Key != nil {
+		err = this.registerWatch(h, this.mainresc)
+		if err != nil {
+			return err
+		}
 	}
 	for cname, watches := range this.watches {
 		h, err := this.getClusterHandler(cname)
@@ -627,8 +686,8 @@ func (this *controller) prepare() error {
 		}
 
 		for _, watch := range watches {
-			this.Infof("watching additional resources %q at cluster %q (reconciler %s)", watch.ResourceType(newWatchContext(this, h.cluster)), h, watch.Reconciler())
-			this.registerWatch(h, watch, watch.PoolName())
+			this.Infof("watching additional resources %q at cluster %q (reconciler %s)", watch.Key, h, watch.Reconciler)
+			this.registerWatch(h, watch)
 		}
 	}
 	this.Infof("setup watches done")
@@ -664,7 +723,7 @@ func (this *controller) Run() {
 
 func (this *controller) mustHandle(r resources.Object) bool {
 	for _, f := range this.filters {
-		if !f(this.mainresc, r) {
+		if !f(this.mainresc.Key, r) {
 			this.Debugf("%s rejected by filter", r.Description())
 			return false
 		}

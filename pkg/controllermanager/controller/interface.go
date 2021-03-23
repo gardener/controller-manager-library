@@ -84,9 +84,7 @@ type Interface interface {
 type WatchSelectionFunction func(c Interface) (namespace string, tweaker resources.TweakListOptionsFunc)
 
 type WatchResource interface {
-	ResourceType(WatchContext) ResourceKey
-	WatchSelectionFunction() WatchSelectionFunction
-	ShouldEnforceMinimal() bool
+	WatchResourceDef(WatchContext) WatchResourceDef
 	String() string
 }
 
@@ -226,7 +224,7 @@ type Definition interface {
 	// Create(Object) (Reconciler, error)
 	Reconcilers() map[string]ReconcilerType
 	Syncers() map[string]SyncerDefinition
-	MainResource(WatchContext) ResourceKey
+	MainResource(WatchContext) *WatchResourceDef
 	MainWatchResource() WatchResource
 	Watches() Watches
 	Commands() Commands
