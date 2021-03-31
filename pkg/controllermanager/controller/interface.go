@@ -217,6 +217,8 @@ func (this CrossClusterRefs) Map(mapping controllermanager.Mapping) CrossCluster
 	return result
 }
 
+type ExtensionKey interface{}
+
 type Definition interface {
 	extension.OrderedElem
 	extension.ElementConfigDefinition
@@ -238,6 +240,8 @@ type Definition interface {
 	LeaseClusterName() string
 	FinalizerName() string
 	ActivateExplicitly() bool
+
+	GetDefinitionExtension(ExtensionKey) interface{}
 
 	Scheme() *runtime.Scheme
 

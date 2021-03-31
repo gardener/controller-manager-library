@@ -329,8 +329,6 @@ func (this *controller) deployImplicitCustomResourceDefinitions(log logger.LogCo
 					return err
 				}
 			}
-		} else {
-			log.Infof("crd for %s already handled", gk)
 		}
 	}
 	return nil
@@ -339,8 +337,12 @@ func (this *controller) deployImplicitCustomResourceDefinitions(log logger.LogCo
 func (this *controller) deployCRDS() error {
 	// first gather all intended or required resources
 	// by its effective and logical cluster usage
-	clusterResources := WatchedResources{}.Add(CLUSTER_MAIN, this.Owning().GroupKind())
-	effClusterResources := WatchedResources{}.Add(this.GetMainCluster().GetId(), this.Owning().GroupKind())
+	clusterResources := WatchedResources{}
+	effClusterResources := WatchedResources{}
+	if this.Owning() != nil {
+		clusterResources.Add(CLUSTER_MAIN, this.Owning().GroupKind())
+		effClusterResources.Add(this.GetMainCluster().GetId(), this.Owning().GroupKind())
+	}
 	for cname, watches := range this.definition.Watches() {
 		cluster := this.GetCluster(cname)
 		if cluster == nil {

@@ -253,6 +253,7 @@ type _Definition struct {
 	crds                 map[string][]*apiextensions.CustomResourceDefinitionVersions
 	activateExplicitly   bool
 	scheme               *runtime.Scheme
+	extensions           map[ExtensionKey]interface{}
 }
 
 var _ Definition = &_Definition{}
@@ -283,6 +284,11 @@ func (this *_Definition) String() string {
 func (this *_Definition) Name() string {
 	return this.name
 }
+
+func (this *_Definition) GetDefinitionExtension(key ExtensionKey) interface{} {
+	return this.extensions[key]
+}
+
 func (this *_Definition) MainResource(wctx WatchContext) *WatchResourceDef {
 	if this.main == nil {
 		return nil
@@ -457,6 +463,21 @@ func Configure(name string) Configuration {
 			reconciler: DEFAULT_RECONCILER,
 		},
 	}
+}
+
+func (this Configuration) AssureDefinitionExtension(key ExtensionKey, creator func() interface{}) (Configuration, interface{}) {
+	ext := this.settings.GetDefinitionExtension(key)
+	if ext == nil {
+		c := map[ExtensionKey]interface{}{}
+
+		for k, v := range this.settings.extensions {
+			c[k] = v
+		}
+		ext = creator()
+		c[key] = ext
+		this.settings.extensions = c
+	}
+	return this, ext
 }
 
 func (this Configuration) With(modifier ...ConfigurationModifier) Configuration {
