@@ -12,6 +12,7 @@ import (
 	core "k8s.io/api/core/v1"
 	discovery "k8s.io/api/discovery/v1beta1"
 	extensions "k8s.io/api/extensions/v1beta1"
+	networking "k8s.io/api/networking/v1beta1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
 	. "github.com/gardener/controller-manager-library/pkg/resources/abstract"
@@ -24,4 +25,5 @@ func init() {
 	Register(discovery.SchemeBuilder)
 	Register(admissionregistration.SchemeBuilder)
 	Register(apiextensions.SchemeBuilder)
+	Register(networking.SchemeBuilder)
 }
