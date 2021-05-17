@@ -11,12 +11,18 @@ import (
 	"reflect"
 	"strings"
 	"unsafe"
-
-	"github.com/modern-go/reflect2"
 )
 
 func IsNil(o interface{}) bool {
-	return reflect2.IsNil(o)
+	if o == nil {
+		return true
+	}
+	v := reflect.ValueOf(o)
+	switch v.Kind() {
+	case reflect.Interface, reflect.Slice, reflect.Map, reflect.Chan, reflect.Func, reflect.Ptr, reflect.UnsafePointer:
+		return v.IsNil()
+	}
+	return false
 }
 
 func SetValue(f reflect.Value, v interface{}) error {
