@@ -85,17 +85,17 @@ var _ = Describe("Fieldpath", func() {
 				v := MAP{
 					"FieldAB": MAP{
 						"FieldBaaC": []ARRAY{
-							ARRAY{
+							{
 								MAP{"FieldC1": "alice"},
 							},
-							ARRAY{
+							{
 								MAP{"FieldC1": "bob"},
 							},
 						},
 					},
 				}
 				p := MustFieldPath(".FieldAB.FieldBaaC[][].FieldC1")
-				Expect(p.Get(v)).To(Equal([]ARRAY{ARRAY{"alice"}, ARRAY{"bob"}}))
+				Expect(p.Get(v)).To(Equal([]ARRAY{{"alice"}, {"bob"}}))
 			})
 
 			It("nested double projection", func() {
@@ -202,7 +202,7 @@ var _ = Describe("Fieldpath", func() {
 				v := &A{
 					FieldAB: B{
 						FieldBaC: []C{
-							C{
+							{
 								FieldC1: "test",
 							},
 						},
@@ -226,39 +226,39 @@ var _ = Describe("Fieldpath", func() {
 				v := &A{
 					FieldAB: B{
 						FieldBaaC: [][]C{
-							[]C{
-								C{FieldC1: "alice"},
+							{
+								{FieldC1: "alice"},
 							},
-							[]C{
-								C{FieldC1: "bob"},
+							{
+								{FieldC1: "bob"},
 							},
 						},
 					},
 				}
 				p := MustFieldPath(".FieldAB.FieldBaaC[][].FieldC1")
-				Expect(p.Get(v)).To(Equal([][]string{[]string{"alice"}, []string{"bob"}}))
+				Expect(p.Get(v)).To(Equal([][]string{{"alice"}, {"bob"}}))
 			})
 
 			It("nested double projection", func() {
 				v := &A{
 					FieldAB: B{
 						FieldBapA: []*A{
-							&A{
+							{
 								FieldAB: B{
 									FieldBaC: []C{
-										C{
+										{
 											FieldC1: "alice",
 										},
-										C{
+										{
 											FieldC1: "bob",
 										},
 									},
 								},
 							},
-							&A{
+							{
 								FieldAB: B{
 									FieldBaC: []C{
-										C{
+										{
 											FieldC1: "peter",
 										},
 									},
@@ -268,7 +268,7 @@ var _ = Describe("Fieldpath", func() {
 					},
 				}
 				p := MustFieldPath(".FieldAB.FieldBapA[].FieldAB.FieldBaC[].FieldC1")
-				Expect(p.Get(v)).To(Equal([][]string{[]string{"alice", "bob"}, []string{"peter"}}))
+				Expect(p.Get(v)).To(Equal([][]string{{"alice", "bob"}, {"peter"}}))
 			})
 		})
 
@@ -338,7 +338,7 @@ var _ = Describe("Fieldpath", func() {
 			v := &A{
 				FieldAB: B{
 					FieldBaC: []C{
-						C{
+						{
 							FieldC1: "test",
 						},
 					},
@@ -373,7 +373,7 @@ var _ = Describe("Fieldpath", func() {
 			v := &A{
 				FieldAB: B{
 					FieldBaC: []C{
-						C{
+						{
 							FieldC1: "bob",
 						},
 					},
@@ -397,11 +397,11 @@ var _ = Describe("Fieldpath", func() {
 			v := &A{
 				FieldAB: B{
 					FieldBaaC: [][]C{
-						[]C{
-							C{FieldC1: "alice"},
+						{
+							{FieldC1: "alice"},
 						},
-						[]C{
-							C{FieldC1: "bob"},
+						{
+							{FieldC1: "bob"},
 						},
 					},
 				},
@@ -414,28 +414,28 @@ var _ = Describe("Fieldpath", func() {
 			v := &A{
 				FieldAB: B{
 					FieldBapA: []*A{
-						&A{
+						{
 							FieldAB: B{
 								FieldBaC: []C{
-									C{
+									{
 										FieldC1: "alice",
 									},
-									C{
+									{
 										FieldC1: "bob",
 									},
 								},
 							},
 						},
-						&A{
+						{
 							FieldAB: B{
 								FieldBaC: []C{
-									C{
+									{
 										FieldC1: "peter",
 									},
 								},
 							},
 						},
-						&A{
+						{
 							FieldAB: B{},
 						},
 					},

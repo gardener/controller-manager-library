@@ -77,7 +77,7 @@ func pv(gap, prefix string, v reflect.Value) {
 
 func doStruct() {
 	a := []V{
-		V{"test"},
+		{"test"},
 	}
 	fmt.Printf("----------------------\n")
 	av := reflect.ValueOf(a)

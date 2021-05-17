@@ -15,7 +15,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
-// WatchConstraints is a match check for a dedicated watch context
+// WatchConstraint is a match check for a dedicated watch context
 type WatchConstraint interface {
 	Check(ctx WatchContext) bool
 }

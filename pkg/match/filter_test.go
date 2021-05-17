@@ -84,15 +84,15 @@ var _ = Describe("Filter", func() {
 
 		Context("Filter", func() {
 			list := []S{
-				S{
+				{
 					S1: "alice",
 					I1: 25,
 				},
-				S{
+				{
 					S1: "peter",
 					I1: 26,
 				},
-				S{
+				{
 					S1: "bob",
 					I1: 25,
 				},

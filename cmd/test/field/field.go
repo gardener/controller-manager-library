@@ -77,19 +77,19 @@ func tArray0() {
 	v := &S1{
 		Field1: S2{
 			Field7: []S5{
-				S5{
+				{
 					Field: []S3{
-						S3{
+						{
 							FieldA: "A",
 						},
-						S3{
+						{
 							FieldA: "B",
 						},
 					},
 				},
-				S5{
+				{
 					Field: []S3{
-						S3{
+						{
 							FieldA: "B",
 						},
 					},
