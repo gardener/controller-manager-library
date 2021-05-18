@@ -157,13 +157,13 @@ var _ = Describe("Config", func() {
 	It("should handle shared and generic options", func() {
 		main.AddStringOption(nil, "main", "m", "def-main", "main name")
 
-		shared := config.NewSharedOptionSet("", "controller.test", nil)
+		shared := config.NewSharedOptionSet("", "controller.test")
 		shared.AddIntOption(nil, "size", "s", 3, "pool size")
 		shared.AddIntOption(nil, "cnt", "c", 1, "worker count")
 		shared.AddIntOption(nil, "bar", "b", 55, "bar name")
 		main.AddSource(shared.Name(), shared)
 
-		shared2 := config.NewSharedOptionSet("", "controller.foo", nil)
+		shared2 := config.NewSharedOptionSet("", "controller.foo")
 		shared2.AddIntOption(nil, "size", "s", 3, "pool size")
 		shared2.AddIntOption(nil, "cnt", "c", 1, "worker count")
 		shared2.Unshare("bar")

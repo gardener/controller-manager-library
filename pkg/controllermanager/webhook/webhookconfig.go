@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/webhook/config"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -34,12 +35,7 @@ func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
 		wcfg := NewWebhookConfig(name)
 		cfg.AddSource(name, wcfg)
 
-		for oname, o := range def.ConfigOptions() {
-			wcfg.AddOption(o.Type(), nil, oname, "", o.Default(), o.Description())
-		}
-		for oname, o := range def.ConfigOptionSources() {
-			wcfg.AddSource(WEBHOOK_SET_PREFIX+oname, o.Create())
-		}
+		extension.AddElementConfigDefinitionToSet(def, WEBHOOK_SET_PREFIX, wcfg.OptionSet)
 		kind := string(def.Kind())
 		if !set.Contains(kind) {
 			set.Add(kind)

@@ -37,7 +37,7 @@ var _ config.OptionSource = (*Config)(nil)
 func NewConfig() *Config {
 	cfg := &Config{
 		CertConfig: *cert.NewCertConfig("webhook", ""),
-		OptionSet:  config.NewDefaultOptionSet(OPTION_SOURCE, OPTION_SOURCE),
+		OptionSet:  config.NewSharedOptionSet(OPTION_SOURCE, OPTION_SOURCE[:len(OPTION_SOURCE)-1]),
 	}
 	cfg.CertConfig.AddOptionsToSet(cfg.OptionSet)
 	cfg.AddStringOption(&cfg.Webhooks, "webhooks", "w", "all", "comma separated list of webhooks to start (<name>,<group>,all)")

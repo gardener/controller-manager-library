@@ -44,7 +44,7 @@ func (t *Targets) AddOptionsToSet(set config.OptionSet) {
 	set.AddStringOption(&t.test, "test", "", "none", "test name")
 }
 
-func ConfigMain() {
+func doA() {
 	var data map[string]interface{}
 	err := yaml.Unmarshal([]byte(configData), &data)
 	if err != nil {
@@ -130,4 +130,34 @@ func evaluate(o interface{}) {
 		f.Tag.Lookup("configmain")
 		fmt.Printf("%s: %s:  %s\n", f.Name, f.Type, f.Tag.Get("configmain"))
 	}
+}
+
+func doB() {
+	alice := config.NewSharedOptionSet("alice", "")
+	bob := config.NewSharedOptionSet("bob", "")
+
+	var s1 string
+
+	alice.AddStringOption(&s1, "a", "", "", "option alice a")
+	bob.AddStringOption(&s1, "a", "", "", "option bob a")
+	alice.AddSource("s-bob", bob)
+
+	main := config.NewDefaultOptionSet("alice", "")
+	main.AddSource("s-alice", alice)
+
+	flags := pflag.NewFlagSet("test", pflag.ExitOnError)
+	main.AddToFlags(flags)
+
+	fmt.Printf(flags.FlagUsages())
+	fmt.Printf("setting args\n")
+	flags.Set("a", "test")
+
+	main.Evaluate()
+	fmt.Printf("main.a   = %v\n", main.GetOption("a").Value())
+	fmt.Printf("bob.a    = %v\n", bob.GetOption("a").Value())
+	fmt.Printf("alice.a  = %v\n", alice.GetOption("a").Value())
+}
+
+func ConfigMain() {
+	doB()
 }

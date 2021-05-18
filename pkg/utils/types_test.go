@@ -46,6 +46,31 @@ var _ = Describe("Types", func() {
 			if i == nil {
 				panic("NIL")
 			}
+
+			Expect(IsNil(i)).To(BeTrue())
+		})
+
+		It("should handle function", func() {
+			var i interface{}
+
+			var p func(bool) bool
+			i = p
+			if i == nil {
+				panic("NIL")
+			}
+
+			Expect(IsNil(i)).To(BeTrue())
+		})
+
+		It("should handle chan", func() {
+			var i interface{}
+
+			var p chan bool
+			i = p
+			if i == nil {
+				panic("NIL")
+			}
+
 			Expect(IsNil(i)).To(BeTrue())
 		})
 

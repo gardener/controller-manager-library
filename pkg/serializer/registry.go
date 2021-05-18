@@ -40,7 +40,7 @@ var (
 	types    = map[reflect.Type]key{}
 	lock     sync.Mutex
 
-	caseSensitiveJSONIterator = jsonserializer.CaseSensitiveJsonIterator()
+	caseSensitiveJSONIterator = jsonserializer.CaseSensitiveJSONIterator()
 )
 
 func MustRegister(kind, extensionType, subType, extensionVersion string, v interface{}) {

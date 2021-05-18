@@ -138,7 +138,7 @@ func deleteObject(obj Object, ignoreNotFound bool) {
 		return
 	}
 	Expect(err).NotTo(HaveOccurred())
-	dummy := obj.DeepCopyObject()
+	dummy := obj.DeepCopyObject().(client.Object)
 	for i := 0; i < 100; i++ {
 		err = cl.Get(context.Background(), types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}, dummy)
 		time.Sleep(10 * time.Millisecond)

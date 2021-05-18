@@ -61,6 +61,8 @@ type Interface interface {
 type OptionDefinition extension.OptionDefinition
 
 type Definition interface {
+	extension.ElementConfigDefinition
+
 	Name() string
 	Resources() []extension.ResourceKey
 	Scheme() *runtime.Scheme
@@ -68,9 +70,6 @@ type Definition interface {
 	Handler() WebhookHandler
 	Cluster() string
 	ActivateExplicitly() bool
-
-	ConfigOptions() map[string]OptionDefinition
-	ConfigOptionSources() extension.OptionSourceDefinitions
 
 	Definition() Definition
 }

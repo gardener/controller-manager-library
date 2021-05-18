@@ -35,6 +35,7 @@ type S2 struct {
 	Field5 *S3
 
 	Field6 []S3
+	Field7 []S5
 }
 type S3 struct {
 	FieldA string
@@ -44,6 +45,10 @@ type S3 struct {
 type S4 struct {
 	FieldA []string
 	FieldB *[]string
+}
+
+type S5 struct {
+	Field []S3
 }
 
 type Config struct {
@@ -67,6 +72,86 @@ type Y struct {
 }
 
 type Over string
+
+func tArray0() {
+	v := &S1{
+		Field1: S2{
+			Field7: []S5{
+				{
+					Field: []S3{
+						{
+							FieldA: "A",
+						},
+						{
+							FieldA: "B",
+						},
+					},
+				},
+				{
+					Field: []S3{
+						{
+							FieldA: "B",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	p := fieldpath.MustFieldPath(".Field1.Field7[].Field[].FieldA")
+
+	r, err := p.Get(v)
+	assert(err)
+
+	t, err := p.Type(v)
+	assert(err)
+
+	fmt.Printf("%s: %+v\n", t, r)
+	os.Exit(0)
+}
+
+type MAP map[string]interface{}
+type ARRAY []interface{}
+
+func tArray1() {
+	v := MAP{
+		"Field1": MAP{
+			"Field7": ARRAY{
+				MAP{
+					"Field": ARRAY{
+						MAP{
+							"FieldA": "A",
+						},
+						MAP{
+							"FieldA": "B",
+						},
+					},
+				},
+				MAP{
+					"Field": ARRAY{
+						MAP{
+							"FieldA": "C",
+						},
+					},
+				},
+				MAP{
+					"Other": 25,
+				},
+			},
+		},
+	}
+
+	p := fieldpath.MustFieldPath(".Field1.Field7[].Field[].FieldA")
+
+	r, err := p.Get(v)
+	assert(err)
+
+	t, err := p.Type(v)
+	assert(err)
+
+	fmt.Printf("%s: %+v\n", t, r)
+	os.Exit(0)
+}
 
 func t0() {
 	var o Over
@@ -158,6 +243,7 @@ func t1() {
 }
 
 func FieldMain() {
+	tArray1()
 	t0()
 	t1()
 	data, err := ioutil.ReadFile("local/test.yaml")

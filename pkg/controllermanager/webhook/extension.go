@@ -60,7 +60,7 @@ type ExtensionDefinition struct {
 
 func NewExtensionDefinition(defs Definitions) *ExtensionDefinition {
 	return &ExtensionDefinition{
-		ExtensionDefinitionBase: extension.NewExtensionDefinitionBase(TYPE),
+		ExtensionDefinitionBase: extension.NewExtensionDefinitionBase(TYPE, []string{"modules"}),
 		definitions:             defs,
 	}
 }
@@ -147,15 +147,16 @@ func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension,
 	ext.Infof("configured groups: %s", groups.AllGroups())
 
 	active, err := groups.Members(ext, strings.Split(cfg.Webhooks, ","))
-	if err != nil {
+	if err != nil || active.IsEmpty() {
 		return nil, err
-	}
-	if len(active) == 0 {
-		ext.Infof("no webhooks activated")
-		return nil, nil
 	}
 
 	registrations, err := defs.Registrations(active.AsArray()...)
+	if err != nil {
+		return nil, err
+	}
+
+	err = extension.ValidateElementConfigs(TYPE, cfg, active)
 	if err != nil {
 		return nil, err
 	}
