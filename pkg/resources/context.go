@@ -8,22 +8,32 @@ package resources
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
 
-	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
-	"github.com/gardener/controller-manager-library/pkg/resources/errors"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	restclient "k8s.io/client-go/rest"
+
+	"github.com/gardener/controller-manager-library/pkg/resources/abstract"
+	"github.com/gardener/controller-manager-library/pkg/resources/errors"
+	"github.com/gardener/controller-manager-library/pkg/utils"
 )
+
+type SchemeSource interface {
+	Scheme(infos *ResourceInfos) *runtime.Scheme
+	Equivalent(SchemeSource) bool
+	String() string
+}
 
 type ResourceContext interface {
 	abstract.ResourceContext
-	GetResourceInfos(gv schema.GroupVersion) []*Info
+
+	GetResourceInfos() *ResourceInfos
+	GetResourceInfosFor(gv schema.GroupVersion) []*Info
 	Cluster
 
 	GetParameterCodec() runtime.ParameterCodec
@@ -46,11 +56,21 @@ type resourceContext struct {
 	sharedInformerFactory *sharedInformerFactory
 }
 
-func NewResourceContext(ctx context.Context, c Cluster, scheme *runtime.Scheme, defaultResync time.Duration) (ResourceContext, error) {
-
+func NewResourceContext(ctx context.Context, c Cluster, schemeSpec interface{}, defaultResync time.Duration) (ResourceContext, error) {
 	res, err := NewResourceInfos(c)
 	if err != nil {
 		return nil, err
+	}
+	var scheme *runtime.Scheme
+	if !utils.IsNil(schemeSpec) {
+		switch s := schemeSpec.(type) {
+		case *runtime.Scheme:
+			scheme = s
+		case SchemeSource:
+			scheme = s.Scheme(res)
+		default:
+			return nil, fmt.Errorf("unknown scheme spec: %v", schemeSpec)
+		}
 	}
 	rc := &resourceContext{
 		Cluster:       c,

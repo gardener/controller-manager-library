@@ -10,13 +10,15 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 type SchemeCache interface {
 	Cleanup(id string)
 	Add(c Interface)
 	Get(s *runtime.Scheme, id string) Interface
-	WithScheme(c Interface, s *runtime.Scheme) (Interface, error)
+	WithScheme(c Interface, s resources.SchemeSource) (Interface, error)
 }
 
 type schemeCache struct {
@@ -69,7 +71,12 @@ func (this schemeCache) get(s *runtime.Scheme, id string) Interface {
 	return e[id]
 }
 
-func (this schemeCache) WithScheme(c Interface, s *runtime.Scheme) (Interface, error) {
+func (this schemeCache) WithScheme(c Interface, src resources.SchemeSource) (Interface, error) {
+	if src == nil {
+		return c, nil
+	}
+	s := src.Scheme(c.ResourceContext().GetResourceInfos())
+
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -80,7 +87,7 @@ func (this schemeCache) WithScheme(c Interface, s *runtime.Scheme) (Interface, e
 	if n != nil {
 		return n, nil
 	}
-	r, err := c.WithScheme(s)
+	r, err := c.WithScheme(src)
 	if err != nil {
 		return nil, err
 	}

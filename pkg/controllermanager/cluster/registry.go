@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/schemes"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
@@ -39,13 +40,21 @@ type _Registry struct {
 	*_Definitions
 }
 
-func NewRegistry(scheme *runtime.Scheme) Registry {
-	if scheme == nil {
-		scheme = resources.DefaultScheme()
+func NewRegistry(src resources.SchemeSource) Registry {
+	if src == nil {
+		src = resources.DefaultSchemeSource()
 	}
-	registry := &_Registry{_Definitions: &_Definitions{definitions: Registrations{}, scheme: scheme}}
+	registry := &_Registry{_Definitions: &_Definitions{definitions: Registrations{}, schemeSource: src}}
 	Configure(DEFAULT, "kubeconfig", "default cluster access").MustRegisterAt(registry)
 	return registry
+}
+
+func NewRegistryForScheme(scheme *runtime.Scheme) Registry {
+	var src resources.SchemeSource
+	if scheme != nil {
+		src = schemes.ExplicitSchemeSource(scheme, "explicit")
+	}
+	return NewRegistry(src)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

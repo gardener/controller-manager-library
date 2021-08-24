@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
-
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/server"
@@ -146,7 +144,7 @@ func NewControllerManager(ctx context.Context, def Definition) (*ControllerManag
 		return nil, fmt.Errorf("no controller manager extension activated")
 	}
 
-	clusters, err := def.ClusterDefinitions().CreateClusters(ctx, lgr, cfg, cluster.NewSchemeCache(), set)
+	clusters, err := def.ClusterDefinitions().CreateClusters(ctx, lgr, cfg, nil, set)
 	if err != nil {
 		return nil, err
 	}
@@ -234,8 +232,8 @@ func (this *ControllerManager) GetGroupKindMigration() resources.GroupKindMigrat
 	return this.gkMigrations
 }
 
-func (this *ControllerManager) GetDefaultScheme() *runtime.Scheme {
-	return this.definition.ClusterDefinitions().GetScheme()
+func (this *ControllerManager) GetDefaultSchemeSource() resources.SchemeSource {
+	return this.definition.ClusterDefinitions().GetSchemeSource()
 }
 
 func (this *ControllerManager) Run() error {

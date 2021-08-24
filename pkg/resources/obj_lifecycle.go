@@ -53,6 +53,26 @@ func (this *AbstractObject) modify(create bool, modifier Modifier) (bool, error)
 ////////////////////////////////////////////////////////////////////////////////
 // Methods using internal Resource Interface
 
+func (this *AbstractObject) Patch(patch Patch, opts ...PatchOption) error {
+	result, err := this.self.I_resource().I_patch(this.ObjectData, patch, opts...)
+	if err == nil && result != nil {
+		this.ObjectData = result
+	}
+	return err
+}
+
+func (this *AbstractObject) PatchStatus(patch Patch, opts ...PatchOption) error {
+	rsc := this.self.I_resource()
+	if !rsc.Info().HasStatusSubResource() {
+		return errors.ErrNoStatusSubResource.New(rsc.GroupVersionKind())
+	}
+	result, err := rsc.I_patchStatus(this.ObjectData, patch, opts...)
+	if err == nil && result != nil {
+		this.ObjectData = result
+	}
+	return err
+}
+
 func (this *AbstractObject) Update() error {
 	result, err := this.self.I_resource().I_update(this.ObjectData)
 	if err == nil {

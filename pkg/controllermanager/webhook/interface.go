@@ -65,7 +65,7 @@ type Definition interface {
 
 	Name() string
 	Resources() []extension.ResourceKey
-	Scheme() *runtime.Scheme
+	SchemeSource() resources.SchemeSource
 	Kind() WebhookKind
 	Handler() WebhookHandler
 	Cluster() string

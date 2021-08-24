@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager"
@@ -243,7 +242,7 @@ type Definition interface {
 
 	GetDefinitionExtension(ExtensionKey) interface{}
 
-	Scheme() *runtime.Scheme
+	SchemeSource() resources.SchemeSource
 
 	Definition() Definition
 

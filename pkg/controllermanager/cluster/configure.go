@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/schemes"
 )
 
 type Configuration struct {
@@ -26,7 +27,6 @@ func Configure(name string, option string, short string) Configuration {
 			fallback:         "",
 			configOptionName: option,
 			description:      short,
-			scheme:           nil,
 			minimalWatches:   resources.NewGroupKindSet(),
 		},
 	}
@@ -38,7 +38,12 @@ func (this Configuration) Fallback(name string) Configuration {
 }
 
 func (this Configuration) Scheme(scheme *runtime.Scheme) Configuration {
-	this.definition.scheme = scheme
+	this.definition.schemeSource = schemes.ExplicitSchemeSource(scheme, "explicit")
+	return this
+}
+
+func (this Configuration) SchemeSource(scheme schemes.SchemeSource) Configuration {
+	this.definition.schemeSource = scheme
 	return this
 }
 

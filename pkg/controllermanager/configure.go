@@ -10,8 +10,8 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	resources "github.com/gardener/controller-manager-library/pkg/resources/plain"
+	"github.com/gardener/controller-manager-library/pkg/resources/schemes"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -40,7 +40,7 @@ func (this *configState) pushState() {
 
 var _ cluster.RegistrationInterface = &Configuration{}
 
-func Configure(name, desc string, scheme *runtime.Scheme) Configuration {
+func Configure(name, desc string, scheme schemes.SchemeSource) Configuration {
 	return Configuration{
 		name:          name,
 		description:   desc,

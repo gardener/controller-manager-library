@@ -301,7 +301,7 @@ func (this *Extension) setupController(cntr *controller) error {
 				cntr.Infof("  controller %q is already initialized", a)
 			}
 		} else {
-			cntr.Infof("  omittimg unused controller %q", a)
+			cntr.Infof("  omitting unused controller %q", a)
 		}
 	}
 	cntr.Infof("setup controller")

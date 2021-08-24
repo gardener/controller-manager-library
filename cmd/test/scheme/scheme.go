@@ -106,7 +106,7 @@ func SchemeMain() {
 	if listGroups {
 		for _, gv := range rctx.GetGroups() {
 			fmt.Printf("**** %s ****\n", gv)
-			for _, r := range rctx.GetResourceInfos(gv) {
+			for _, r := range rctx.GetResourceInfosFor(gv) {
 				fmt.Printf("  %s\n", r.InfoString())
 			}
 		}

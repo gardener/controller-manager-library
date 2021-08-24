@@ -14,9 +14,9 @@ import (
 	areacfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/schemes"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -26,7 +26,7 @@ type Definitions interface {
 	Get(name string) Definition
 	CreateClusters(ctx context.Context, logger logger.LogContext, cfg *areacfg.Config, cache SchemeCache, names utils.StringSet) (Clusters, error)
 	ExtendConfig(cfg *areacfg.Config)
-	GetScheme() *runtime.Scheme
+	GetSchemeSource() resources.SchemeSource
 	ClusterNames() []string
 	Reconfigure(modifiers ...ConfigurationModifier) Definitions
 }
@@ -40,7 +40,7 @@ type Definition interface {
 	Description() string
 	ConfigOptionName() string
 	Fallback() string
-	Scheme() *runtime.Scheme
+	SchemeSource() schemes.SchemeSource
 
 	Definition() Definition
 	Configure() Configuration
@@ -54,7 +54,7 @@ type _Definition struct {
 	fallback         string
 	configOptionName string
 	description      string
-	scheme           *runtime.Scheme
+	schemeSource     schemes.SchemeSource
 	minimalWatches   resources.GroupKindSet
 }
 
@@ -64,7 +64,7 @@ func copy(d Definition) *_Definition {
 		d.Fallback(),
 		d.ConfigOptionName(),
 		d.Description(),
-		d.Scheme(),
+		d.SchemeSource(),
 		resources.NewGroupKindSetByArray(d.MinimalWatches()),
 	}
 }
@@ -81,8 +81,11 @@ func (this *_Definition) Description() string {
 func (this *_Definition) Fallback() string {
 	return this.fallback
 }
-func (this *_Definition) Scheme() *runtime.Scheme {
-	return this.scheme
+func (this *_Definition) SchemeSource() schemes.SchemeSource {
+	if this.schemeSource != nil {
+		return this.schemeSource
+	}
+	return nil
 }
 func (this *_Definition) Definition() Definition {
 	copy := this.copy()
@@ -110,9 +113,9 @@ func (this *_Definition) copy() _Definition {
 ////////////////////////////////////////////////////////////////////////////////
 
 type _Definitions struct {
-	lock        sync.RWMutex
-	definitions Registrations
-	scheme      *runtime.Scheme
+	lock         sync.RWMutex
+	definitions  Registrations
+	schemeSource resources.SchemeSource
 }
 
 var _ Definition = &_Definition{}
@@ -124,8 +127,8 @@ func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, 
 	if id != "" {
 		logger.Infof("found id %q for cluster %q", id, req.Name())
 	}
-	if req.Scheme() == nil {
-		req = req.Configure().Scheme(this.scheme).Definition()
+	if req.SchemeSource() == nil {
+		req = req.Configure().SchemeSource(this.schemeSource).Definition()
 	}
 	cluster, err := CreateCluster(ctx, logger, req, id, cfg)
 	if err != nil {
@@ -252,17 +255,17 @@ func (this *_Definitions) Get(name string) Definition {
 	return nil
 }
 
-func (this *_Definitions) GetScheme() *runtime.Scheme {
+func (this *_Definitions) GetSchemeSource() resources.SchemeSource {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
-	return this.scheme
+	return this.schemeSource
 }
 
 func (this *_Definitions) Reconfigure(modifiers ...ConfigurationModifier) Definitions {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-	definitions := &_Definitions{definitions: Registrations{}, scheme: this.scheme}
+	definitions := &_Definitions{definitions: Registrations{}, schemeSource: this.schemeSource}
 	for _, name := range this.ClusterNames() {
 		configuration := this.Get(name).Configure()
 		for _, modifier := range modifiers {

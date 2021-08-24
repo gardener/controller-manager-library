@@ -31,17 +31,28 @@ var _ Interface = &webhook{}
 func NewWebhook(ext *Extension, def Definition, cluster cluster.Interface) (*webhook, error) {
 	var err error
 
-	scheme := def.Scheme()
+	src := def.SchemeSource()
 	options := ext.GetConfig().GetSource(def.Name()).(*WebhookConfig)
-	if scheme != nil && cluster != nil {
-		cluster, err = ext.GetClusters().Cache().WithScheme(cluster, scheme)
+	if src != nil && cluster != nil {
+		cluster, err = ext.GetClusters().Cache().WithScheme(cluster, src)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if scheme == nil && cluster != nil {
-		scheme = cluster.ResourceContext().Scheme()
+	var scheme *runtime.Scheme
+	if src == nil {
+		if cluster != nil {
+			scheme = cluster.ResourceContext().Scheme()
+		}
+	} else {
+		scheme = src.Scheme(nil)
+	}
+	if scheme == nil {
+		scheme = resources.DefaultSchemeSource().Scheme(nil)
+	}
+	if scheme == nil {
+		scheme = resources.DefaultScheme()
 	}
 	this := &webhook{
 		extension:  ext,

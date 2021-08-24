@@ -21,6 +21,7 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/schemes"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -66,7 +67,7 @@ type Interface interface {
 	ResourceContext() resources.ResourceContext
 	Definition() Definition
 
-	WithScheme(scheme *runtime.Scheme) (Interface, error)
+	WithScheme(scheme resources.SchemeSource) (Interface, error)
 	resources.ClusterSource
 
 	EnforceExplicitClusterIdentity(logger logger.LogContext) error
@@ -184,7 +185,7 @@ func (this *_Cluster) GetServerVersion() *semver.Version {
 }
 
 func (this *_Cluster) setup(logger logger.LogContext) error {
-	rctx, err := resources.NewResourceContext(this.ctx, this, this.definition.Scheme(), 0*time.Second)
+	rctx, err := resources.NewResourceContext(this.ctx, this, this.definition.SchemeSource(), 0*time.Second)
 	if err != nil {
 		return err
 	}
@@ -193,7 +194,11 @@ func (this *_Cluster) setup(logger logger.LogContext) error {
 	return nil
 }
 
-func (this *_Cluster) WithScheme(scheme *runtime.Scheme) (Interface, error) {
+func (this *_Cluster) WithScheme(src resources.SchemeSource) (Interface, error) {
+	if src == nil {
+		return this, nil
+	}
+	scheme := src.Scheme(this.ResourceContext().GetResourceInfos())
 	if scheme == nil || this.rctx.Scheme() == scheme {
 		return this, nil
 	}
@@ -245,19 +250,28 @@ func CreateCluster(ctx context.Context, logger logger.LogContext, def Definition
 		return nil, err
 	}
 
-	return CreateClusterForScheme(ctx, logger, def, id, kubeConfig, nil)
+	return CreateClusterForSchemeSource(ctx, logger, def, id, kubeConfig, nil)
 }
 
 func CreateClusterForScheme(ctx context.Context, logger logger.LogContext, def Definition, id string, kubeconfig *restclient.Config, scheme *runtime.Scheme) (Interface, error) {
+	if scheme == nil {
+		return CreateClusterForSchemeSource(ctx, logger, def, id, kubeconfig, nil)
+	}
+	return CreateClusterForSchemeSource(ctx, logger, def, id, kubeconfig, schemes.ExplicitSchemeSource(scheme, "explicit"))
+}
+
+func CreateClusterForSchemeSource(ctx context.Context, logger logger.LogContext, def Definition, id string, kubeconfig *restclient.Config, src schemes.SchemeSource) (Interface, error) {
 	cluster := &_Cluster{name: def.Name(), attributes: map[interface{}]interface{}{}, migids: utils.StringSet{}}
 
-	if def.Scheme() == nil {
-		scheme = resources.DefaultScheme()
+	if src == nil && def.SchemeSource() == nil {
+		src = resources.DefaultSchemeSource()
 	}
-	if scheme != nil && def.Scheme() != scheme {
-		def = def.Configure().Scheme(scheme).Definition()
+	if src != nil {
+		orig := def.SchemeSource()
+		if orig == nil || !src.Equivalent(orig) {
+			def = def.Configure().SchemeSource(src).Definition()
+		}
 	}
-	scheme.KnownTypes(schema.GroupVersion{Group: "discovery.k8s.io", Version: "v1beta1"})
 	cluster.ctx = ctx
 	cluster.logctx = logger
 	cluster.definition = def
@@ -325,7 +339,7 @@ type Clusters interface {
 
 	String() string
 
-	WithScheme(scheme *runtime.Scheme) (Clusters, error)
+	WithScheme(scheme resources.SchemeSource) (Clusters, error)
 	Cache() SchemeCache
 }
 
@@ -370,7 +384,7 @@ func (this *_Clusters) Ids() utils.StringSet {
 	return this.byid.Names()
 }
 
-func (this *_Clusters) WithScheme(scheme *runtime.Scheme) (Clusters, error) {
+func (this *_Clusters) WithScheme(scheme resources.SchemeSource) (Clusters, error) {
 	var err error
 
 	if scheme == nil {

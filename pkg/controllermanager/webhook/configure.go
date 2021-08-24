@@ -12,6 +12,8 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
+	"github.com/gardener/controller-manager-library/pkg/resources"
+	"github.com/gardener/controller-manager-library/pkg/resources/schemes"
 
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -24,7 +26,7 @@ type _Definition struct {
 	name               string
 	keys               []extension.ResourceKey
 	cluster            string
-	scheme             *runtime.Scheme
+	scheme             resources.SchemeSource
 	handler            WebhookHandler
 	configs            extension.OptionDefinitions
 	configsources      extension.OptionSourceDefinitions
@@ -42,7 +44,7 @@ func (this *_Definition) Name() string {
 func (this *_Definition) Cluster() string {
 	return this.cluster
 }
-func (this *_Definition) Scheme() *runtime.Scheme {
+func (this *_Definition) SchemeSource() resources.SchemeSource {
 	return this.scheme
 }
 func (this *_Definition) Kind() WebhookKind {
@@ -136,7 +138,16 @@ func (this Configuration) Cluster(name string) Configuration {
 	return this
 }
 
-func (this Configuration) Scheme(scheme *runtime.Scheme) Configuration {
+func (this Configuration) Scheme(scheme *runtime.Scheme, desc ...string) Configuration {
+	if scheme == nil {
+		this.settings.scheme = nil
+	} else {
+		this.settings.scheme = schemes.ExplicitSchemeSource(scheme, desc...)
+	}
+	return this
+}
+
+func (this Configuration) SchemeSource(scheme resources.SchemeSource) Configuration {
 	this.settings.scheme = scheme
 	return this
 }

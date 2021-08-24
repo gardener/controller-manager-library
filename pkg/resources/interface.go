@@ -33,6 +33,10 @@ type ObjectDataName = abstract.ObjectDataName
 type GenericObjectName = abstract.GenericObjectName
 type ObjectData = abstract.ObjectData
 
+type Patch = abstract.Patch
+type PatchOptions = abstract.PatchOptions
+type PatchOption = abstract.PatchOption
+
 // TweakListOptionsFunc defines the signature of a helper function
 // that wants to provide more listing options to API
 type TweakListOptionsFunc func(*metav1.ListOptions)
@@ -125,6 +129,8 @@ type Object interface {
 	Create() error
 	CreateOrUpdate() error
 	Delete() error
+	Patch(patch Patch, opts ...PatchOption) error
+	PatchStatus(patch Patch, opts ...PatchOption) error
 	Update() error
 	UpdateStatus() error
 	Modify(modifier Modifier) (bool, error)

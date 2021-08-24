@@ -100,6 +100,10 @@ func NewResourceInfos(c Cluster) (*ResourceInfos, error) {
 	return res, err
 }
 
+func (this *ResourceInfos) GetResourceInfos() *ResourceInfos {
+	return this
+}
+
 func (this *ResourceInfos) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
 	m, err := this.mapper.RESTMapping(gk, versions...)
 	if err != nil {
@@ -213,7 +217,7 @@ outer:
 	return grps
 }
 
-func (this *ResourceInfos) GetResourceInfos(gv schema.GroupVersion) []*Info {
+func (this *ResourceInfos) GetResourceInfosFor(gv schema.GroupVersion) []*Info {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 	m := this.groupVersionKinds[gv]

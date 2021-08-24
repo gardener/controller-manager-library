@@ -226,11 +226,11 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		return nil, err
 	}
 	this.Infof("  using clusters %+v: %s (selected from %s)", required, clusters, env.GetClusters())
-	if def.Scheme() != nil {
-		if def.Scheme() != resources.DefaultScheme() {
+	if def.SchemeSource() != nil {
+		if !def.SchemeSource().Equivalent(resources.DefaultSchemeSource()) {
 			this.Infof("  using dedicated scheme for clusters")
 		}
-		clusters, err = clusters.WithScheme(def.Scheme())
+		clusters, err = clusters.WithScheme(def.SchemeSource())
 		if err != nil {
 			return nil, err
 		}

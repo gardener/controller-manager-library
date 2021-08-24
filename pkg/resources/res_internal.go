@@ -27,6 +27,8 @@ type Internal interface {
 
 	I_create(data ObjectData) (ObjectData, error)
 	I_get(data ObjectData) error
+	I_patch(data ObjectData, patch Patch, opts ...PatchOption) (ObjectData, error)
+	I_patchStatus(data ObjectData, patch Patch, opts ...PatchOption) (ObjectData, error)
 	I_update(data ObjectData) (ObjectData, error)
 	I_updateStatus(data ObjectData) (ObjectData, error)
 	I_delete(data ObjectDataName) error
@@ -65,6 +67,46 @@ func (this *_i_resource) Resource() Interface {
 
 func (this *_i_resource) I_CreateData(name ...ObjectDataName) ObjectData {
 	return this._resource.CreateData(name...)
+}
+
+func (this *_i_resource) I_patch(obj ObjectData, patch Patch, opts ...PatchOption) (ObjectData, error) {
+	logger.Infof("PATCH %s/%s/%s", this.GroupKind(), obj.GetNamespace(), obj.GetName())
+
+	data, err := patch.Data(obj)
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return obj, nil
+	}
+
+	result := this.CreateData()
+	patchOpts := &PatchOptions{}
+	return result, this.objectRequest(this.client.Patch(patch.Type()), obj).
+		Body(data).
+		VersionedParams(patchOpts.ApplyOptions(opts).AsPatchOptions(), this.GetParameterCodec()).
+		Do(context.TODO()).
+		Into(result)
+}
+
+func (this *_i_resource) I_patchStatus(obj ObjectData, patch Patch, opts ...PatchOption) (ObjectData, error) {
+	logger.Infof("PATCH STATUS %s/%s/%s", this.GroupKind(), obj.GetNamespace(), obj.GetName())
+
+	data, err := patch.Data(obj)
+	if err != nil {
+		return nil, err
+	}
+	if data == nil {
+		return obj, nil
+	}
+
+	result := this.CreateData()
+	patchOpts := &PatchOptions{}
+	return result, this.objectRequest(this.client.Patch(patch.Type()), obj, "status").
+		Body(data).
+		VersionedParams(patchOpts.ApplyOptions(opts).AsPatchOptions(), this.GetParameterCodec()).
+		Do(context.TODO()).
+		Into(result)
 }
 
 func (this *_i_resource) I_update(data ObjectData) (ObjectData, error) {

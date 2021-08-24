@@ -21,6 +21,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/apiextensions"
+	"github.com/gardener/controller-manager-library/pkg/resources/schemes"
 
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
@@ -252,7 +253,7 @@ type _Definition struct {
 	finalizerDomain      string
 	crds                 map[string][]*apiextensions.CustomResourceDefinitionVersions
 	activateExplicitly   bool
-	scheme               *runtime.Scheme
+	scheme               resources.SchemeSource
 	extensions           map[ExtensionKey]interface{}
 }
 
@@ -316,7 +317,7 @@ func (this *_Definition) Watches() Watches {
 func (this *_Definition) Commands() Commands {
 	return this.commands
 }
-func (this *_Definition) Scheme() *runtime.Scheme {
+func (this *_Definition) SchemeSource() resources.SchemeSource {
 	return this.scheme
 }
 func (this *_Definition) ResourceFilters() []ResourceFilter {
@@ -914,7 +915,16 @@ func (this Configuration) RequireLease(clusters ...string) Configuration {
 	return this
 }
 
-func (this Configuration) Scheme(scheme *runtime.Scheme) Configuration {
+func (this Configuration) Scheme(scheme *runtime.Scheme, desc ...string) Configuration {
+	if scheme == nil {
+		this.settings.scheme = nil
+	} else {
+		this.settings.scheme = schemes.ExplicitSchemeSource(scheme, desc...)
+	}
+	return this
+}
+
+func (this Configuration) SchemeSource(scheme resources.SchemeSource) Configuration {
 	this.settings.scheme = scheme
 	return this
 }

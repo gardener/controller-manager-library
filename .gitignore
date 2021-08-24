@@ -19,6 +19,7 @@
 .idea
 .DS_Store
 .godev
+.*.sw[pq]
 
 # Virtual go & fuse
 .virtualgo

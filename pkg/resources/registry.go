@@ -28,3 +28,41 @@ func Register(builders ...runtime.SchemeBuilder) {
 func DefaultScheme() *runtime.Scheme {
 	return abstract.DefaultScheme()
 }
+
+var defaultSchemeSource SchemeSource
+
+func SetDefaultSchemeSource(src SchemeSource) {
+	defaultSchemeSource = src
+}
+
+func DefaultSchemeSource() SchemeSource {
+	if defaultSchemeSource != nil {
+		return defaultSchemeSource
+	}
+	return defaultScheme
+}
+
+var defaultScheme = &_defaultScheme{DefaultScheme()}
+
+type _defaultScheme struct {
+	scheme *runtime.Scheme
+}
+
+func (this *_defaultScheme) Equivalent(o SchemeSource) bool {
+	if this == o {
+		return true
+	}
+	d, ok := o.(*_defaultScheme)
+	if !ok {
+		return false
+	}
+	return d.scheme == this.scheme
+}
+
+func (this *_defaultScheme) Scheme(infos *ResourceInfos) *runtime.Scheme {
+	return this.scheme
+}
+
+func (this *_defaultScheme) String() string {
+	return "default"
+}

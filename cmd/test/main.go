@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"runtime"
 	"time"
 
 	"github.com/gardener/controller-manager-library/cmd/test/certs"
@@ -23,6 +24,7 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/recover"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/sync"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
@@ -147,6 +149,7 @@ func main() {
 
 	*/
 
+	fmt.Printf("Hallo %q\n", runtime.FuncForPC(reflect.ValueOf(resources.EqualsObjectName).Pointer()).Name())
 	//doit()
 	for i := 1; i < len(os.Args); i++ {
 		fmt.Printf("*** %s ***\n", os.Args[i])
