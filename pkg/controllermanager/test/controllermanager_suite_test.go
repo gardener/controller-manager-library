@@ -7,6 +7,7 @@
 package test_test
 
 import (
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -16,12 +17,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
@@ -30,14 +31,15 @@ import (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	suiteName := "ControllerManager Suite"
-	RunSpecsWithDefaultAndCustomReporters(t, suiteName, []Reporter{printer.NewlineReporter{}, printer.NewProwReporter(suiteName)})
+	RunSpecs(t, "ControllerManager Suite")
 }
 
-var testenv *envtest.Environment
-var cfg *rest.Config
-var clientset *kubernetes.Clientset
-var kubeconfigFile string
+var (
+	testenv        *envtest.Environment
+	restConfig     *rest.Config
+	clientset      *kubernetes.Clientset
+	kubeconfigFile string
+)
 
 func init() {
 	// allows to set -v=8 for REST request logging
@@ -45,30 +47,33 @@ func init() {
 	config.DefaultReporterConfig.SlowSpecThreshold = 1 * time.Minute.Seconds()
 }
 
-var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+var _ = BeforeSuite(func() {
+	// enable manager logs
+	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
+	log := logrus.New()
+	log.SetOutput(GinkgoWriter)
 
 	testenv = &envtest.Environment{}
 
 	var err error
-	cfg, err = testenv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	kubeconfigFile = createKubeconfigFile(cfg)
+	restConfig, err = testenv.Start()
+	Expect(err).ToNot(HaveOccurred())
+	Expect(restConfig).ToNot(BeNil())
+	kubeconfigFile = createKubeconfigFile(restConfig)
 	println("KUBECONFIG=" + kubeconfigFile)
 
 	resources.Register(corev1.SchemeBuilder)
 
-	clientset, err = kubernetes.NewForConfig(cfg)
+	clientset, err = kubernetes.NewForConfig(restConfig)
 	Expect(err).NotTo(HaveOccurred())
-
-	close(done)
-}, 60)
+})
 
 var _ = AfterSuite(func() {
 	if len(kubeconfigFile) > 0 {
 
 	}
 	_ = os.Remove(kubeconfigFile)
+	By("stopping test environment")
 	Expect(testenv.Stop()).To(Succeed())
 })
 
@@ -79,6 +84,7 @@ clusters:
   - name: testenv
     cluster:
       server: '%s'
+      certificate-authority-data: %s
 contexts:
   - name: testenv
     context:
@@ -88,11 +94,13 @@ current-context: testenv
 users:
   - name: testuser
     user:
-      token: ''`
+      client-certificate-data: %s
+      client-key-data: %s`
 
 	tmpfile, err := ioutil.TempFile("", "kubeconfig-controllermanager-suite-test")
 	Expect(err).NotTo(HaveOccurred())
-	_, err = fmt.Fprintf(tmpfile, template, cfg.Host)
+	_, err = fmt.Fprintf(tmpfile, template, cfg.Host, base64.StdEncoding.EncodeToString(cfg.CAData),
+		base64.StdEncoding.EncodeToString(cfg.CertData), base64.StdEncoding.EncodeToString(cfg.KeyData))
 	Expect(err).NotTo(HaveOccurred())
 	err = tmpfile.Close()
 	Expect(err).NotTo(HaveOccurred())

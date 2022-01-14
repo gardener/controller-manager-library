@@ -41,7 +41,7 @@ func createSecret(name, namespace string) Object {
 			"foo": []byte("bar-" + name),
 		},
 	}
-	cl, err := client.New(cfg, client.Options{})
+	cl, err := client.New(restConfig, client.Options{})
 	Expect(err).NotTo(HaveOccurred())
 	err = cl.Create(context.Background(), secret)
 	Expect(err).NotTo(HaveOccurred())
@@ -52,7 +52,7 @@ func deleteSecret(secret Object) {
 	if secret == nil {
 		return
 	}
-	cl, err := client.New(cfg, client.Options{})
+	cl, err := client.New(restConfig, client.Options{})
 	Expect(err).NotTo(HaveOccurred())
 	err = cl.Delete(context.Background(), secret)
 	Expect(err).NotTo(HaveOccurred())
@@ -67,7 +67,7 @@ var _ = Describe("Informers", func() {
 	)
 
 	BeforeEach(func() {
-		Expect(cfg).NotTo(BeNil())
+		Expect(restConfig).NotTo(BeNil())
 		knownSecret1 = createSecret("informers-test-1", "default")
 
 		info, err := defaultCluster.ResourceContext().Get(gvk)

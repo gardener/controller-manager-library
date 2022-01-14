@@ -10,61 +10,67 @@ import (
 	"context"
 	"testing"
 
+	"github.com/gardener/controller-manager-library/pkg/logger"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
-	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	suiteName := "Resources Suite"
-	RunSpecsWithDefaultAndCustomReporters(t, suiteName, []Reporter{printer.NewlineReporter{}, printer.NewProwReporter(suiteName)})
+	RunSpecs(t, "Resources Suite")
 }
 
-var testenv *envtest.Environment
-var cfg *rest.Config
-var clientset *kubernetes.Clientset
-var defaultCluster cluster.Interface
-var defaultClusterCtx context.Context
+var (
+	testenv           *envtest.Environment
+	restConfig        *rest.Config
+	clientset         *kubernetes.Clientset
+	defaultCluster    cluster.Interface
+	defaultClusterCtx context.Context
+	cancel            context.CancelFunc
+	logr              *logrus.Entry
+)
 
 func init() {
 	// allows to set -v=8 for REST request logging
 	klog.InitFlags(nil)
 }
 
-var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+var _ = BeforeSuite(func() {
+	// enable manager logs
+	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(GinkgoWriter)))
+	log := logrus.New()
+	log.SetOutput(GinkgoWriter)
+	logr = logrus.NewEntry(log)
 
 	testenv = &envtest.Environment{}
-
 	var err error
-	cfg, err = testenv.Start()
+	restConfig, err = testenv.Start()
 	Expect(err).NotTo(HaveOccurred())
 
 	resources.Register(corev1.SchemeBuilder)
 	def := cluster.Configure("default", "kubeconfig", "dummy").Definition()
-	defaultClusterCtx = context.Background()
-	defaultCluster, err = cluster.CreateClusterForScheme(defaultClusterCtx, logger.New(), def, "default", cfg, nil)
+	defaultClusterCtx, cancel = context.WithCancel(context.Background())
+	defaultCluster, err = cluster.CreateClusterForScheme(defaultClusterCtx, logger.New(), def, "default", restConfig, nil)
 	Expect(err).NotTo(HaveOccurred())
 
-	clientset, err = kubernetes.NewForConfig(cfg)
+	clientset, err = kubernetes.NewForConfig(restConfig)
 	Expect(err).NotTo(HaveOccurred())
-
-	close(done)
-}, 60)
+})
 
 var _ = AfterSuite(func() {
-	defaultClusterCtx.Done()
+	cancel()
+
+	By("stopping test environment")
 	Expect(testenv.Stop()).To(Succeed())
 })

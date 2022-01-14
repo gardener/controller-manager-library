@@ -111,7 +111,7 @@ func createNamespace(namespace string) Object {
 }
 
 func createObject(obj Object, ignoreAlreadyExists bool) {
-	cl, err := client.New(cfg, client.Options{})
+	cl, err := client.New(restConfig, client.Options{})
 	Expect(err).NotTo(HaveOccurred())
 	err = cl.Create(context.Background(), obj)
 	if ignoreAlreadyExists && err != nil && errors.IsAlreadyExists(err) {
@@ -121,7 +121,7 @@ func createObject(obj Object, ignoreAlreadyExists bool) {
 }
 
 func updateObject(obj Object) {
-	cl, err := client.New(cfg, client.Options{})
+	cl, err := client.New(restConfig, client.Options{})
 	Expect(err).NotTo(HaveOccurred())
 	err = cl.Update(context.Background(), obj)
 	Expect(err).NotTo(HaveOccurred())
@@ -131,7 +131,7 @@ func deleteObject(obj Object, ignoreNotFound bool) {
 	if obj == nil {
 		return
 	}
-	cl, err := client.New(cfg, client.Options{})
+	cl, err := client.New(restConfig, client.Options{})
 	Expect(err).NotTo(HaveOccurred())
 	err = cl.Delete(context.Background(), obj)
 	if ignoreNotFound && err != nil && errors.IsNotFound(err) {
@@ -171,7 +171,7 @@ var _ = Describe("Informers", func() {
 	)
 
 	BeforeEach(func() {
-		Expect(cfg).NotTo(BeNil())
+		Expect(restConfig).NotTo(BeNil())
 		controller.ResetRegistryForTesting()
 
 		data = &reconcilerData{}
