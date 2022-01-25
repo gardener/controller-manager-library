@@ -157,6 +157,7 @@ func (this WatchTweaker) WatchResourceDef(wctx WatchContext, def WatchResourceDe
 func (WatchTweaker) RequestMinimalFor(gk schema.GroupKind) {
 }
 func (this WatchTweaker) String() string {
+	// TODO print function: fmt.Sprintf("{tweaker %v}", this) does not work
 	return fmt.Sprintf("{tweaker}")
 }
 
@@ -178,6 +179,7 @@ func (this ObjectSelector) WatchResourceDef(wctx WatchContext, def WatchResource
 func (ObjectSelector) RequestMinimalFor(gk schema.GroupKind) {
 }
 func (this ObjectSelector) String() string {
+	// TODO print function
 	return fmt.Sprintf("{object selector}")
 }
 
@@ -217,6 +219,7 @@ type localObjectFlavor struct {
 }
 
 func (this *localObjectFlavor) String() string {
+	// TODO print struct
 	return fmt.Sprintf("{local object}")
 }
 
