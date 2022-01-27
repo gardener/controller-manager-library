@@ -212,9 +212,10 @@ func (this *ResourceInfos) doUpdateGroup(dc *discovery.DiscoveryClient, group v1
 				}
 			}
 
-			if version.Version == group.PreferredVersion.Version {
-				for _, r := range list.APIResources {
-					this.preferredVersions[NewGroupKind(gv.Group, r.Kind)] = version.Version
+			for _, r := range list.APIResources {
+				gk := NewGroupKind(gv.Group, r.Kind)
+				if _, ok := this.preferredVersions[gk]; !ok || version.Version == group.PreferredVersion.Version {
+					this.preferredVersions[gk] = version.Version
 				}
 			}
 		}()
@@ -273,32 +274,13 @@ func (this *ResourceInfos) getPreferred(gk schema.GroupKind) *Info {
 	defer this.lock.RUnlock()
 	v, ok := this.preferredVersions[gk]
 	if !ok {
-		// sometimes the group preferred version does not apply to a kind, therefore use single version for GK as preferred
-		// (e.g. 'ingress.networking.k8s.io' on K8s 1.18 only has version 'v1beta1', but group has preferred version 'v1')
-		v, ok = this.findSingleVersion(gk)
-		if !ok {
-			return nil
-		}
+		return nil
 	}
 	g := this.groupVersionKinds[schema.GroupVersion{Group: gk.Group, Version: v}]
 	if g == nil {
 		return nil
 	}
 	return g[gk.Kind]
-}
-
-func (this *ResourceInfos) findSingleVersion(gk schema.GroupKind) (version string, single bool) {
-	count := 0
-	for gv,m := range this.groupVersionKinds {
-		if gv.Group == gk.Group {
-			info := m[gk.Kind]
-			if info != nil {
-				version = info.Version()
-				count++
-			}
-		}
-	}
-	return version, count == 1
 }
 
 func (this *ResourceInfos) Get(gvk schema.GroupVersionKind) (*Info, error) {
