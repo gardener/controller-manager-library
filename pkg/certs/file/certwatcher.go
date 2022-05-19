@@ -12,7 +12,7 @@ import (
 	"context"
 	"crypto/tls"
 
-	"gopkg.in/fsnotify.v1"
+	"github.com/fsnotify/fsnotify"
 
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/certs"
