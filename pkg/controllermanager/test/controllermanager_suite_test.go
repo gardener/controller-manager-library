@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/config"
+	. "github.com/onsi/ginkgo/v2"
+	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +31,9 @@ import (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "ControllerManager Suite")
+	reporterConfig := types.NewDefaultReporterConfig()
+	reporterConfig.SlowSpecThreshold = 1 * time.Minute
+	RunSpecs(t, "ControllerManager Suite", reporterConfig)
 }
 
 var (
@@ -44,7 +46,6 @@ var (
 func init() {
 	// allows to set -v=8 for REST request logging
 	klog.InitFlags(nil)
-	config.DefaultReporterConfig.SlowSpecThreshold = 1 * time.Minute.Seconds()
 }
 
 var _ = BeforeSuite(func() {

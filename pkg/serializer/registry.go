@@ -12,7 +12,7 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	jsonserializer "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	utiljson "k8s.io/apimachinery/pkg/util/json"
 )
 
 type key struct {
@@ -39,8 +39,6 @@ var (
 	registry = map[key]reflect.Type{}
 	types    = map[reflect.Type]key{}
 	lock     sync.Mutex
-
-	caseSensitiveJSONIterator = jsonserializer.CaseSensitiveJSONIterator()
 )
 
 func MustRegister(kind, extensionType, subType, extensionVersion string, v interface{}) {
@@ -90,7 +88,7 @@ func Marshal(v interface{}) ([]byte, error) {
 	if key := getKeyForType(v); key != nil {
 		value := reflect.ValueOf(v)
 		value.Elem().FieldByName(apiVersionField).SetString(key.extensionVersion)
-		return caseSensitiveJSONIterator.Marshal(v)
+		return utiljson.Marshal(v)
 	}
 
 	return nil, fmt.Errorf("unknown object type %T", v)
@@ -116,7 +114,7 @@ func MarshalToResource(r runtime.Object, s interface{}) error {
 
 func Unmarshal(kind, extensionType, subType string, data []byte) (interface{}, error) {
 	var version extensionVersion
-	if err := caseSensitiveJSONIterator.Unmarshal(data, &version); err != nil {
+	if err := utiljson.Unmarshal(data, &version); err != nil {
 		return nil, err
 	}
 
@@ -125,7 +123,7 @@ func Unmarshal(kind, extensionType, subType string, data []byte) (interface{}, e
 		return nil, fmt.Errorf("not found in registry: (%s, %s, %s, %s)", kind, extensionType, subType, version.APIVersion)
 	}
 
-	if err := caseSensitiveJSONIterator.Unmarshal(data, into); err != nil {
+	if err := utiljson.Unmarshal(data, into); err != nil {
 		return nil, err
 	}
 	return into, nil
@@ -136,7 +134,7 @@ func UnmarshalInto(data []byte, into interface{}) error {
 		return fmt.Errorf("type %T not registered", into)
 	}
 
-	return caseSensitiveJSONIterator.Unmarshal(data, into)
+	return utiljson.Unmarshal(data, into)
 }
 
 func UnmarshalFromResource(subType string, r runtime.Object) (interface{}, error) {
