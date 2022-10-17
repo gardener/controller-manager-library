@@ -49,4 +49,5 @@ echo "Running gofmt..."
 gofmt -l -w -s ${PACKAGES_DIRS}
 
 # Execute lint checks.
+echo "Running lint..."
 hack/lint -vacs  ${LINT_FOLDERS}

@@ -18,10 +18,10 @@ import (
 // If no pointer type is is desired the prototype might be of the
 // desired type or a pointer to an object of this type
 // Examples:
-//     - reflect.Type("string")  ->  string
-//     - "string"                ->  string
-//     - (*string)(nil)          ->  string
-//     - (**string)(nil)         -> *string
+//   - reflect.Type("string")  ->  string
+//   - "string"                ->  string
+//   - (*string)(nil)          ->  string
+//   - (**string)(nil)         -> *string
 func ConvertTo(v interface{}, proto interface{}) (interface{}, error) {
 
 	if v == nil {

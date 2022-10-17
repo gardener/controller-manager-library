@@ -2,10 +2,13 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+TOOLS_DIR := hack/tools
+include hack/tools.mk
+
 .PHONY: revendor
 revendor:
-	@GO111MODULE=on go mod vendor
-	@GO111MODULE=on go mod tidy
+	go mod vendor
+	go mod tidy
 
 .PHONY: check
 check:
@@ -25,8 +28,8 @@ build-local:
         ./pkg/... ./cmd/...
 
 .PHONY: test
-test:
-	GO111MODULE=on go test -mod=vendor ./pkg/... ./cmd/...
+test: $(KUBEBUILDER_DIR)
+	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) go test -mod=vendor ./pkg/... ./cmd/...
 
 .PHONY: generate
 generate:

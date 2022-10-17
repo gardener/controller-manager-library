@@ -5,6 +5,7 @@
 /test-webhook
 /example
 
+/hack/tools
 /args
 /bin
 /.kube-secrets
