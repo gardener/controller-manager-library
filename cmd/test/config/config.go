@@ -11,8 +11,8 @@ import (
 	"os"
 	"reflect"
 
-	"github.com/ghodss/yaml"
 	"github.com/spf13/pflag"
+	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
 )
