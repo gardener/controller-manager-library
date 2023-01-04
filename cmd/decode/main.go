@@ -11,9 +11,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/yaml"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/v1alpha1"

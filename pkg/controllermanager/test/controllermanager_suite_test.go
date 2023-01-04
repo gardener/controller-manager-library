@@ -12,10 +12,8 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
-	"github.com/onsi/ginkgo/v2/types"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -31,9 +29,7 @@ import (
 
 func TestSource(t *testing.T) {
 	RegisterFailHandler(Fail)
-	reporterConfig := types.NewDefaultReporterConfig()
-	reporterConfig.SlowSpecThreshold = 1 * time.Minute
-	RunSpecs(t, "ControllerManager Suite", reporterConfig)
+	RunSpecs(t, "ControllerManager Suite")
 }
 
 var (
