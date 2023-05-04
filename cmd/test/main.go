@@ -27,7 +27,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
 	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/crds"
-	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.12"
+	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.18"
 )
 
 var values = map[controller.ResourceKey]int{}

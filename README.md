@@ -346,9 +346,9 @@ func init() {
 ```
 
 Two preconfigured standard schemes are provided by the library, that can just
-be selected by using and additional anonymouds import:
-- [`github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.12`](pkg/resources/defaultscheme/v1.12/register.go)
-- [`github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.16`](pkg/resources/defaultscheme/v1.16/register.go)
+be selected by using and additional anonymous import:
+- [`github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.18`](pkg/resources/defaultscheme/v1.18/register.go)
+- [`github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.19`](pkg/resources/defaultscheme/v1.19/register.go)
 
 If other API groups are used by the controllers, they must explicity be
 (additionally) registered according the example above. If this library is
