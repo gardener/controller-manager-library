@@ -11,7 +11,7 @@ import (
 	//	_ "github.com/gardener/gardener-botanist-aws/pkg/controller/controlplane"
 	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/server/test"
 
-	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.12"
+	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.18"
 )
 
 func main() {
