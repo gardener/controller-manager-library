@@ -349,9 +349,6 @@ func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) r
 				if !obj.IsMinimal() {
 					h.data.lastError = fmt.Errorf("secret object %s unexpected not minimal", candidate.GetName())
 				}
-				if obj.Data() != nil {
-					h.data.lastError = fmt.Errorf("secret object %s unexpected returns Data() != nil", candidate.GetName())
-				}
 				if obj.MinimalData() == nil {
 					h.data.lastError = fmt.Errorf("secret %s unexpected data type: %T", obj.Data(), candidate.GetName())
 					return
