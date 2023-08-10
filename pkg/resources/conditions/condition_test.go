@@ -204,6 +204,7 @@ var _ = Describe("Conditions", func() {
 			cond.SetStatus("A")
 
 			ts := my.Status.Conditions[0].TransitionTime
+			time.Sleep(10 * time.Nanosecond)
 
 			cond.SetStatus("B")
 			Expect(my.Status.Conditions[0].TransitionTime.Nanosecond()).To(BeNumerically(">", ts.Nanosecond()))

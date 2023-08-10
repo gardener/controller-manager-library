@@ -153,6 +153,7 @@ type reconcilerData struct {
 	secret1       Object
 	secret2       Object
 	testNamespace Object
+	testKind      MinimalWatchTestKind
 
 	setup   bool
 	started bool
@@ -194,6 +195,7 @@ var _ = Describe("Informers", func() {
 	})
 
 	var startControllerManager = func(testkind MinimalWatchTestKind) {
+		data.testKind = testkind
 		createReconciler := func(c controller.Interface) (reconcile.Interface, error) {
 			return &reconciler{
 				controller: c,
@@ -334,8 +336,37 @@ func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) r
 	check := func(candidate Object, count *int) {
 		if obj.GetName() == candidate.GetName() && obj.GetNamespace() == candidate.GetNamespace() {
 			(*count)++
-			if !reflect.DeepEqual(obj.Data().(*kcorev1.Secret).Data, candidate.(*kcorev1.Secret).Data) {
-				h.data.lastError = fmt.Errorf("secret %s data mismatch", candidate.GetName())
+			switch h.data.testKind {
+			case Normal:
+				if obj.IsMinimal() {
+					h.data.lastError = fmt.Errorf("secret object %s unexpected minimal", candidate.GetName())
+					return
+				}
+				if !reflect.DeepEqual(obj.Data().(*kcorev1.Secret).Data, candidate.(*kcorev1.Secret).Data) {
+					h.data.lastError = fmt.Errorf("secret %s data mismatch", candidate.GetName())
+				}
+			case ControllerMinimalWatch, GloballyMinimalWatch:
+				if !obj.IsMinimal() {
+					h.data.lastError = fmt.Errorf("secret object %s unexpected not minimal", candidate.GetName())
+				}
+				if obj.Data() != nil {
+					h.data.lastError = fmt.Errorf("secret object %s unexpected returns Data() != nil", candidate.GetName())
+				}
+				if obj.MinimalData() == nil {
+					h.data.lastError = fmt.Errorf("secret %s unexpected data type: %T", obj.Data(), candidate.GetName())
+					return
+				}
+				if obj.MinimalData().GetResourceVersion() != candidate.GetResourceVersion() {
+					h.data.lastError = fmt.Errorf("secret %s resource version mismatch", candidate.GetName())
+				}
+				realObj, err := obj.GetFullObject()
+				if err != nil {
+					h.data.lastError = err
+					return
+				}
+				if !reflect.DeepEqual(realObj.Data().(*kcorev1.Secret).Data, candidate.(*kcorev1.Secret).Data) {
+					h.data.lastError = fmt.Errorf("secret %s data mismatch", candidate.GetName())
+				}
 			}
 		}
 	}
