@@ -55,9 +55,6 @@ func (this *AbstractObject) IsA(spec interface{}) bool {
 }
 
 func (this *AbstractObject) Data() ObjectData {
-	if this.minimal {
-		return nil
-	}
 	return this.ObjectData
 }
 
