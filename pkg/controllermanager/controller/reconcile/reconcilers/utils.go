@@ -17,17 +17,17 @@ import (
 )
 
 func ClusterResources(cluster string, gks ...schema.GroupKind) Resources {
-	return func(c controller.Interface) []resources.Interface {
+	return func(c controller.Interface) ([]resources.Interface, error) {
 		result := []resources.Interface{}
 		resources := c.GetCluster(cluster).Resources()
 		for _, gk := range gks {
 			res, err := resources.Get(gk)
 			if err != nil {
-				panic(fmt.Errorf("resources type %s not found: %s", gk, err))
+				return nil, fmt.Errorf("resources type %s not found: %s", gk, err)
 			}
 			result = append(result, res)
 		}
-		return result
+		return result, nil
 	}
 }
 

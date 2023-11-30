@@ -254,6 +254,8 @@ type _Definition struct {
 	activateExplicitly   bool
 	scheme               *runtime.Scheme
 	extensions           map[ExtensionKey]interface{}
+
+	deactivateOnCreationErrorCheck func(err error) bool
 }
 
 var _ Definition = &_Definition{}
@@ -423,6 +425,10 @@ func (this *_Definition) ConfigOptionSources() extension.OptionSourceDefinitions
 
 func (this *_Definition) ActivateExplicitly() bool {
 	return this.activateExplicitly
+}
+
+func (this *_Definition) DeactivateOnCreationErrorCheck() func(err error) bool {
+	return this.deactivateOnCreationErrorCheck
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1011,6 +1017,11 @@ func (this Configuration) Register(group ...string) error {
 
 func (this Configuration) MustRegister(group ...string) Configuration {
 	registry.MustRegisterController(this, group...)
+	return this
+}
+
+func (this Configuration) DeactivateOnCreationErrorCheck(check func(err error) bool) Configuration {
+	this.settings.deactivateOnCreationErrorCheck = check
 	return this
 }
 
