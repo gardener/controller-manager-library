@@ -236,6 +236,12 @@ func (this *Extension) Start(ctx context.Context) error {
 		}
 		cntr, err := NewController(this, def, cmp)
 		if err != nil {
+			if f := def.DeactivateOnCreationErrorCheck(); f != nil {
+				if f(err) {
+					this.Infof("deactivating controller %s because of: %s", def.Name(), err)
+					continue
+				}
+			}
 			return err
 		}
 

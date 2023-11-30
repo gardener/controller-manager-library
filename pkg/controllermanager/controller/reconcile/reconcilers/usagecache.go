@@ -48,18 +48,22 @@ type UsageAccessSpec struct {
 	RequeueMasterByUsed resources.KeyFilter // used resources to trigger masters on update
 }
 
-func NewUsageAccessBySpec(c controller.Interface, spec UsageAccessSpec) *UsageAccess {
+func NewUsageAccessBySpec(c controller.Interface, spec UsageAccessSpec) (*UsageAccess, error) {
 	used := spec.Extractor
 	if used == nil {
 		used = spec.ExtractorFactory(c)
+	}
+	masterResources, err := newResources(c, spec.MasterResources)
+	if err != nil {
+		return nil, err
 	}
 	return &UsageAccess{
 		Interface:        c,
 		name:             spec.Name,
 		used:             used,
-		master_resources: newResources(c, spec.MasterResources),
+		master_resources: masterResources,
 		spec:             spec,
-	}
+	}, nil
 }
 
 func (this *UsageAccess) Key() interface{} {
@@ -156,8 +160,12 @@ func UsageReconcilerTypeBySpec(reconciler controller.ReconcilerType, spec UsageA
 }
 
 func NewUsageReconcilerBySpec(c controller.Interface, reconciler controller.ReconcilerType, spec UsageAccessSpec) (*UsageReconciler, error) {
+	usageAccess, err := NewUsageAccessBySpec(c, spec)
+	if err != nil {
+		return nil, err
+	}
 	r := &UsageReconciler{
-		UsageAccess: NewUsageAccessBySpec(c, spec),
+		UsageAccess: usageAccess,
 	}
 	nested, err := NewNestedReconciler(reconciler, r)
 	if err != nil {

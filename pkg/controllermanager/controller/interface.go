@@ -240,6 +240,7 @@ type Definition interface {
 	LeaseClusterName() string
 	FinalizerName() string
 	ActivateExplicitly() bool
+	DeactivateOnCreationErrorCheck() func(err error) bool
 
 	GetDefinitionExtension(ExtensionKey) interface{}
 
