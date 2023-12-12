@@ -55,7 +55,7 @@ else
 fi
 mkdir -p crds
 rm -f crds/{*.yaml,zz_generated_crds.go}
-bash "${PROJECT_ROOT}/hack/controller-gen.sh"  \
+${CONTROLLER_GEN} \
    "crd:crdVersions=v1" \
     paths="$paths" \
     output:crd:artifacts:config=crds

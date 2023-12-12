@@ -9,6 +9,7 @@
 package hack
 
 import (
+	_ "github.com/ironcore-dev/vgopath"
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "github.com/onsi/gomega"
 	_ "golang.org/x/lint/golint"
