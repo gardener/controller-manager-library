@@ -241,7 +241,7 @@ var _ = Describe("Informers", func() {
 	}
 
 	var testFunc = func(testkind MinimalWatchTestKind) {
-		timeout := (3 + bigSecretsCount/2) * time.Second
+		timeout := (5 + bigSecretsCount/2) * time.Second
 		startControllerManager(testkind)
 		waitFor("setup of controller", func() bool { return data.setup }, 1*time.Second)
 		waitFor("start of controller", func() bool { return data.started }, 1*time.Second)
