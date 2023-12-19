@@ -12,6 +12,7 @@ import (
 	_ "github.com/ironcore-dev/vgopath"
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
 	_ "github.com/onsi/gomega"
+	_ "golang.org/x/lint/golint"
 	_ "golang.org/x/tools/cmd/goimports"
 	_ "k8s.io/code-generator"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
