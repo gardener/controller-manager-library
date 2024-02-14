@@ -7,6 +7,7 @@
 package resources
 
 import (
+	"fmt"
 	"reflect"
 
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
@@ -133,7 +134,15 @@ func (this *AbstractResource) handleList(result runtime.Object) (ret []Object, e
 		return nil, errors.NewInvalid("invalid Items field for %T", result)
 	}
 	for i := 0; i < iv.Len(); i++ {
-		ret = append(ret, this.helper.ObjectAsResource(iv.Index(i).Addr().Interface().(ObjectData)))
+		v := iv.Index(i)
+		od, ok := v.Interface().(ObjectData)
+		if !ok {
+			od, ok = v.Addr().Interface().(ObjectData)
+			if !ok {
+				return nil, fmt.Errorf("unexpected item type: %s", v.Type())
+			}
+		}
+		ret = append(ret, this.helper.ObjectAsResource(od))
 	}
 	return ret, nil
 }
