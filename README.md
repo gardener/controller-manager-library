@@ -1,6 +1,5 @@
 # Controller Manager Library
-
-[![reuse compliant](https://reuse.software/badge/reuse-compliant.svg)](https://reuse.software/)
+[![REUSE status](https://api.reuse.software/badge/github.com/gardener/controller-manager-library)](https://api.reuse.software/info/github.com/gardener/controller-manager-library)
 
 This basic library is intended to easily implement kubernetes controllers
 and webhooks.
