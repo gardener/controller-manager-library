@@ -55,7 +55,6 @@ func (this *Values) UnmarshalJSON(in []byte) error {
 func (in *Values) DeepCopyInto(out *Values) {
 	clone := in.DeepCopy()
 	*out = *clone
-	return
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -168,7 +167,7 @@ func CopyAndNormalize(in interface{}) interface{} {
 			if t.ConvertibleTo(listType) {
 				return CopyAndNormalize(value.Convert(listType).Interface())
 			}
-			r := make([]interface{}, value.Len(), value.Len())
+			r := make([]interface{}, value.Len())
 			for i := 0; i < value.Len(); i++ {
 				r[i] = CopyAndNormalize(value.Index(i).Interface())
 			}

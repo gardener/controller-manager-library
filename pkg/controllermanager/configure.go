@@ -33,11 +33,6 @@ type configState struct {
 	previous *configState
 }
 
-func (this *configState) pushState() {
-	save := *this
-	this.previous = &save
-}
-
 var _ cluster.RegistrationInterface = &Configuration{}
 
 func Configure(name, desc string, scheme *runtime.Scheme) Configuration {
@@ -64,9 +59,7 @@ func (this Configuration) With(modifier ...ConfigurationModifier) Configuration 
 }
 
 func (this Configuration) Restore() Configuration {
-	if &this.configState != nil {
-		this.configState = *this.configState.previous
-	}
+	this.configState = *this.configState.previous
 	return this
 }
 
@@ -96,8 +89,8 @@ func (this Configuration) MinimalWatch(clusterName string, groupKinds ...schema.
 	return this
 }
 
-func (this Configuration) RegisterExtension(reg extension.ExtensionType) {
-	this.extension_reg.RegisterExtension(reg)
+func (this Configuration) RegisterExtension(reg extension.ExtensionType) error {
+	return this.extension_reg.RegisterExtension(reg)
 }
 
 func (this Configuration) Extension(name string) extension.ExtensionType {

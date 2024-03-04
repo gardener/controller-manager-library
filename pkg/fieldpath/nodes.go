@@ -35,10 +35,6 @@ type Node interface {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-type new interface {
-	new(self, next Node) Node
-}
-
 type node struct {
 	context Node
 	next    Node
@@ -186,13 +182,11 @@ func (this *node) _value(v value, addMissing bool, prev *node) (value, error) {
 }
 
 func (this *node) _validate(v reflect.Value) error {
-
 	_, err := this._value(reflectValue(v), false, nil)
 	return err
 }
 
 func (this *node) _validateType(v reflect.Value, vtype reflect.Type) error {
-
 	field, err := this._value(reflectValue(v), false, nil)
 	if err != nil {
 		return err
@@ -212,7 +206,6 @@ func (this *node) _validateType(v reflect.Value, vtype reflect.Type) error {
 }
 
 func (this *node) _get(v reflect.Value) (interface{}, error) {
-
 	field, err := this._value(reflectValue(v), false, nil)
 	if err != nil {
 		return nil, err
@@ -221,7 +214,6 @@ func (this *node) _get(v reflect.Value) (interface{}, error) {
 }
 
 func (this *node) _set(v reflect.Value, val interface{}) error {
-
 	field, err := this._value(reflectValue(v), true, nil)
 	if err != nil {
 		return err
@@ -275,33 +267,32 @@ func (this *node) toValue(v value, addMissing bool, prev *node) (value, bool) {
 	if v.Kind() == reflect.Interface {
 		nil = !v.IsValid() || v.IsNil()
 		if nil {
-			if addMissing {
-				// OOPS: some element should be created here, but nobody knows
-				// which type to use.
-				// try to guess generic intermediate elements by next element
-				// in path expression
-				switch this.self.(type) {
-				case *FieldNode:
-					// fmt.Printf("CREATE dynamic map\n")
-					v = v.Set(reflect.ValueOf(MAP{}))
-					if v.Value().Kind() == reflect.Interface {
-						return v.Elem(), nil
-					}
-					return v, nil
-				case *SliceEntryNode, *SliceNode:
-					// fmt.Printf("CREATE dynamic slice\n")
-					// keep map entry, but with modified effective type
-					v = v.Set(reflect.ValueOf(ARRAY{}))
-					if v.Value().Kind() == reflect.Interface {
-						e := v.Elem().Value()
-						return interfaceValue{v.Value(), &e}, nil
-					}
-					return v, nil
-				default:
-					return none, nil
-				}
-			} else {
+			if !addMissing {
 				// fmt.Print("NIL\n")
+				return none, nil
+			}
+			// OOPS: some element should be created here, but nobody knows
+			// which type to use.
+			// try to guess generic intermediate elements by next element
+			// in path expression
+			switch this.self.(type) {
+			case *FieldNode:
+				// fmt.Printf("CREATE dynamic map\n")
+				v = v.Set(reflect.ValueOf(MAP{}))
+				if v.Value().Kind() == reflect.Interface {
+					return v.Elem(), nil
+				}
+				return v, nil
+			case *SliceEntryNode, *SliceNode:
+				// fmt.Printf("CREATE dynamic slice\n")
+				// keep map entry, but with modified effective type
+				v = v.Set(reflect.ValueOf(ARRAY{}))
+				if v.Value().Kind() == reflect.Interface {
+					e := v.Elem().Value()
+					return interfaceValue{v.Value(), &e}, nil
+				}
+				return v, nil
+			default:
 				return none, nil
 			}
 		}
@@ -310,13 +301,12 @@ func (this *node) toValue(v value, addMissing bool, prev *node) (value, bool) {
 	if IsPtr(v) {
 		nil = v.IsNil()
 		if nil {
-			if addMissing {
-				// fmt.Printf("CREATE %s\n", v.Type().Elem())
-				v.Set(reflect.New(v.Type().Elem()))
-			} else {
+			if !addMissing {
 				// fmt.Print("NIL\n")
 				return none, nil
 			}
+			// fmt.Printf("CREATE %s\n", v.Type().Elem())
+			v.Set(reflect.New(v.Type().Elem()))
 		}
 		//return v.Elem(), nil
 		v, unset := this.toValue(v.Elem(), addMissing, prev)
@@ -328,13 +318,12 @@ func (this *node) toValue(v value, addMissing bool, prev *node) (value, bool) {
 	if v.Kind() == reflect.Map {
 		nil = v.IsNil()
 		if nil {
-			if addMissing {
-				// fmt.Printf("CREATE %s\n", v.Type().Elem())
-				v.Set(reflect.New(v.Type().Elem()))
-			} else {
+			if !addMissing {
 				// fmt.Print("NIL\n")
 				return none, nil
 			}
+			// fmt.Printf("CREATE %s\n", v.Type().Elem())
+			v.Set(reflect.New(v.Type().Elem()))
 		}
 		return reflectValue(v.Value()), nil
 	}
@@ -416,16 +405,15 @@ func (this *FieldNode) value(v value, addMissing bool, prev *node) (value, error
 		if v.Type().Key().Kind() == reflect.String {
 			key := reflect.ValueOf(this.name)
 			e := v.Value().MapIndex(key)
-			if !e.IsValid() {
-				if v.Type().Elem().Kind() == reflect.Interface {
-					return &mapEntry{v.Value(), key, nil, this.name}, nil
-				} else {
-					if IsSimpleType(v.Type().Elem()) {
-						return &mapEntry{v.Value(), key, nil, this.name}, nil
-					}
-				}
-			} else {
+			if e.IsValid() {
 				return &mapEntry{v.Value(), key, &e, this.name}, nil
+			}
+			if v.Type().Elem().Kind() == reflect.Interface {
+				return &mapEntry{v.Value(), key, nil, this.name}, nil
+			} else {
+				if IsSimpleType(v.Type().Elem()) {
+					return &mapEntry{v.Value(), key, nil, this.name}, nil
+				}
 			}
 		}
 	}
@@ -575,11 +563,10 @@ func (this *SliceNode) value(v value, addMissing bool, prev *node) (value, error
 		}
 		end = v.Len()
 		if end < this.start {
-			if addMissing {
-				end = this.start
-			} else {
+			if !addMissing {
 				return none, fmt.Errorf("%s has size %d, but expected at least %d", this.node.String(), v.Len(), this.start)
 			}
+			end = this.start
 		}
 	}
 	if v.Len() < end {
@@ -717,7 +704,7 @@ func (this *ProjectionNode) value(v value, addMissing bool, prev *node) (value, 
 }
 
 func (this *ProjectionNode) vtype(t reflect.Type, v value, prev *node) (reflect.Type, value, error) {
-	t, v = this.toType(t, v, prev)
+	t, _ = this.toType(t, v, prev)
 
 	if t.Kind() != reflect.Array && t.Kind() != reflect.Slice {
 		return nil, nil, fmt.Errorf("%s is no slice or array(%s) ", this.node.String(), t)

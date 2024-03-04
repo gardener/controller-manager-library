@@ -9,7 +9,7 @@ package resources
 import (
 	"fmt"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
@@ -42,7 +42,6 @@ func (s *lister) List(selector labels.Selector, consumer func(o interface{})) er
 }
 
 func (s *lister) Get(name string) (ObjectData, error) {
-
 	if s.resource.Namespaced() {
 		return nil, errors.NewBadRequest(fmt.Sprintf("info %s is namespaced", s.resource.Name()))
 	}

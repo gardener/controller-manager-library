@@ -32,7 +32,7 @@ func (obj *VersionedObjects) DeepCopyObject() runtime.Object {
 	}
 	r := &VersionedObjects{}
 	if obj.Objects != nil {
-		r.Objects = make([]runtime.Object, len(obj.Objects), len(obj.Objects))
+		r.Objects = make([]runtime.Object, len(obj.Objects))
 		for i, o := range obj.Objects {
 			r.Objects[i] = o.DeepCopyObject()
 		}

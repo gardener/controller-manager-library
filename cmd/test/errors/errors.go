@@ -8,6 +8,7 @@ package errors
 
 import (
 	"fmt"
+
 	"github.com/gardener/controller-manager-library/pkg/errors"
 )
 
@@ -47,7 +48,6 @@ func Show(msg string, err error, print bool) {
 }
 
 func ErrorsMain() {
-
 	err := Err1.New("object1", "invalid")
 
 	Show("Err1", err, true)

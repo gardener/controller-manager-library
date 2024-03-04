@@ -30,7 +30,7 @@ import (
 const TYPE = areacfg.OPTION_SOURCE
 
 func init() {
-	extension.RegisterExtension(&ExtensionType{DefaultRegistry()})
+	utils.Must(extension.RegisterExtension(&ExtensionType{DefaultRegistry()}))
 }
 
 type ExtensionType struct {
@@ -130,7 +130,7 @@ func (this *registrationContext) Config() config.OptionSource {
 var _ RegistrationContext = (*registrationContext)(nil)
 
 func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension, error) {
-	ext := extension.NewDefaultEnvironment(nil, TYPE, cm)
+	ext := extension.NewDefaultEnvironment(nil, TYPE, cm) //nolint:all
 	cfg := areacfg.GetConfig(cm.GetConfig())
 
 	if cfg.RegistrationName == "" {
@@ -213,11 +213,11 @@ func (this *Extension) RequiredClusters() (utils.StringSet, error) {
 	return result, nil
 }
 
-func (this *Extension) RequiredClusterIds(clusters cluster.Clusters) utils.StringSet {
+func (this *Extension) RequiredClusterIds(_ cluster.Clusters) utils.StringSet {
 	return nil
 }
 
-func (this *Extension) Setup(ctx context.Context) error {
+func (this *Extension) Setup(_ context.Context) error {
 	var err error
 
 	ctxs := map[WebhookKind]RegistrationContext{}
@@ -258,7 +258,9 @@ func (this *Extension) Setup(ctx context.Context) error {
 			return err
 		}
 
-		this.RegisterHandler(w)
+		if err := this.RegisterHandler(w); err != nil {
+			return err
+		}
 		if kh := this.kindHandlers[def.Kind()]; kh != nil {
 			err := kh.Register(w)
 			if err != nil {
@@ -325,7 +327,6 @@ func (this *Extension) Start(ctx context.Context) error {
 			}
 		}
 		err = this.handleRegistrationGroups(registrations, this.config.RegistrationName, true)
-
 	} else {
 		this.Infof("omit registrations")
 	}
@@ -404,7 +405,9 @@ func (this *Extension) RegisterWebhookGroup(name string, target cluster.Interfac
 				return err
 			}
 		}
-		this.addHook(w, target, client, reg)
+		if err := this.addHook(w, target, client, reg); err != nil {
+			return err
+		}
 	}
 	return this.handleRegistrationGroups(registrations, grpname, false)
 }
@@ -473,7 +476,6 @@ func (this *Extension) RegisterWebhookByName(name string, target cluster.Interfa
 	if hook == nil {
 		if this.definitions.Get(name) == nil {
 			return fmt.Errorf("unknown webhook %q", name)
-
 		}
 		return fmt.Errorf("webhook %q not actice", name)
 	}
@@ -505,7 +507,6 @@ func (this *Extension) DeleteWebhookByName(name string, target cluster.Interface
 	if hook == nil {
 		if this.definitions.Get(name) == nil {
 			return fmt.Errorf("unknown webhook %q", name)
-
 		}
 		return fmt.Errorf("webhook %q not actice", name)
 	}
@@ -515,7 +516,9 @@ func (this *Extension) DeleteWebhookByName(name string, target cluster.Interface
 func (this *Extension) DeleteWebhook(def Definition, target cluster.Interface) error {
 	handler := GetRegistrationHandler(def.Kind())
 	if handler != nil {
-		this.removeRegistration(handler, def.Name(), def, target)
+		if err := this.removeRegistration(handler, def.Name(), def, target); err != nil {
+			return err
+		}
 	}
 	return nil
 }

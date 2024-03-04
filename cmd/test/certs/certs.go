@@ -8,21 +8,21 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
+	"net/http"
+	"time"
+
 	"github.com/gardener/controller-manager-library/pkg/certmgmt"
 	"github.com/gardener/controller-manager-library/pkg/certmgmt/secret"
 	"github.com/gardener/controller-manager-library/pkg/certs/access"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/logger"
 	"github.com/gardener/controller-manager-library/pkg/resources"
-	"net"
-	"net/http"
-	"time"
 )
 
 var server = true
 
 func CertsMain() {
-
 	cfg := &certmgmt.Config{
 		CommonName: "test",
 		Hosts: certmgmt.NewCompoundHosts(
@@ -109,12 +109,14 @@ func CertsMain() {
 	}
 
 	fmt.Printf("Starting server\n")
-	server.ListenAndServeTLS("", "")
+	if err := server.ListenAndServeTLS("", ""); err != nil {
+		fmt.Println(err)
+	}
 }
 
-func HelloServer(w http.ResponseWriter, req *http.Request) {
+func HelloServer(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte("This is an example server.\n"))
+	_, _ = w.Write([]byte("This is an example server.\n"))
 	// fmt.Fprintf(w, "This is an example server.\n")
 	// io.WriteString(w, "This is an example server.\n")
 }

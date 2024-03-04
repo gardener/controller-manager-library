@@ -24,7 +24,7 @@ type kindHandler struct {
 	resources map[schema.GroupKind]webhook.Interface
 }
 
-func kindHandlerProvider(ext webhook.Environment, kind webhook.WebhookKind) (webhook.WebhookKindHandler, error) {
+func kindHandlerProvider(ext webhook.Environment, _ webhook.WebhookKind) (webhook.WebhookKindHandler, error) {
 	ext.Infof("registering conversion webhook handler")
 	h := &kindHandler{ext, map[schema.GroupKind]webhook.Interface{}}
 	apiextensions.RegisterClientConfigProvider(h)

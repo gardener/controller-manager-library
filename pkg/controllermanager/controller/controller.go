@@ -77,7 +77,7 @@ type ReadyFlag struct {
 
 func (this *ReadyFlag) WhenReady() {
 	this.lock.Lock()
-	this.lock.Unlock()
+	defer this.lock.Unlock()
 }
 
 func (this *ReadyFlag) IsReady() bool {
@@ -188,7 +188,7 @@ type controller struct {
 	leases map[string]map[string]bool
 }
 
-func Filter(owning ResourceKey, resc resources.Object) bool {
+func Filter(_ ResourceKey, _ resources.Object) bool {
 	return true
 }
 
@@ -315,7 +315,9 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 		if len(reconcilers) == 0 {
 			return nil, fmt.Errorf("resource %q not watched for cluster %s", s.GetResource(), s.GetCluster())
 		}
-		this.syncRequests.AddSyncer(NewSyncer(s.GetName(), s.GetResource(), cluster))
+		if err := this.syncRequests.AddSyncer(NewSyncer(s.GetName(), s.GetResource(), cluster)); err != nil {
+			return nil, err
+		}
 		this.Infof("adding syncer %s for resource %s on cluster %s", s.GetName(), s.GetResource(), cluster)
 	}
 
@@ -592,7 +594,7 @@ func (this *controller) EnqueueCommand(cmd string) error {
 	found := false
 	for _, p := range this.pools {
 		r := p.getReconcilers(cmd)
-		if r != nil && len(r) > 0 {
+		if len(r) > 0 {
 			p.EnqueueCommand(cmd)
 			found = true
 		}
@@ -643,7 +645,7 @@ func (this *controller) check() error {
 	return nil
 }
 
-func (this *controller) AddCluster(cluster cluster.Interface) error {
+func (this *controller) AddCluster(_ cluster.Interface) error {
 	return nil
 }
 
@@ -705,7 +707,6 @@ func (this *controller) prepare() error {
 }
 
 func (this *controller) Run() {
-
 	this.ready.ready()
 	this.Infof("starting pools...")
 	for _, p := range this.pools {
@@ -725,7 +726,8 @@ func (this *controller) Run() {
 	this.Info("waiting for worker pools to shutdown")
 	ctxutil.WaitGroupWait(this.GetContext(), 120*time.Second)
 	for n, r := range this.reconcilers {
-		reconcile.CleanupReconciler(this, n, r)
+		// TODO error handling
+		_ = reconcile.CleanupReconciler(this, n, r)
 	}
 	this.Info("exit controller")
 }
@@ -799,7 +801,7 @@ func (this *controller) HasLeaseRequest(name string, cnames ...string) bool {
 
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	cl, _ := this.leases[c.GetId()]
+	cl := this.leases[c.GetId()]
 	if cl == nil {
 		return false
 	}
@@ -815,7 +817,7 @@ func (this *controller) IsLeaseActive(name string, cnames ...string) bool {
 
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	cl, _ := this.leases[c.GetId()]
+	cl := this.leases[c.GetId()]
 	return cl != nil && cl[leasename]
 }
 
@@ -835,7 +837,7 @@ func (this *controller) WithLease(name string, regain bool, action func(ctx cont
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	cl, _ := this.leases[c.GetId()]
+	cl := this.leases[c.GetId()]
 	if cl == nil {
 		cl = map[string]bool{}
 		this.leases[c.GetId()] = cl

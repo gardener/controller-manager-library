@@ -119,7 +119,6 @@ var _ Definition = &_Definition{}
 var _ Definitions = &_Definitions{}
 
 func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, cfg *Config, req Definition) (Interface, error) {
-
 	id := cfg.ClusterId
 	if id != "" {
 		logger.Infof("found id %q for cluster %q", id, req.Name())
@@ -206,7 +205,7 @@ func (this *_Definitions) handleCluster(ctx context.Context, logger logger.LogCo
 			}
 			fallback = ""
 			if name != DEFAULT {
-				fallback = fmt.Sprintf(" using default fallback")
+				fallback = " using default fallback"
 			}
 		} else {
 			c = found.clusters[req.Fallback()]

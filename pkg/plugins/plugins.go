@@ -86,7 +86,6 @@ func LoadPlugins(dir string) error {
 						if err != nil {
 							return err
 						}
-
 					} else {
 						logger.Errorf("loaded plugin %s has invalid variable Name", path)
 					}

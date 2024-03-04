@@ -87,13 +87,12 @@ func (this *_Definitions) Members(log logger.LogContext, members []string) (util
 					log.Infof("activating all %ss", this.typeName)
 					active.AddSet(this.AllNonExplicitMembers())
 				} else {
-					if this.elements.Contains(name) {
-						log.Infof("activating %s %q", name, this.typeName)
-						active.Add(name)
-						explicitActive.Add(name)
-					} else {
+					if !this.elements.Contains(name) {
 						return nil, fmt.Errorf("unknown %s or group %q", this.typeName, name)
 					}
+					log.Infof("activating %s %q", name, this.typeName)
+					active.Add(name)
+					explicitActive.Add(name)
 				}
 			}
 		}

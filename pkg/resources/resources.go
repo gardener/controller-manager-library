@@ -29,7 +29,7 @@ type factory struct {
 
 var _ abstract.Factory = factory{}
 
-func (this factory) NewResources(ctx abstract.ResourceContext, factory abstract.Factory) abstract.Resources {
+func (this factory) NewResources(ctx abstract.ResourceContext, _ abstract.Factory) abstract.Resources {
 	return newResources(ctx.(*resourceContext))
 }
 
@@ -85,7 +85,7 @@ func newResources(ctx *resourceContext) *_resources {
 
 	res.informers = ctx.sharedInformerFactory
 
-	client, _ := ctx.GetClient(schema.GroupVersion{"", "v1"})
+	client, _ := ctx.GetClient(schema.GroupVersion{Group: "", Version: "v1"})
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(logger.Debugf)

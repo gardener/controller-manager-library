@@ -55,16 +55,15 @@ func (this *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	var reviewResponse Response
-	if r.Body != nil {
-		if body, err = ioutil.ReadAll(r.Body); err != nil {
-			this.Error(err, "unable to read the body from the incoming request")
-			reviewResponse = ErrorResponse(http.StatusBadRequest, err)
-			this.writeResponse(w, reviewResponse)
-			return
-		}
-	} else {
+	if r.Body == nil {
 		err = fmt.Errorf("request body is empty")
 		this.Error(err)
+		reviewResponse = ErrorResponse(http.StatusBadRequest, err)
+		this.writeResponse(w, reviewResponse)
+		return
+	}
+	if body, err = ioutil.ReadAll(r.Body); err != nil {
+		this.Error(err, "unable to read the body from the incoming request")
 		reviewResponse = ErrorResponse(http.StatusBadRequest, err)
 		this.writeResponse(w, reviewResponse)
 		return

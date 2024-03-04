@@ -16,7 +16,6 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -121,10 +120,6 @@ func (f *genericInformerFactory) queryInformerFor(gvk schema.GroupVersionKind) G
 	return nil
 }
 
-func (f *genericInformerFactory) getClient(gv schema.GroupVersion) (restclient.Interface, error) {
-	return f.context.GetClient(gv)
-}
-
 func (f *genericInformerFactory) newInformer(lw listWatchFactory) (GenericInformer, error) {
 	logger.Infof("new generic informer for %s (%s) %s (%d seconds)", lw.ElemType(), lw.GroupVersionKind(), lw.ListType(), lw.Resync()/time.Second)
 
@@ -134,7 +129,9 @@ func (f *genericInformerFactory) newInformer(lw listWatchFactory) (GenericInform
 	}
 	informer := cache.NewSharedIndexInformer(listWatch, lw.ExampleObject(), resyncPeriod(lw.Resync())(),
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
-	informer.SetWatchErrorHandler(cache.WatchErrorHandler(panicWatchErrorHandler))
+	if err := informer.SetWatchErrorHandler(cache.WatchErrorHandler(panicWatchErrorHandler)); err != nil {
+		return nil, err
+	}
 	return &genericInformer{informer, lw.Info()}, nil
 }
 

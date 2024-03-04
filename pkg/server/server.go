@@ -79,8 +79,11 @@ func (this *HTTPServer) Start(source certs.CertificateSource, bindAddress string
 	go func() {
 		<-this.ctx.Done()
 		this.Infof("shutting down server %q with timeout", this.name)
-		ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
-		this.server.Shutdown(ctx)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := this.server.Shutdown(ctx); err != nil {
+			this.Infof("error on shutdown", err)
+		}
+		cancel()
 	}()
 
 	go func() {

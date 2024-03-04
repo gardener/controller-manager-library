@@ -9,7 +9,7 @@ package apiextensions
 
 import (
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -30,8 +30,8 @@ func init() {
 	codecs := serializer.NewCodecFactory(scheme)
 	decoder = codecs.UniversalDecoder()
 
-	resources.Register(v1beta1.SchemeBuilder)
-	resources.Register(v1.SchemeBuilder)
+	runtimeutil.Must(resources.Register(v1beta1.SchemeBuilder))
+	runtimeutil.Must(resources.Register(v1.SchemeBuilder))
 }
 
 func GetCustomResourceDefinition(spec CRDSpecification) (*CustomResourceDefinition, error) {

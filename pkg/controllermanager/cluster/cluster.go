@@ -183,7 +183,7 @@ func (this *_Cluster) GetServerVersion() *semver.Version {
 	return this.rctx.GetServerVersion()
 }
 
-func (this *_Cluster) setup(logger logger.LogContext) error {
+func (this *_Cluster) setup(_ logger.LogContext) error {
 	rctx, err := resources.NewResourceContext(this.ctx, this, this.definition.Scheme(), 0*time.Second)
 	if err != nil {
 		return err

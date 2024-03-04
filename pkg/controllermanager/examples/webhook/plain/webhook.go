@@ -44,6 +44,5 @@ func (this *MyHandler) Handle(logger logger.LogContext, req handler.Request) adm
 		logger.Infof("found plain object %s", req.Object.ObjectName())
 	}
 	return admission.Allowed(this.message)
-	return admission.Denied("aetsch")
-
+	//return admission.Denied("aetsch")
 }

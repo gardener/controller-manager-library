@@ -50,9 +50,7 @@ func _CreateCRDObject(status bool, groupName, version, rkind, rplural, shortName
 	if status {
 		crd.Spec.Subresources = &v1beta1.CustomResourceSubresources{Status: &v1beta1.CustomResourceSubresourceStatus{}}
 	}
-	for _, c := range columns {
-		crd.Spec.AdditionalPrinterColumns = append(crd.Spec.AdditionalPrinterColumns, c)
-	}
+	crd.Spec.AdditionalPrinterColumns = append(crd.Spec.AdditionalPrinterColumns, columns...)
 	crd.Spec.AdditionalPrinterColumns = append(crd.Spec.AdditionalPrinterColumns, v1beta1.CustomResourceColumnDefinition{Name: "AGE", Type: "date", JSONPath: ".metadata.creationTimestamp"})
 
 	if len(shortName) != 0 {

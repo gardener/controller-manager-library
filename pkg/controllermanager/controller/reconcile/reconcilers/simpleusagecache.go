@@ -326,7 +326,8 @@ func (this *SimpleUsageCache) execute(log logger.LogContext, controller controll
 // LockAndUpdateFilteredUsage updates the usage of an object of a dedicated kind for a single used object
 // the used object is locked and an unlock function returned
 func (this *SimpleUsageCache) LockAndUpdateFilteredUsage(user resources.ClusterObjectKey, filter resources.KeyFilter, used resources.ClusterObjectKey) func() {
-	this.Lock(nil, used)
+	// TODO error handling on locking
+	_ = this.Lock(nil, used) // nolint:staticcheck
 	this.UpdateFilteredUsesFor(user, filter, resources.NewClusterObjectKeySet(used))
 	return func() { this.Unlock(used) }
 }
@@ -337,7 +338,8 @@ func (this *SimpleUsageCache) LockAndUpdateFilteredUsages(user resources.Cluster
 	keys := used.AsArray()
 	sort.Sort(keys)
 	for _, key := range keys {
-		this.Lock(nil, key)
+		// TODO error handling on locking
+		_ = this.Lock(nil, key) //nolint:all
 	}
 	this.UpdateFilteredUsesFor(user, filter, used)
 	return func() {
@@ -351,11 +353,11 @@ func (this *SimpleUsageCache) LockAndUpdateFilteredUsages(user resources.Cluster
 
 type KeyAction func(log logger.LogContext, c controller.Interface, key resources.ClusterObjectKey) error
 
-func EnqueueAction(log logger.LogContext, c controller.Interface, key resources.ClusterObjectKey) error {
+func EnqueueAction(_ logger.LogContext, c controller.Interface, key resources.ClusterObjectKey) error {
 	return c.EnqueueKey(key)
 }
 
-func GlobalEnqueueAction(log logger.LogContext, c controller.Interface, key resources.ClusterObjectKey) error {
+func GlobalEnqueueAction(_ logger.LogContext, c controller.Interface, key resources.ClusterObjectKey) error {
 	c.GetEnvironment().EnqueueKey(key)
 	return nil
 }
@@ -383,7 +385,7 @@ func ObjectAsKeyAction(actions ...ObjectAction) KeyAction {
 	}
 }
 
-func RemoveFinalizerObjectAction(log logger.LogContext, controller controller.Interface, obj resources.Object) error {
+func RemoveFinalizerObjectAction(_ logger.LogContext, controller controller.Interface, obj resources.Object) error {
 	return controller.RemoveFinalizer(obj)
 }
 
@@ -423,12 +425,16 @@ func (this *usageReconciler) Setup() error {
 }
 
 func (this *usageReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
-	this.cache.ExecuteActionForUsersOf(logger, "changed -> trigger", this.controller, obj.ClusterKey(), GlobalEnqueueAction)
+	if err := this.cache.ExecuteActionForUsersOf(logger, "changed -> trigger", this.controller, obj.ClusterKey(), GlobalEnqueueAction); err != nil {
+		return reconcile.Failed(logger, err)
+	}
 	return reconcile.Succeeded(logger)
 }
 
 func (this *usageReconciler) Deleted(logger logger.LogContext, key resources.ClusterObjectKey) reconcile.Status {
-	this.cache.ExecuteActionForUsersOf(logger, "deleted -> trigger", this.controller, key, GlobalEnqueueAction)
+	if err := this.cache.ExecuteActionForUsersOf(logger, "deleted -> trigger", this.controller, key, GlobalEnqueueAction); err != nil {
+		return reconcile.Failed(logger, err)
+	}
 	return reconcile.Succeeded(logger)
 }
 
@@ -566,7 +572,8 @@ func (this *ControllerUsageRelations) LockAndUpdateUsagesFor(user resources.Obje
 	keys := used.AsArray()
 	sort.Sort(keys)
 	for _, key := range keys {
-		this.Lock(nil, key)
+		// TODO error handling
+		_ = this.Lock(nil, key) //nolint:all
 	}
 	this.UpdateFilteredUsesFor(user.ClusterKey(), rel.filter, used)
 	return func() {

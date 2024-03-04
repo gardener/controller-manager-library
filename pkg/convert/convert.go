@@ -23,7 +23,6 @@ import (
 //   - (*string)(nil)          ->  string
 //   - (**string)(nil)         -> *string
 func ConvertTo(v interface{}, proto interface{}) (interface{}, error) {
-
 	if v == nil {
 		return nil, nil
 	}

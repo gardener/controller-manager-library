@@ -12,7 +12,7 @@ import (
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -114,8 +114,8 @@ func (this *_resource) addRawSelectedEventHandler(minimal bool, handlers cache.R
 	if err != nil {
 		return err
 	}
-	informer.AddEventHandler(&handlers)
-	return nil
+	_, err = informer.AddEventHandler(&handlers)
+	return err
 }
 
 func (this *_resource) AddEventHandler(handlers ResourceEventHandlerFuncs) error {

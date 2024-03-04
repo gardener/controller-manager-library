@@ -52,7 +52,9 @@ func MergeFlags(flags *pflag.FlagSet, args []string, override bool) error {
 	return flags.ParseAll(args, func(flag *pflag.Flag, value string) error {
 		if override || !flag.Changed || valid[flag.Name] {
 			valid[flag.Name] = true
-			flags.Set(flag.Name, value)
+			if err := flags.Set(flag.Name, value); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
@@ -115,12 +117,12 @@ func mapDataToArguments(name string, flags *pflag.FlagSet, data interface{}) ([]
 	}
 	dash := "--"
 	if flags != nil {
-		if f := flags.Lookup(name); f != nil {
-			if f.Shorthand == name {
-				dash = "-"
-			}
-		} else {
+		f := flags.Lookup(name)
+		if f == nil {
 			return nil, fmt.Errorf("invalid argument %q", name)
+		}
+		if f.Shorthand == name {
+			dash = "-"
 		}
 	}
 	return []string{dash + arg}, nil

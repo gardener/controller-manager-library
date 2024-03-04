@@ -16,15 +16,15 @@ type APIServerOverride struct{}
 var _ Extension = &APIServerOverride{}
 var _ RestConfigExtension = &APIServerOverride{}
 
-func (this *APIServerOverride) ExtendConfig(def Definition, cfg *Config) {
+func (this *APIServerOverride) ExtendConfig(_ Definition, cfg *Config) {
 	cfg.AddStringOption(nil, "apiserver-override", "", "", "replace api server url from kubeconfig")
 }
 
-func (this *APIServerOverride) Extend(cluster Interface, cfg *Config) error {
+func (this *APIServerOverride) Extend(_ Interface, _ *Config) error {
 	return nil
 }
 
-func (this *APIServerOverride) TweakRestConfig(def Definition, cfg *Config, restcfg *restclient.Config) error {
+func (this *APIServerOverride) TweakRestConfig(_ Definition, cfg *Config, restcfg *restclient.Config) error {
 	opt := cfg.GetOption("apiserver-override")
 	if opt != nil {
 		if opt.StringValue() != "" {

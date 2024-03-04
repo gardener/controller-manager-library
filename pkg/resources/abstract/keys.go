@@ -237,10 +237,8 @@ func (this ClusterObjectKeySet) Add(n ...ClusterObjectKey) ClusterObjectKeySet {
 
 func (this ClusterObjectKeySet) AddSet(sets ...ClusterObjectKeySet) ClusterObjectKeySet {
 	for _, s := range sets {
-		if s != nil {
-			for e := range s {
-				this.Add(e)
-			}
+		for e := range s {
+			this.Add(e)
 		}
 	}
 	return this

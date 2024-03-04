@@ -209,7 +209,6 @@ func matchGroup(apiVersion, group string) bool {
 }
 
 func FilterKeysByGroupKinds(keys ClusterObjectKeySet, kinds ...schema.GroupKind) ClusterObjectKeySet {
-
 	if len(kinds) == 0 {
 		return keys.Copy()
 	}

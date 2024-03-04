@@ -45,7 +45,7 @@ var _ = Describe("Order", func() {
 		o, _, err := Order([]*Elem{
 			A, B, C, D,
 		})
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(o).To(Equal([]string{"D", "C", "B", "A"}))
 	})
 	It("sort map after", func() {
@@ -56,7 +56,7 @@ var _ = Describe("Order", func() {
 			"D": D,
 		}
 		o, _, err := Order(m)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(o).To(Equal([]string{"D", "C", "B", "A"}))
 	})
 

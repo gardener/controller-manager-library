@@ -109,11 +109,10 @@ func (this *AbstractResourceContext) GetGVK(obj runtime.Object) (schema.GroupVer
 		if len(found) == 0 {
 			found = append(found, gvk)
 		} else {
-			if gvk.GroupKind() == found[0].GroupKind() {
-				found = append(found, gvk)
-			} else {
+			if gvk.GroupKind() != found[0].GroupKind() {
 				return empty, errors.New(errors.ERR_NON_UNIQUE_MAPPING, "non unique mapping for %s", reflect.TypeOf(obj))
 			}
+			found = append(found, gvk)
 		}
 	}
 	if len(found) == 0 {

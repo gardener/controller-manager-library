@@ -247,18 +247,18 @@ func (c *ClusterHandler) objectInfoAdd(obj resources.ObjectInfo) {
 	c.Debugf("** GOT add event for %s", obj.Description())
 
 	c.cache.Store(obj.Key(), obj)
-	c.EnqueueObject(obj)
+	_ = c.EnqueueObject(obj)
 }
 
-func (c *ClusterHandler) objectInfoUpdate(old, new resources.ObjectInfo) {
+func (c *ClusterHandler) objectInfoUpdate(_, new resources.ObjectInfo) {
 	c.Debugf("** GOT update event for %s: %s", new.Description(), new.GetResourceVersion())
 	c.cache.Store(new.Key(), new)
-	c.EnqueueObject(new)
+	_ = c.EnqueueObject(new)
 }
 
 func (c *ClusterHandler) objectInfoDelete(obj resources.ObjectInfo) {
 	c.Debugf("** GOT delete event for %s: %s", obj.Description(), obj.GetResourceVersion())
 
 	c.cache.Delete(obj.Key())
-	c.EnqueueObject(obj)
+	_ = c.EnqueueObject(obj)
 }

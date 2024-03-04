@@ -28,11 +28,10 @@ func IsNil(o interface{}) bool {
 func SetValue(f reflect.Value, v interface{}) error {
 	vv := reflect.ValueOf(v)
 	if f.Type() != vv.Type() {
-		if vv.Type().ConvertibleTo(f.Type()) {
-			vv = vv.Convert(f.Type())
-		} else {
+		if !vv.Type().ConvertibleTo(f.Type()) {
 			return fmt.Errorf("type %s cannot be converted to %s", vv.Type(), f.Type())
 		}
+		vv = vv.Convert(f.Type())
 	}
 	if !f.CanSet() {
 		if !f.CanInterface() && f.CanAddr() {

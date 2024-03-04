@@ -155,18 +155,24 @@ func (this *slaveReconciler) Setup() error {
 		if err != nil {
 			return fmt.Errorf("cannot find resource %s on cluster %s: %s", r, this.clusterId, err)
 		}
-		this.cache.SetupFor(this.controller, res)
+		if err := this.cache.SetupFor(this.controller, res); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 func (this *slaveReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
-	this.cache.ExecuteActionForOwnersOf(logger, "changed -> trigger", this.controller, obj.ClusterKey(), nil, GlobalEnqueueAction)
+	if err := this.cache.ExecuteActionForOwnersOf(logger, "changed -> trigger", this.controller, obj.ClusterKey(), nil, GlobalEnqueueAction); err != nil {
+		return reconcile.Failed(logger, err)
+	}
 	return reconcile.Succeeded(logger)
 }
 
 func (this *slaveReconciler) Deleted(logger logger.LogContext, key resources.ClusterObjectKey) reconcile.Status {
-	this.cache.DeleteSlave(logger, "deleted -> trigger", this.controller, key, GlobalEnqueueAction)
+	if err := this.cache.DeleteSlave(logger, "deleted -> trigger", this.controller, key, GlobalEnqueueAction); err != nil {
+		return reconcile.Failed(logger, err)
+	}
 	return reconcile.Succeeded(logger)
 }
 

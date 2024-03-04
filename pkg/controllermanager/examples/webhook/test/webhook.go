@@ -40,6 +40,5 @@ var _ admission.Interface = &MyHandler{}
 
 func (this *MyHandler) Handle(logger.LogContext, admission.Request) admission.Response {
 	return admission.Allowed(this.message)
-	return admission.Denied("aetsch")
-
+	//return admission.Denied("aetsch")
 }

@@ -95,7 +95,6 @@ type pool struct {
 }
 
 func NewPool(controller *controller, name string, size int, period time.Duration) *pool {
-
 	pool := &pool{
 		name:        name,
 		controller:  controller,
@@ -164,7 +163,7 @@ func (p *pool) Run() {
 
 	healthz.Start(p.Key(), period)
 	for i := 0; i < p.size; i++ {
-		p.startWorker(i, p.ctx.Done())
+		p.startWorker(i)
 	}
 
 	<-p.ctx.Done()
@@ -174,7 +173,7 @@ func (p *pool) Run() {
 	healthz.End(p.Key())
 }
 
-func (p *pool) startWorker(number int, stopCh <-chan struct{}) {
+func (p *pool) startWorker(number int) {
 	ctxutil.WaitGroupRunUntilCancelled(p.ctx, func() { newWorker(p, number).Run() })
 }
 func (p *pool) EnqueueCommand(cmd string) {

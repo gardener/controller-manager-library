@@ -37,7 +37,6 @@ func (this *ModuleConfig) Evaluate() error {
 }
 
 func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
-
 	for name, def := range this.definitions {
 		ccfg := NewModuleConfig(name)
 		cfg.AddSource(name, ccfg)

@@ -73,6 +73,7 @@ type Y struct {
 
 type Over string
 
+/*
 func tArray0() {
 	v := &S1{
 		Field1: S2{
@@ -109,6 +110,7 @@ func tArray0() {
 	fmt.Printf("%s: %+v\n", t, r)
 	os.Exit(0)
 }
+*/
 
 type MAP map[string]interface{}
 type ARRAY []interface{}
@@ -160,7 +162,7 @@ func t0() {
 	fmt.Printf("o: %s(%s)\n", t, t.Kind())
 
 	s := runtime.NewScheme()
-	v1.AddToScheme(s)
+	_ = v1.AddToScheme(s)
 	c := plain.NewResourceContext(context.Background(), s)
 
 	pod := &v1.Pod{}
@@ -248,10 +250,9 @@ func FieldMain() {
 	t1()
 	data, err := ioutil.ReadFile("local/test.yaml")
 	if err == nil {
-
 		d := yaml.NewDecoder(bytes.NewBuffer(data))
 
-		for true {
+		for {
 			var doc interface{}
 			err := d.Decode(&doc)
 			if err != nil {

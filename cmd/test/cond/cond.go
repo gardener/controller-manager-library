@@ -9,11 +9,12 @@ package cond
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/gardener/controller-manager-library/pkg/fieldpath"
 	"github.com/gardener/controller-manager-library/pkg/resources/conditions"
 	"github.com/gardener/controller-manager-library/pkg/resources/plain"
-	"k8s.io/api/core/v1"
-	"time"
+	v1 "k8s.io/api/core/v1"
 )
 
 type My struct {
@@ -49,7 +50,7 @@ func CondMain() {
 
 	ctype.AssureInterface(my2).(*MyCondition).Message = "It works"
 
-	ctype.SetStatus(my2, "done")
+	_ = ctype.SetStatus(my2, "done")
 
 	fmt.Printf("%#v\n", my2)
 
@@ -58,7 +59,7 @@ func CondMain() {
 	cd := ctype.Get(my2)
 	cd.AssureInterface().(*MyCondition).Message = "It works"
 
-	cd.SetStatus("done")
+	_ = cd.SetStatus("done")
 
 	fmt.Printf("Message: %s\n", cd.GetMessage())
 	fmt.Printf("Transition: %s\n", cd.GetTransitionTime())
@@ -71,7 +72,7 @@ func CondMain() {
 	fmt.Printf("%t: %#v\n", cd.IsModified(), my2)
 
 	cd = ctype.Get(my2)
-	cd.SetStatus("done")
+	_ = cd.SetStatus("done")
 	fmt.Printf("modified %t\n", cd.IsModified())
 
 	f, err := fieldpath.NewField(&My{}, ".Status.Conditions[.Type=\"test\"].Bla")
@@ -79,7 +80,7 @@ func CondMain() {
 		fmt.Printf("err: %s\n", err)
 	} else {
 		my := &My{}
-		f.Set(my, "it works")
+		_ = f.Set(my, "it works")
 		fmt.Printf("%#v\n", my)
 	}
 
@@ -88,9 +89,12 @@ func CondMain() {
 	pod := &v1.Pod{}
 	resc := plain.NewResourceContext(context.TODO(), nil).Resources()
 	obj, err := resc.Wrap(pod)
+	if err != nil {
+		fmt.Printf("err: %s\n", err)
+	}
 	mod := plain.NewModificationState(obj)
 	cd = mod.Condition(podc)
-	cd.SetMessage("test")
+	_ = cd.SetMessage("test")
 	err = cd.SetTransitionTime(time.Now())
 	if err != nil {
 		fmt.Printf("err: %s\n", err)

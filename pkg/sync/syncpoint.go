@@ -33,7 +33,7 @@ func (this waitLock) Release() {
 	this <- struct{}{}
 }
 
-func (this waitLock) Setup(ctx context.Context) WaitLock {
+func (this waitLock) Setup(_ context.Context) WaitLock {
 	return this
 }
 
@@ -45,7 +45,7 @@ type SyncPoint struct {
 
 func (this *SyncPoint) IsReached() bool {
 	this.lock.Lock()
-	this.lock.Unlock()
+	defer this.lock.Unlock()
 	return this.initialized
 }
 

@@ -9,8 +9,9 @@ package plain
 import (
 	"context"
 	"fmt"
+
 	"github.com/gardener/controller-manager-library/pkg/resources/plain"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 var serviceAccountYAML = `

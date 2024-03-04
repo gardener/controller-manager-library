@@ -106,13 +106,13 @@ var _ = Describe("Informers", func() {
 				checkSecret(list, knownSecret1, reflect.TypeOf(&unstructured.Unstructured{}))
 			})
 			By("add secret and wait for watch", func() {
-				rStructured.AddInfoEventHandler(resources.ResourceInfoEventHandlerFuncs{
+				Expect(rStructured.AddInfoEventHandler(resources.ResourceInfoEventHandlerFuncs{
 					AddFunc: func(obj resources.ObjectInfo) {
 						if !foundWatchForSecret2 {
 							foundWatchForSecret2 = obj.Key().Name() == "informers-test-2"
 						}
 					},
-				})
+				})).NotTo(HaveOccurred())
 				knownSecret2 = createSecret("informers-test-2", "default")
 			})
 			By("watch with event handler", func() {

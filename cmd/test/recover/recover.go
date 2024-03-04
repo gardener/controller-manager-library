@@ -15,25 +15,22 @@ import (
 )
 
 func RecoverMain() {
-
 	call1()
 }
 
 func call1() {
-
 	result := SaveAction()
 	fmt.Printf("found result: %v\n", result)
 }
 
 func SaveAction() (result reconcile.Status) {
-
 	defer func() {
 		if r := recover(); r != nil {
-			if res, ok := r.(reconcile.Status); ok {
-				result = res
-			} else {
+			res, ok := r.(reconcile.Status)
+			if !ok {
 				panic(r)
 			}
+			result = res
 		}
 	}()
 

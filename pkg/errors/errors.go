@@ -146,18 +146,18 @@ func (this *fundamental) Cause() error {
 func (this *fundamental) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
-		io.WriteString(s, this.Error())
+		_, _ = io.WriteString(s, this.Error())
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v", this.StackTrace())
+			_, _ = fmt.Fprintf(s, "%+v", this.StackTrace())
 		} else {
 			if s.Flag('-') {
-				fmt.Fprintf(s, "\n%+v", this.StackTrace()[0])
+				_, _ = fmt.Fprintf(s, "\n%+v", this.StackTrace()[0])
 			}
 		}
 	case 's':
-		io.WriteString(s, this.Error())
+		_, _ = io.WriteString(s, this.Error())
 	case 'q':
-		fmt.Fprintf(s, "%q", this.Error())
+		_, _ = fmt.Fprintf(s, "%q", this.Error())
 	}
 }
 
@@ -262,26 +262,26 @@ func (this *withCause) Error() string {
 func (this *withCause) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
-		io.WriteString(s, this.Error())
+		_, _ = io.WriteString(s, this.Error())
 		if s.Flag('+') {
-			fmt.Fprintf(s, "%+v", this.StackTrace())
+			_, _ = fmt.Fprintf(s, "%+v", this.StackTrace())
 		} else {
 			if s.Flag('-') {
-				fmt.Fprintf(s, "\n%+v", this.StackTrace()[0])
+				_, _ = fmt.Fprintf(s, "\n%+v", this.StackTrace()[0])
 			}
 		}
 		if this.cause != nil {
-			io.WriteString(s, "\ncaused by: ")
+			_, _ = io.WriteString(s, "\ncaused by: ")
 			if c, ok := this.cause.(fmt.Formatter); ok {
 				c.Format(s, verb)
 			} else {
-				io.WriteString(s, this.cause.Error())
+				_, _ = io.WriteString(s, this.cause.Error())
 			}
 		}
 	case 's':
-		io.WriteString(s, this.Error())
+		_, _ = io.WriteString(s, this.Error())
 	case 'q':
-		fmt.Fprintf(s, "%q", this.Error())
+		_, _ = fmt.Fprintf(s, "%q", this.Error())
 	}
 }
 

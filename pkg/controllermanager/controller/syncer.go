@@ -221,20 +221,13 @@ func (this *SyncRequest) update(log logger.LogContext, initiator resources.Objec
 	return false, this._requestReconcilations(log)
 }
 
-// done checks whether all requested reconcilations have been done
-func (this *SyncRequest) done() bool {
-	this.lock.Lock()
-	defer this.lock.Unlock()
-	return len(this.syncPoints) == 0
-}
-
 func (this *SyncRequest) _requestReconcilations(log logger.LogContext) error {
 	log.Infof("  syncing %d %s", len(this.syncPoints), this.resource)
 	gk := this.resource.GroupKind()
 
 	id := this.cluster.GetId()
 	for n := range this.syncPoints {
-		this.controller.EnqueueKey(resources.NewClusterKeyForObject(id, n.ForGroupKind(gk)))
+		_ = this.controller.EnqueueKey(resources.NewClusterKeyForObject(id, n.ForGroupKind(gk)))
 	}
 	return nil
 }
@@ -257,9 +250,8 @@ func (this *SyncRequest) handledBy(log logger.LogContext, name resources.ObjectN
 	}
 	if len(this.syncPoints) == 0 {
 		log.Infof("sync reconcilations for %s done -> retrigger object", this.initiator)
-		this.controller.EnqueueKey(this.initiator)
+		_ = this.controller.EnqueueKey(this.initiator)
 	} else {
 		log.Debugf("still %d pending sync reconcilations for %s", len(this.syncPoints), this.initiator)
-
 	}
 }

@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
@@ -23,7 +22,7 @@ import (
 const TYPE = areacfg.OPTION_SOURCE
 
 func init() {
-	extension.RegisterExtension(&ExtensionType{DefaultRegistry()})
+	utils.Must(extension.RegisterExtension(&ExtensionType{DefaultRegistry()}))
 }
 
 type ExtensionType struct {
@@ -89,13 +88,11 @@ func (this *ExtensionDefinition) CreateExtension(cm extension.ControllerManager)
 type Extension struct {
 	extension.Environment
 
-	config         *areacfg.Config
-	definitions    Definitions
-	registrations  Registrations
-	defaultCluster cluster.Interface
-	certificate    certs.CertificateSource
-	modules        map[string]*module
-	clusters       utils.StringSet
+	config        *areacfg.Config
+	definitions   Definitions
+	registrations Registrations
+	modules       map[string]*module
+	clusters      utils.StringSet
 }
 
 func NewExtension(defs Definitions, cm extension.ControllerManager) (*Extension, error) {
@@ -147,16 +144,15 @@ func (this *Extension) RequiredClusters() (utils.StringSet, error) {
 	return this.clusters, nil
 }
 
-func (this *Extension) RequiredClusterIds(clusters cluster.Clusters) utils.StringSet {
+func (this *Extension) RequiredClusterIds(_ cluster.Clusters) utils.StringSet {
 	return nil
 }
 
-func (this *Extension) Setup(ctx context.Context) error {
+func (this *Extension) Setup(_ context.Context) error {
 	return nil
 }
 
 func (this *Extension) Start(ctx context.Context) error {
-
 	for _, def := range this.registrations {
 		lines := strings.Split(def.String(), "\n")
 		this.Infof("creating %s", lines[0])

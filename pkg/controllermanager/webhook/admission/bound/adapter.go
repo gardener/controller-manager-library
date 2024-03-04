@@ -26,7 +26,6 @@ type Adapter struct {
 var _ admission.Interface = &Adapter{}
 
 func Adapt(c AdmissionHandlerType) admission.AdmissionHandlerType {
-
 	return func(webhook webhook.Interface) (admission.Interface, error) {
 		cluster := webhook.GetCluster()
 		if cluster == nil {

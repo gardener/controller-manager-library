@@ -13,6 +13,9 @@ GOIMPORTS                := $(TOOLS_BIN_DIR)/goimports
 GINKGO                   := $(TOOLS_BIN_DIR)/ginkgo
 VGOPATH                  := $(TOOLS_BIN_DIR)/vgopath
 
+export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
+export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+
 GOLANGCI_LINT_VERSION ?= v1.55.1
 VGOPATH_VERSION ?= v0.1.3
 

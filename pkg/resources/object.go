@@ -6,18 +6,6 @@
 
 package resources
 
-import (
-	"reflect"
-
-	"github.com/gardener/controller-manager-library/pkg/utils"
-)
-
-var cluster_key reflect.Type
-
-func init() {
-	cluster_key, _ = utils.TypeKey((*Cluster)(nil))
-}
-
 // _object is the standard implementation of the Object interface
 // it uses the AbstractObject as base to provide standard implementations
 // based on the internal object interface. (see _i_object)

@@ -61,7 +61,7 @@ func newMutatingHandler() *mutating {
 
 var _ webhook.RegistrationHandler = (*mutating)(nil)
 
-func (this *mutating) CreateDeclarations(log logger.LogContext, def webhook.Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) (webhook.WebhookDeclarations, error) {
+func (this *mutating) CreateDeclarations(_ logger.LogContext, def webhook.Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) (webhook.WebhookDeclarations, error) {
 	admindef := def.Handler().(Definition)
 	rules, policy, err := NewAdmissionSpecData(target, admindef.GetFailurePolicy(), admindef.GetOperations(), def.Resources()...)
 	if err != nil {
@@ -94,7 +94,7 @@ func (this *mutating) Register(ctx webhook.RegistrationContext, labels map[strin
 	return err
 }
 
-func (this *mutating) Delete(log logger.LogContext, name string, def webhook.Definition, cluster cluster.Interface) error {
+func (this *mutating) Delete(log logger.LogContext, name string, _ webhook.Definition, cluster cluster.Interface) error {
 	r, err := cluster.Resources().Get(&adminreg.MutatingWebhookConfiguration{})
 	if err != nil {
 		return err

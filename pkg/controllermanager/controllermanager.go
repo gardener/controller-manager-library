@@ -9,7 +9,6 @@ package controllermanager
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +30,6 @@ import (
 
 type ControllerManager struct {
 	extension.SharedAttributesImpl
-	lock       sync.Mutex
 	extensions extension.Extensions
 	order      []string
 
@@ -56,7 +54,7 @@ func NewControllerManager(ctx context.Context, def Definition) (*ControllerManag
 	config.Print(logger.Infof, "", cfg.OptionSet)
 	logger.Info("-----------------------")
 	ctx = logger.Set(ctxutil.WaitGroupContext(ctx, "controllermanager"), lgr)
-	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName()) // golint: ignore
+	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName()) // //nolint:staticcheck
 
 	extensions := def.GetExtensions()
 	for _, e := range extensions {

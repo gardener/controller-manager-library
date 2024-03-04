@@ -59,7 +59,7 @@ var _ = BeforeSuite(func() {
 	kubeconfigFile = createKubeconfigFile(restConfig)
 	println("KUBECONFIG=" + kubeconfigFile)
 
-	resources.Register(corev1.SchemeBuilder)
+	Expect(resources.Register(corev1.SchemeBuilder)).ToNot(HaveOccurred())
 
 	clientset, err = kubernetes.NewForConfig(restConfig)
 	Expect(err).NotTo(HaveOccurred())
@@ -67,9 +67,8 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	if len(kubeconfigFile) > 0 {
-
+		_ = os.Remove(kubeconfigFile)
 	}
-	_ = os.Remove(kubeconfigFile)
 	By("stopping test environment")
 	Expect(testenv.Stop()).To(Succeed())
 })

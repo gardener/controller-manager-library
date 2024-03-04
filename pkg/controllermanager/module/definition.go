@@ -48,7 +48,7 @@ func (this *_Definitions) GetMappingsFor(name string) (mappings.Definition, erro
 	return this.mappings.GetEffective(name, this.groups)
 }
 
-func (this *_Definitions) DetermineRequestedClusters(cfg *areacfg.Config, cdefs cluster.Definitions, mod_names utils.StringSet) (_clusters utils.StringSet, _err error) {
+func (this *_Definitions) DetermineRequestedClusters(_ *areacfg.Config, cdefs cluster.Definitions, mod_names utils.StringSet) (_clusters utils.StringSet, _err error) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 

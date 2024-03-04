@@ -10,8 +10,11 @@ tidy:
 	go mod tidy
 
 .PHONY: check
-check:
-	@.ci/check
+check: format $(GOIMPORTS) $(GOLANGCI_LINT)
+	@TOOLS_BIN_DIR="$(TOOLS_DIR)/bin" ./hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
+	@echo "Running go vet..."
+	@go vet ./cmd/... ./pkg/...
+
 
 .PHONY: build
 build:
@@ -25,7 +28,7 @@ build-local:
         ./pkg/... ./cmd/...
 
 .PHONY: test
-test: $(KUBEBUILDER_DIR)
+test: $(KUBEBUILDER_DIR) $(GINKGO)
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) ginkgo ${COVER_FLAG} -r cmd pkg plugin
 
 .PHONY: generate

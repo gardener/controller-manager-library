@@ -23,7 +23,7 @@ func (this *SecretObject) Secret() *api.Secret {
 }
 
 func SecretKey(namespace, name string) ObjectKey {
-	return NewKey(schema.GroupKind{api.GroupName, "Secret"}, namespace, name)
+	return NewKey(schema.GroupKind{Group: api.GroupName, Kind: "Secret"}, namespace, name)
 }
 func SecretKeyByRef(ref *api.SecretReference) ObjectKey {
 	return SecretKey(ref.Namespace, ref.Name)

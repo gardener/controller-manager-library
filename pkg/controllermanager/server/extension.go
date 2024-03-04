@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	parentcfg "github.com/gardener/controller-manager-library/pkg/controllermanager/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
@@ -19,12 +18,13 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/server/ready"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
 	"github.com/gardener/controller-manager-library/pkg/utils"
+	"k8s.io/apimachinery/pkg/util/runtime"
 )
 
 const TYPE = areacfg.OPTION_SOURCE
 
 func init() {
-	extension.RegisterExtension(&ExtensionType{DefaultRegistry()})
+	runtime.Must(extension.RegisterExtension(&ExtensionType{DefaultRegistry()}))
 }
 
 type ExtensionType struct {
@@ -90,13 +90,11 @@ func (this *ExtensionDefinition) CreateExtension(cm extension.ControllerManager)
 type Extension struct {
 	extension.Environment
 
-	config         *areacfg.Config
-	definitions    Definitions
-	registrations  Registrations
-	defaultCluster cluster.Interface
-	certificate    certs.CertificateSource
-	servers        map[string]*httpserver
-	clusters       utils.StringSet
+	config        *areacfg.Config
+	definitions   Definitions
+	registrations Registrations
+	servers       map[string]*httpserver
+	clusters      utils.StringSet
 
 	ready bool
 }
@@ -150,11 +148,11 @@ func (this *Extension) RequiredClusters() (utils.StringSet, error) {
 	return this.clusters, nil
 }
 
-func (this *Extension) RequiredClusterIds(clusters cluster.Clusters) utils.StringSet {
+func (this *Extension) RequiredClusterIds(_ cluster.Clusters) utils.StringSet {
 	return nil
 }
 
-func (this *Extension) Setup(ctx context.Context) error {
+func (this *Extension) Setup(_ context.Context) error {
 	ready.Register(this)
 	return nil
 }
@@ -164,7 +162,6 @@ func (this *Extension) IsReady() bool {
 }
 
 func (this *Extension) Start(ctx context.Context) error {
-
 	for _, def := range this.registrations {
 		lines := strings.Split(def.String(), "\n")
 		this.Infof("creating %s", lines[0])

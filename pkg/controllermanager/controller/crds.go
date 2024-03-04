@@ -27,7 +27,8 @@ func NewCustomResourceDefinition(crd ...*v1beta1.CustomResourceDefinition) *Cust
 	}
 	def := &CustomResourceDefinition{utils.NewVersioned(&v1beta1.CustomResourceDefinition{})}
 	if len(crd) > 0 {
-		def.versioned.SetDefault(crd[0])
+		// TODO error handling
+		_ = def.versioned.SetDefault(crd[0])
 	}
 	return def
 }

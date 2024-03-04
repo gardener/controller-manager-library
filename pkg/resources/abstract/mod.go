@@ -40,7 +40,7 @@ func NewModificationState(object Object, settings ...interface{}) *ModificationS
 	if log == nil {
 		log = logger.New()
 	}
-	s := &ModificationState{utils.ModificationState{aggr}, object, nil, log}
+	s := &ModificationState{utils.ModificationState{Modified: aggr}, object, nil, log}
 	s.handler = &modhandler{s}
 	return s
 }
@@ -114,6 +114,6 @@ type modhandler struct {
 	state *ModificationState
 }
 
-func (this *modhandler) Modified(condition *conditions.Condition) {
+func (this *modhandler) Modified(_ *conditions.Condition) {
 	this.state.Modify(true)
 }

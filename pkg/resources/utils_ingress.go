@@ -22,7 +22,7 @@ func (this *IngressObject) Ingress() *api.Ingress {
 }
 
 func IngressKey(namespace, name string) ObjectKey {
-	return NewKey(schema.GroupKind{api.GroupName, "Ingress"}, namespace, name)
+	return NewKey(schema.GroupKind{Group: api.GroupName, Kind: "Ingress"}, namespace, name)
 }
 
 func Ingress(o Object) *IngressObject {

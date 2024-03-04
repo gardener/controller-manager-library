@@ -58,7 +58,7 @@ var _ = BeforeSuite(func() {
 	restConfig, err = testenv.Start()
 	Expect(err).NotTo(HaveOccurred())
 
-	resources.Register(corev1.SchemeBuilder)
+	Expect(resources.Register(corev1.SchemeBuilder)).NotTo(HaveOccurred())
 	def := cluster.Configure("default", "kubeconfig", "dummy").Definition()
 	defaultClusterCtx, cancel = context.WithCancel(context.Background())
 	defaultCluster, err = cluster.CreateClusterForScheme(defaultClusterCtx, logger.New(), def, "default", restConfig, nil)

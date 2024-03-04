@@ -222,7 +222,6 @@ func AppendCertsFromPEM(s *x509.CertPool, pemCerts []byte) error {
 }
 
 func Check(key []byte, cert []byte, cacert []byte, duration time.Duration, name ...string) (bool, error) {
-
 	if len(cert) == 0 {
 		return false, fmt.Errorf("certificate not set")
 	}
@@ -259,7 +258,7 @@ func Check(key []byte, cert []byte, cacert []byte, duration time.Duration, name 
 		ops.DNSName = n
 		_, err = c.Verify(ops)
 		if err != nil {
-			return false, nil
+			return false, nil //nolint:nilerr
 		}
 	}
 	return true, nil

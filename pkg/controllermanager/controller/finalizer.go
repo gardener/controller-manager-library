@@ -47,7 +47,7 @@ func (this *DefaultFinalizer) RemoveFinalizer(obj resources.Object) error {
 	return obj.RemoveFinalizer(this.FinalizerName(obj))
 }
 
-func (this *DefaultFinalizer) FinalizerName(obj resources.Object) string {
+func (this *DefaultFinalizer) FinalizerName(_ resources.Object) string {
 	return this.name
 }
 
@@ -66,14 +66,13 @@ type DefaultFinalizerGroup struct {
 	set  utils.StringSet
 }
 
-func NewFinalizerGroup(name string, set utils.StringSet, mapper ...NameMapper) FinalizerGroup {
+func NewFinalizerGroup(name string, set utils.StringSet, _ ...NameMapper) FinalizerGroup {
 	set.Add(name)
 	this := DefaultFinalizerGroup{name, set}
 	if len(set) == 1 {
 		return NewDefaultFinalizer(name)
 	}
 	return &this
-
 }
 
 func (this *DefaultFinalizerGroup) HasFinalizer(obj resources.Object) bool {
@@ -85,7 +84,7 @@ func (this *DefaultFinalizerGroup) HasFinalizer(obj resources.Object) bool {
 	return false
 }
 
-func (this *DefaultFinalizerGroup) FinalizerName(obj resources.Object) string {
+func (this *DefaultFinalizerGroup) FinalizerName(_ resources.Object) string {
 	return this.main
 }
 
@@ -183,7 +182,6 @@ func NewFinalizerForClasses(logger logger.LogContext, name string, classes *Clas
 		return NewDefaultFinalizer(n)
 	}
 	return &this
-
 }
 
 func (this *ClassesFinalizer) finalizer(eff ...string) string {
@@ -199,7 +197,7 @@ func (this *ClassesFinalizer) HasFinalizer(obj resources.Object) bool {
 	return false
 }
 
-func (this *ClassesFinalizer) FinalizerName(obj resources.Object) string {
+func (this *ClassesFinalizer) FinalizerName(_ resources.Object) string {
 	return this.finalizer()
 }
 

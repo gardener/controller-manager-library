@@ -121,8 +121,12 @@ func UpdateStandardObjectStatus(log logger.LogContext, obj Object, state, msg st
 
 func StandardObjectStatusUpdater(log logger.LogContext, state, msg string) ModificationStateUpdater {
 	return func(mod *ModificationState) error {
-		mod.Set(pState, state)
-		mod.Set(pMessage, msg)
+		if err := mod.Set(pState, state); err != nil {
+			return err
+		}
+		if err := mod.Set(pMessage, msg); err != nil {
+			return err
+		}
 		if log != nil && mod.IsModified() {
 			log.Infof("updating state %s (%s)", state, msg)
 		}
@@ -136,8 +140,12 @@ func UpdateStandardObjectStatusf(log logger.LogContext, obj Object, state, msg s
 
 func NewStandardStatusUpdate(log logger.LogContext, obj Object, state, msg string) ModificationStatusUpdater {
 	return NewUpdater(obj, func(mod *ModificationState) error {
-		mod.Set(pState, state)
-		mod.Set(pMessage, msg)
+		if err := mod.Set(pState, state); err != nil {
+			return err
+		}
+		if err := mod.Set(pMessage, msg); err != nil {
+			return err
+		}
 		if log != nil && mod.IsModified() {
 			log.Infof("updating state %s (%s)", state, msg)
 		}

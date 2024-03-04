@@ -69,7 +69,6 @@ func (c *Clients) GetNewClient(gv schema.GroupVersion) (restclient.Interface, er
 	config.GroupVersion = &gv
 	if gv.Group == "" {
 		config.APIPath = "/api"
-
 	} else {
 		config.APIPath = "/apis"
 	}

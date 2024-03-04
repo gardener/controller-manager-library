@@ -5,11 +5,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"reflect"
-	"time"
 
 	"github.com/gardener/controller-manager-library/cmd/test/certs"
 	"github.com/gardener/controller-manager-library/cmd/test/cond"
@@ -22,15 +20,11 @@ import (
 	"github.com/gardener/controller-manager-library/cmd/test/preferred"
 	"github.com/gardener/controller-manager-library/cmd/test/recover"
 	"github.com/gardener/controller-manager-library/cmd/test/scheme"
-	"github.com/gardener/controller-manager-library/pkg/controllermanager/controller"
-	"github.com/gardener/controller-manager-library/pkg/sync"
 	"github.com/gardener/controller-manager-library/pkg/utils"
 
 	_ "github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example/crds"
 	_ "github.com/gardener/controller-manager-library/pkg/resources/defaultscheme/v1.18"
 )
-
-var values = map[controller.ResourceKey]int{}
 
 type V struct {
 	V interface{}
@@ -75,6 +69,7 @@ func pv(gap, prefix string, v reflect.Value) {
 	}
 }
 
+/*
 func doStruct() {
 	a := []V{
 		{"test"},
@@ -89,6 +84,7 @@ func doStruct() {
 	v.Set(reflect.ValueOf(V{"bla"}))
 	fmt.Printf("v: %s\n", a[0].V)
 }
+*/
 
 type I interface {
 	Error() string
@@ -100,6 +96,7 @@ func (this E) Error() string {
 	return string(this)
 }
 
+/*
 func doTypedInterface() {
 	other := E("other")
 	a := []I{
@@ -135,9 +132,9 @@ func doInterface() {
 	v.Set(reflect.ValueOf("bla"))
 	fmt.Printf("v: %s\n", a[0])
 }
+*/
 
 func main() {
-
 	/*
 		PV(E("err"))
 		doStruct()
@@ -197,21 +194,24 @@ func (*B) Func() {
 	fmt.Printf("B.Func\n")
 }
 
-func main0() {
-	//c := &Common{&A{}, &B{}}
-	//c.Func()
-}
+/*
+	func main0() {
+		//c := &Common{&A{}, &B{}}
+		//c.Func()
+	}
 
-func main1() {
-	k1 := controller.NewResourceKey("a", "b")
-	k2 := controller.NewResourceKey("a", "b")
-	values[k1] = 1
-	fmt.Printf("k1: %d\n", values[k1])
-	fmt.Printf("k2: %d\n", values[k2])
+	func main1() {
+		var values = map[controller.ResourceKey]int{}
 
-	fmt.Printf("cluster mapping: %s", set)
-}
+		k1 := controller.NewResourceKey("a", "b")
+		k2 := controller.NewResourceKey("a", "b")
+		values[k1] = 1
+		fmt.Printf("k1: %d\n", values[k1])
+		fmt.Printf("k2: %d\n", values[k2])
 
+		fmt.Printf("cluster mapping: %s", set)
+	}
+*/
 type C struct {
 	name string
 }
@@ -220,14 +220,15 @@ type S struct {
 	m map[string]*C
 }
 
-var set = &S{map[string]*C{"a": {"A"}}}
-
 func (c *C) String() string {
 	return c.name
 }
 func (c *S) String() string {
 	return fmt.Sprintf("%v", c.m)[3:]
 }
+
+/*
+var set = &S{map[string]*C{"a": {"A"}}}
 
 func doit() {
 	fmt.Println("sync test *******************")
@@ -254,3 +255,4 @@ func doit() {
 	cancel()
 	time.Sleep(15 * time.Second)
 }
+*/

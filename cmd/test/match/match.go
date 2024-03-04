@@ -6,6 +6,7 @@ package match
 
 import (
 	"fmt"
+
 	"github.com/gardener/controller-manager-library/pkg/utils"
 )
 
@@ -37,7 +38,6 @@ func MatchMain() {
 	testP(p, "alice/bla/blub/any/tom", true)
 	testP(p, "alice/bla/any/tom", false)
 	testP(p, "alice/bob/tom", false)
-
 }
 
 func test(g utils.Matcher, cand string, expected bool) {

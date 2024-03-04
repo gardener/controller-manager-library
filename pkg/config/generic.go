@@ -199,14 +199,6 @@ func (this *GenericOptionSource) call(f func(OptionSet) interface{}) interface{}
 	return nil
 }
 
-func (this *GenericOptionSource) checkMod() {
-	this.completelock.Lock()
-	defer this.completelock.Unlock()
-	if this.completed {
-		panic("option set already completed")
-	}
-}
-
 func (this *GenericOptionSource) AddOptionsToSet(set OptionSet) {
 	this.call(func(targets OptionSet) interface{} { targets.AddOptionsToSet(set); return nil })
 }

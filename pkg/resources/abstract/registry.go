@@ -7,6 +7,7 @@
 package abstract
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -42,12 +43,16 @@ func DefaultVersion(g string) string {
 
 var scheme = runtime.NewScheme()
 
-func Register(builders ...runtime.SchemeBuilder) {
+func Register(builders ...runtime.SchemeBuilder) error {
 	lock.Lock()
 	defer lock.Unlock()
+	var errs []error
 	for _, b := range builders {
-		b.AddToScheme(scheme)
+		if err := b.AddToScheme(scheme); err != nil {
+			errs = append(errs, err)
+		}
 	}
+	return errors.Join(errs...)
 }
 
 func DefaultScheme() *runtime.Scheme {

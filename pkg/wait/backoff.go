@@ -44,7 +44,6 @@ func ExponentialBackoff(ctx context.Context, backoff Backoff, condition Conditio
 		case <-timer.C:
 		case <-ctx.Done():
 			return ErrWaitCanceled
-
 		}
 	}
 	return ErrWaitTimeout

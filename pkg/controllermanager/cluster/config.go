@@ -47,7 +47,7 @@ func NewConfig(def Definition) *Config {
 	cfg.AddStringOption(&cfg.ClusterId, SUBOPTION_ID, "", "", fmt.Sprintf("id for cluster %s", def.Name()))
 	cfg.AddStringOption(&cfg.migrationIds, SUBOPTION_MIGIDS, "", "", fmt.Sprintf("migration id for cluster %s", def.Name()))
 	cfg.AddBoolOption(&cfg.OmitCRDs, SUBOPTION_DISABLE_DEPLOY_CRDS, "", false, fmt.Sprintf("disable deployment of required crds for cluster %s", def.Name()))
-	callExtensions(func(e Extension) error { e.ExtendConfig(def, cfg); return nil })
+	_ = callExtensions(func(e Extension) error { e.ExtendConfig(def, cfg); return nil })
 	return cfg
 }
 

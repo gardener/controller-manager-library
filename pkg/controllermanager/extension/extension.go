@@ -154,8 +154,8 @@ func DefaultRegistry() ExtensionRegistry {
 	return extensions
 }
 
-func RegisterExtension(e ExtensionType) {
-	extensions.RegisterExtension(e)
+func RegisterExtension(e ExtensionType) error {
+	return extensions.RegisterExtension(e)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -303,7 +303,7 @@ type elementBase struct {
 	options  config.OptionGroup
 }
 
-func NewElementBase(ctx context.Context, valueType ctxutil.ValueKey, element interface{}, name string, prefix string, set config.OptionGroup) ElementBase {
+func NewElementBase(ctx context.Context, valueType ctxutil.ValueKey, _ interface{}, name string, prefix string, set config.OptionGroup) ElementBase {
 	ctx = valueType.WithValue(ctx, name)
 	ctx, logctx := logger.WithLogger(ctx, valueType.Name(), name)
 	return &elementBase{

@@ -33,10 +33,6 @@ func NewSubObjectCache(o OwnerDetector) *SubObjectCache {
 	}
 }
 
-func (this *SubObjectCache) filterOwner(obj Object) bool {
-	return this.filterOwnerKey(obj.ClusterKey())
-}
-
 func (this *SubObjectCache) filterOwnerKey(key ClusterObjectKey) bool {
 	if this.ownerFilters == nil {
 		return true

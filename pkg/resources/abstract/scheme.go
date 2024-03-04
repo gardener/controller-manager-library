@@ -15,16 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
-type acceptGroupVersioner struct {
-}
-
-func (acceptGroupVersioner) KindForGroupVersionKinds(kinds []schema.GroupVersionKind) (schema.GroupVersionKind, bool) {
-	for _, kind := range kinds {
-		return kind, true
-	}
-	return schema.GroupVersionKind{}, false
-}
-
 type Decoder struct {
 	scheme         *runtime.Scheme
 	codecfactory   serializer.CodecFactory

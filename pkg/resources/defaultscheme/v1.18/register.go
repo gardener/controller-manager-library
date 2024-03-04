@@ -7,6 +7,7 @@
 package v1_18 // golint: ignore
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/utils"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
@@ -19,11 +20,11 @@ import (
 )
 
 func init() {
-	Register(core.SchemeBuilder)
-	Register(extensions.SchemeBuilder)
-	Register(apps.SchemeBuilder)
-	Register(discovery.SchemeBuilder)
-	Register(admissionregistration.SchemeBuilder)
-	Register(apiextensions.SchemeBuilder)
-	Register(networking.SchemeBuilder)
+	utils.Must(Register(core.SchemeBuilder))
+	utils.Must(Register(extensions.SchemeBuilder))
+	utils.Must(Register(apps.SchemeBuilder))
+	utils.Must(Register(discovery.SchemeBuilder))
+	utils.Must(Register(admissionregistration.SchemeBuilder))
+	utils.Must(Register(apiextensions.SchemeBuilder))
+	utils.Must(Register(networking.SchemeBuilder))
 }

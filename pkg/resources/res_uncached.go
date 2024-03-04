@@ -41,8 +41,7 @@ func (this *AbstractResource) CreateOrUpdate(obj ObjectData) (Object, error) {
 	if obj.GetResourceVersion() == "" {
 		result, err := this.helper.Internal.I_create(obj)
 		if err == nil {
-			return this.helper.ObjectAsResource(result), err
-
+			return this.helper.ObjectAsResource(result), nil
 		}
 		if !k8serr.IsAlreadyExists(err) {
 			return nil, err

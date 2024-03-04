@@ -130,7 +130,8 @@ func (this *Condition) Assure() error {
 }
 
 func (this *Condition) AssureInterface() interface{} {
-	this.Assure()
+	// TODO check error
+	_ = this.Assure()
 	return this.Interface()
 }
 
@@ -164,19 +165,18 @@ func (this *Condition) set(name string, value interface{}) (bool, error) {
 		if vv.Type().ConvertibleTo(f.Type()) {
 			vv = vv.Convert(f.Type())
 		} else {
-			if f.Kind() == reflect.Struct && f.NumField() == 1 && f.Field(0).Type() == vv.Type() {
-				// handle simple wrapped fields like metav1.Time
-				tmp := reflect.New(f.Type()).Elem()
-				f := tmp.Field(0)
-				if !f.CanSet() {
-					f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
-				}
-				f.Set(vv)
-				vv = tmp
-			} else {
+			if !(f.Kind() == reflect.Struct && f.NumField() == 1 && f.Field(0).Type() == vv.Type()) {
 				return false, fmt.Errorf("invalid type (%s) for field %s in conditions of %s (expected %s)",
 					vv.Type(), name, this.otype, f.Type())
 			}
+			// handle simple wrapped fields like metav1.Time
+			tmp := reflect.New(f.Type()).Elem()
+			f := tmp.Field(0)
+			if !f.CanSet() {
+				f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
+			}
+			f.Set(vv)
+			vv = tmp
 		}
 	}
 	if !f.CanSet() {
@@ -203,13 +203,17 @@ func (this *Condition) Set(name string, value interface{}) error {
 		var now time.Time
 		if name == this.ctype.cStatusField && this.ctype.cTransitionField != "" {
 			now = time.Now()
-			this.set(this.ctype.cTransitionField, now)
+			if _, err := this.set(this.ctype.cTransitionField, now); err != nil {
+				return err
+			}
 		}
 		if name != this.ctype.cUpdateField && this.ctype.cUpdateField != "" {
 			if now.IsZero() {
 				now = time.Now()
 			}
-			this.set(this.ctype.cUpdateField, now)
+			if _, err := this.set(this.ctype.cUpdateField, now); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -482,7 +486,8 @@ func (this *ConditionType) Assure(o interface{}) *Condition {
 	if c == nil {
 		return nil
 	}
-	c.Assure()
+	// TODO check error
+	_ = c.Assure()
 	return c
 }
 

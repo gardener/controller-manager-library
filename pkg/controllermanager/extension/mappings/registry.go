@@ -104,10 +104,6 @@ func (this *_Registry) GetDefinitions() Definitions {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-func newDefinitions(def *DefinitionImpl) *_Definitions {
-	return &_Definitions{definitions: map[string]definitions{def.Type(): {def.Name(): def}}}
-}
-
 func (this *_Definitions) String() string {
 	return fmt.Sprintf("%v", this.definitions)[3:]
 }
