@@ -28,7 +28,7 @@ build-local:
         ./pkg/... ./cmd/...
 
 .PHONY: test
-test: $(KUBEBUILDER_DIR) $(GINKGO)
+test: $(KUBEBUILDER_TAG) $(GINKGO)
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) ginkgo ${COVER_FLAG} -r cmd pkg plugin
 
 .PHONY: generate

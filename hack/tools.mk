@@ -5,8 +5,8 @@
 TOOLS_BIN_DIR            := $(TOOLS_DIR)/bin
 KUBEBUILDER_K8S_VERSION  := 1.28.0
 KUBEBUILDER_TAG          := $(TOOLS_BIN_DIR)/kubebuilder
-KUBEBUILDER_DIR          := $(TOOLS_BIN_DIR)/kubebuilder_$(KUBEBUILDER_K8S_VERSION)
-KUBEBUILDER_ASSETS       := "$(shell realpath $(KUBEBUILDER_DIR))/bin"
+KUBEBUILDER_DIR          := "$(shell realpath $(TOOLS_DIR))/bin/kube_builder_$(KUBEBUILDER_K8S_VERSION)"
+KUBEBUILDER_ASSETS       := $(KUBEBUILDER_DIR)/bin
 CONTROLLER_GEN           := $(TOOLS_BIN_DIR)/controller-gen
 GOLANGCI_LINT            := $(TOOLS_BIN_DIR)/golangci-lint
 GOIMPORTS                := $(TOOLS_BIN_DIR)/goimports
@@ -52,9 +52,10 @@ $(GOIMPORTS): $(call tool_version_file,$(GOIMPORTS),$(GOIMPORTS_VERSION))
 $(GINKGO): $(call tool_version_file,$(GINKGO),$(GINKGO_VERSION))
 	go build -o $(GINKGO) github.com/onsi/ginkgo/v2/ginkgo
 
-$(KUBEBUILDER_DIR): $(call tool_version_file,$(KUBEBUILDER_TAG),$(KUBEBUILDER_K8S_VERSION))
+$(KUBEBUILDER_TAG): $(call tool_version_file,$(KUBEBUILDER_TAG),$(KUBEBUILDER_K8S_VERSION))
 	curl -sSL https://go.kubebuilder.io/test-tools/$(KUBEBUILDER_K8S_VERSION)/$(shell go env GOOS)/$(shell go env GOARCH) | tar -xvz
-	@mv kubebuilder $(KUBEBUILDER_DIR)
+	@mkdir -p $(KUBEBUILDER_ASSETS)
+	@mv kubebuilder/bin/* $(KUBEBUILDER_ASSETS); rm -rf kubebuilder
 	@touch $(KUBEBUILDER_TAG)
 
 $(VGOPATH): $(call tool_version_file,$(VGOPATH),$(VGOPATH_VERSION))
