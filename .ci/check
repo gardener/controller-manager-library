@@ -31,7 +31,7 @@ ignore=(
 )
 
 # Install Golint (linting tool).
-go install -mod=vendor ./vendor/golang.org/x/lint/golint
+go install  ./vendor/golang.org/x/lint/golint
 
 ###############################################################################
 

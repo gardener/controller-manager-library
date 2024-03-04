@@ -6,31 +6,11 @@
 
 set -e
 
-# For the check step concourse will set the following environment variables:
-# SOURCE_PATH - path to component repository root directory.
-
-if [[ -z "${SOURCE_PATH}" ]]; then
-  export SOURCE_PATH="$(readlink -f "$(dirname ${0})/..")"
-else
-  export SOURCE_PATH="$(readlink -f ${SOURCE_PATH})"
-fi
-
-source "$SOURCE_PATH/build/setupenv.src"
-
-# Install Ginkgo (test framework) to be able to execute the tests.
-echo "Installing Ginkgo..."
-go install -mod=vendor ./vendor/github.com/onsi/ginkgo/v2/ginkgo
-
-echo "Installing setup-envtest"
-go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-export KUBEBUILDER_ASSETS=$(setup-envtest use  -p path 1.24.x)
-
-###############################################################################
-
 COVER_FLAG=""
 if [[ ! -z "$COVERAGE" ]]; then
   COVER_FLAG="-cover"
 fi
 
-echo "running tests..."
-GOFLAGS="-mod=vendor" ginkgo ${COVER_FLAG} -r cmd pkg plugin
+echo "Running tests..."
+cd "$(dirname "$0")/.."
+make test
