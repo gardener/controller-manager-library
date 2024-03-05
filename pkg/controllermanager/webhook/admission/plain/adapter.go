@@ -28,7 +28,6 @@ type Adapter struct {
 var _ admission.Interface = &Adapter{}
 
 func Adapt(c AdmissionHandlerType) admission.AdmissionHandlerType {
-
 	return func(webhook webhook.Interface) (admission.Interface, error) {
 		r := resources.NewResourceContext(webhook.GetContext(), webhook.GetScheme()).Resources()
 		h, err := c(webhook)

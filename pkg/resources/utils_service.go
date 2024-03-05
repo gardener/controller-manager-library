@@ -22,7 +22,7 @@ func (this *ServiceObject) Service() *api.Service {
 }
 
 func ServiceKey(namespace, name string) ObjectKey {
-	return NewKey(schema.GroupKind{api.GroupName, "Service"}, namespace, name)
+	return NewKey(schema.GroupKind{Group: api.GroupName, Kind: "Service"}, namespace, name)
 }
 
 func Service(o Object) *ServiceObject {

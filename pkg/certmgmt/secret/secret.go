@@ -48,8 +48,7 @@ func (this *secretCertificateAccess) String() string {
 	return fmt.Sprintf("{cluster: %s, secret: %s}", this.cluster.GetName(), this.name)
 }
 
-func (this *secretCertificateAccess) Get(logger logger.LogContext) (certmgmt.CertificateInfo, error) {
-
+func (this *secretCertificateAccess) Get(_ logger.LogContext) (certmgmt.CertificateInfo, error) {
 	secret, err := resources.GetSecret(this.cluster, this.name.Namespace(), this.name.Name())
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
@@ -61,13 +60,11 @@ func (this *secretCertificateAccess) Get(logger logger.LogContext) (certmgmt.Cer
 }
 
 func (this *secretCertificateAccess) Set(logger logger.LogContext, cert certmgmt.CertificateInfo) error {
-
-	r, _ := this.cluster.GetResource(schema.GroupKind{corev1.GroupName, "Secret"})
+	r, _ := this.cluster.GetResource(schema.GroupKind{Group: corev1.GroupName, Kind: "Secret"})
 	o := r.New(this.name)
 	data := certInfoToData(cert, this.keys[0])
 	mod, err := resources.CreateOrModify(o, func(mod *resources.ModificationState) error {
-		mod.Set(dataField, data)
-		return nil
+		return mod.Set(dataField, data)
 	})
 	if mod {
 		logger.Infof("certs in secret %q[%s] are updated", this.name, this.cluster.GetName())

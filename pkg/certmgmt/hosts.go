@@ -59,7 +59,6 @@ func (this CompoundHosts) GetIPs() []net.IP {
 		hosts = append(hosts, h.GetIPs()...)
 	}
 	return hosts
-
 }
 
 func (this *CompoundHosts) Add(hosts ...CertificateHosts) *CompoundHosts {

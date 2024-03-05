@@ -70,7 +70,7 @@ func (this *SharedOptionSet) AddOptionsToSet(set OptionSet) {
 				if o.Type != old.Type {
 					panic(fmt.Sprintf("type mismatch for shared option %s (%s)", name, this.prefix))
 				}
-				if strings.Index(old.Description, o.Description) < 0 {
+				if !strings.Contains(old.Description, o.Description) {
 					old.Description += ", " + o.Description
 					old.Flag().Usage = o.Description
 				}

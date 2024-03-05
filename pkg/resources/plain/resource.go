@@ -24,8 +24,8 @@ func newResource(
 	context ResourceContext,
 	otype reflect.Type,
 	ltype reflect.Type,
-	gvk schema.GroupVersionKind) Interface {
-
+	gvk schema.GroupVersionKind,
+) Interface {
 	return &_resource{abstract.NewAbstractResource(context, otype, ltype, gvk)}
 }
 

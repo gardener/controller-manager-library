@@ -53,7 +53,6 @@ request:
 `
 
 func main() {
-
 	versions := &resources.VersionedObjects{}
 
 	if err := decoder.DecodeInto([]byte(manifest), versions); err != nil {

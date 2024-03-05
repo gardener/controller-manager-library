@@ -102,7 +102,6 @@ func (this *namespacedResource) getLister() (NamespacedLister, error) {
 }
 
 func (this *namespacedResource) GetCached(name string) (ret Object, err error) {
-
 	lister, err := this.getLister()
 	if err != nil {
 		return nil, err
@@ -111,7 +110,7 @@ func (this *namespacedResource) GetCached(name string) (ret Object, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return this.resource.helper.ObjectAsResource(obj.(ObjectData)), nil
+	return this.resource.helper.ObjectAsResource(obj), nil
 }
 
 func (this *namespacedResource) ListCached(selector labels.Selector) (ret []Object, err error) {

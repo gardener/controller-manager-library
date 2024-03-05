@@ -76,9 +76,8 @@ func (r *Runner) Blocked() error {
 func (r *Runner) Locked() error {
 	fmt.Printf("locked %s\n", r.name)
 	if !r.shouldblock {
-		ok := true
 		select {
-		case _, ok = <-r.blocked:
+		case _, ok := <-r.blocked:
 			if !ok {
 				return aborted
 			}

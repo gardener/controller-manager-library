@@ -102,8 +102,5 @@ func (this *Realms) ContainsAnyOf(realms *Realms) bool {
 }
 
 func (this *Realms) IsResponsibleFor(obj resources.Object) bool {
-	if this.ContainsAnyOf(this.rtype.RealmsForObject(obj)) {
-		return true
-	}
-	return false
+	return this.ContainsAnyOf(this.rtype.RealmsForObject(obj))
 }

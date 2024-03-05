@@ -72,11 +72,11 @@ func (w *worker) loggerForKey(key string) func() {
 func catch(f func() reconcile.Status) (result reconcile.Status) {
 	defer func() {
 		if r := recover(); r != nil {
-			if res, ok := r.(reconcile.Status); ok {
-				result = res
-			} else {
+			res, ok := r.(reconcile.Status)
+			if !ok {
 				panic(r)
 			}
+			result = res
 		}
 	}()
 	return f()
@@ -117,19 +117,7 @@ func (w *worker) processNextWorkItem() bool {
 	var reschedule time.Duration = -1
 	if cmd != "" {
 		reconcilers := w.pool.getReconcilers(cmd)
-		if reconcilers != nil && len(reconcilers) > 0 {
-			for _, reconciler := range reconcilers {
-				status := catch(func() reconcile.Status { return reconciler.Command(w, cmd) })
-				if !status.Completed {
-					ok = false
-				}
-				if status.Error != nil {
-					err = status.Error
-					w.Errorf("command %q failed: %s", cmd, err)
-				}
-				updateSchedule(&reschedule, status.Interval)
-			}
-		} else {
+		if len(reconcilers) == 0 {
 			if cmd == tickCmd {
 				healthz.Tick(w.pool.Key())
 				w.workqueue.AddAfter(tickCmd, tick)
@@ -137,6 +125,17 @@ func (w *worker) processNextWorkItem() bool {
 				w.Errorf("no reconciler found for command %q:", key)
 			}
 			return true
+		}
+		for _, reconciler := range reconcilers {
+			status := catch(func() reconcile.Status { return reconciler.Command(w, cmd) })
+			if !status.Completed {
+				ok = false
+			}
+			if status.Error != nil {
+				err = status.Error
+				w.Errorf("command %q failed: %s", cmd, err)
+			}
+			updateSchedule(&reschedule, status.Interval)
 		}
 	}
 	deleted := false
@@ -187,7 +186,6 @@ func (w *worker) processNextWorkItem() bool {
 			}
 			updateSchedule(&reschedule, status.Interval)
 		}
-
 	}
 	if err != nil {
 		if ok && reschedule < 0 {

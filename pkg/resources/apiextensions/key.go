@@ -15,5 +15,5 @@ import (
 )
 
 func NewKey(crdName string) resources.ObjectKey {
-	return resources.NewKey(schema.GroupKind{apiextensions.GroupName, "CustomResourceDefinition"}, "", crdName)
+	return resources.NewKey(schema.GroupKind{Group: apiextensions.GroupName, Kind: "CustomResourceDefinition"}, "", crdName)
 }

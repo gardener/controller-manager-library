@@ -67,7 +67,7 @@ func (this *_Definition) ActivateExplicitly() bool {
 func (this *_Definition) String() string {
 	s := fmt.Sprintf("%s webhook %q:\n", this.Kind(), this.Name())
 	s += fmt.Sprintf("  cluster: %s\n", this.Cluster())
-	s += fmt.Sprintf("  gvks:\n")
+	s += "  gvks:\n"
 	for _, k := range this.keys {
 		s += fmt.Sprintf("  - %s\n", k)
 	}
@@ -93,11 +93,6 @@ type configState struct {
 	previous *configState
 }
 
-func (this *configState) pushState() {
-	save := *this
-	this.previous = &save
-}
-
 func Configure(name string) Configuration {
 	return Configuration{
 		settings: _Definition{
@@ -120,9 +115,7 @@ func (this Configuration) With(modifier ...ConfigurationModifier) Configuration 
 }
 
 func (this Configuration) Restore() Configuration {
-	if &this.configState != nil {
-		this.configState = *this.configState.previous
-	}
+	this.configState = *this.configState.previous
 	return this
 }
 

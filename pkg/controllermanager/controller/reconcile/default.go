@@ -16,13 +16,13 @@ import (
 type DefaultReconciler struct {
 }
 
-func (r *DefaultReconciler) Reconcile(logger logger.LogContext, obj resources.Object) Status {
+func (r *DefaultReconciler) Reconcile(logger logger.LogContext, _ resources.Object) Status {
 	return Succeeded(logger)
 }
-func (r *DefaultReconciler) Delete(logger logger.LogContext, obj resources.Object) Status {
+func (r *DefaultReconciler) Delete(logger logger.LogContext, _ resources.Object) Status {
 	return Succeeded(logger)
 }
-func (r *DefaultReconciler) Deleted(logger logger.LogContext, obj resources.ClusterObjectKey) Status {
+func (r *DefaultReconciler) Deleted(logger logger.LogContext, _ resources.ClusterObjectKey) Status {
 	return Succeeded(logger)
 }
 func (r *DefaultReconciler) Command(logger logger.LogContext, cmd string) Status {

@@ -42,20 +42,21 @@ var _ = Describe("Config", func() {
 		main.AddToFlags(flags)
 
 		err := flags.Parse([]string{"--maina", "va", "-b", "vb", "--maind=vd", "-e=ve"})
+		Expect(err).NotTo(HaveOccurred())
 		err = main.Evaluate()
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(a).To(Equal("va"))
 		Expect(main.GetOption("maina").StringValue()).To(Equal("va"))
 		Expect(main.GetOption("maina").Description).To(Equal("maina name"))
-		Expect(main.GetOption("maina").Changed()).To(Equal(true))
+		Expect(main.GetOption("maina").Changed()).To(BeTrue())
 
 		Expect(b).To(Equal("vb"))
 		Expect(main.GetOption("mainb").StringValue()).To(Equal("vb"))
 
 		Expect(c).To(Equal("C"))
 		Expect(main.GetOption("mainc").StringValue()).To(Equal("C"))
-		Expect(main.GetOption("mainc").Changed()).To(Equal(false))
+		Expect(main.GetOption("mainc").Changed()).To(BeFalse())
 
 		Expect(d).To(Equal("vd"))
 		Expect(main.GetOption("maind").StringValue()).To(Equal("vd"))
@@ -72,6 +73,7 @@ var _ = Describe("Config", func() {
 		main.AddToFlags(flags)
 
 		err := flags.Parse([]string{"--maina", "-123"})
+		Expect(err).NotTo(HaveOccurred())
 		err = main.Evaluate()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -86,6 +88,7 @@ var _ = Describe("Config", func() {
 		main.AddToFlags(flags)
 
 		err := flags.Parse([]string{"-a", "123"})
+		Expect(err).NotTo(HaveOccurred())
 		err = main.Evaluate()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -104,14 +107,15 @@ var _ = Describe("Config", func() {
 		main.AddToFlags(flags)
 
 		err := flags.Parse([]string{"-ac=true"})
+		Expect(err).NotTo(HaveOccurred())
 		err = main.Evaluate()
 		Expect(err).NotTo(HaveOccurred())
 
-		Expect(main.GetOption("maina").BoolValue()).To(Equal(true))
-		Expect(main.GetOption("mainb").BoolValue()).To(Equal(true))
-		Expect(main.GetOption("mainc").BoolValue()).To(Equal(true))
-		Expect(main.GetOption("maind").BoolValue()).To(Equal(false))
-		Expect(*pc).To(Equal(true))
+		Expect(main.GetOption("maina").BoolValue()).To(BeTrue())
+		Expect(main.GetOption("mainb").BoolValue()).To(BeTrue())
+		Expect(main.GetOption("mainc").BoolValue()).To(BeTrue())
+		Expect(main.GetOption("maind").BoolValue()).To(BeFalse())
+		Expect(*pc).To(BeTrue())
 	})
 
 	It("should handle DurationOption", func() {
@@ -120,6 +124,7 @@ var _ = Describe("Config", func() {
 		main.AddToFlags(flags)
 
 		err := flags.Parse([]string{"-a", "3h"})
+		Expect(err).NotTo(HaveOccurred())
 		err = main.Evaluate()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -136,21 +141,22 @@ var _ = Describe("Config", func() {
 		main.AddToFlags(flags)
 
 		err := flags.Parse([]string{"-a", "xx", "-a", "yy", "-b=eee,fff"})
+		Expect(err).NotTo(HaveOccurred())
 		err = main.Evaluate()
 		Expect(err).NotTo(HaveOccurred())
 
 		Expect(main.GetOption("maina").StringArray()).To(Equal([]string{"xx", "yy"}))
-		Expect(main.GetOption("maina").IsArray()).To(Equal(true))
-		Expect(main.GetOption("maina").IsSlice()).To(Equal(false))
+		Expect(main.GetOption("maina").IsArray()).To(BeTrue())
+		Expect(main.GetOption("maina").IsSlice()).To(BeFalse())
 
 		Expect(main.GetOption("mainb").StringArray()).To(Equal([]string{"eee,fff"}))
-		Expect(main.GetOption("mainb").IsArray()).To(Equal(true))
-		Expect(main.GetOption("mainb").IsSlice()).To(Equal(false))
-		Expect(main.GetOption("mainb").Changed()).To(Equal(true))
+		Expect(main.GetOption("mainb").IsArray()).To(BeTrue())
+		Expect(main.GetOption("mainb").IsSlice()).To(BeFalse())
+		Expect(main.GetOption("mainb").Changed()).To(BeTrue())
 		Expect(*pb).To(Equal([]string{"eee,fff"}))
 
 		Expect(main.GetOption("mainc").StringArray()).To(Equal([]string{"q", "w"}))
-		Expect(main.GetOption("mainc").Changed()).To(Equal(false))
+		Expect(main.GetOption("mainc").Changed()).To(BeFalse())
 		Expect(main.GetOption("maind").StringArray()).To(Equal([]string{}))
 	})
 
@@ -183,6 +189,7 @@ var _ = Describe("Config", func() {
 		main.AddToFlags(flags)
 
 		err := flags.Parse([]string{"--main", "vm", "-s", "4", "--controller.test.size=5", "--prefixshared=a", "--generic.prefixshared=b"})
+		Expect(err).NotTo(HaveOccurred())
 		err = main.Evaluate()
 		Expect(err).NotTo(HaveOccurred())
 

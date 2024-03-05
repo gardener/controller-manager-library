@@ -21,8 +21,8 @@ func DefaultVersion(g string) string {
 	return abstract.DefaultVersion(g)
 }
 
-func Register(builders ...runtime.SchemeBuilder) {
-	abstract.Register(builders...)
+func Register(builders ...runtime.SchemeBuilder) error {
+	return abstract.Register(builders...)
 }
 
 func DefaultScheme() *runtime.Scheme {

@@ -38,7 +38,6 @@ func (k resourceKey) GroupKind() schema.GroupKind {
 func (k resourceKey) String() string {
 	if k.key.Group == corev1.GroupName {
 		return fmt.Sprintf("%s/%s", "core", k.key.Kind)
-
 	}
 	return fmt.Sprintf("%s/%s", k.key.Group, k.key.Kind)
 }

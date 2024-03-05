@@ -26,8 +26,8 @@ func NewAbstractResource(
 	context ResourceContext,
 	otype reflect.Type,
 	ltype reflect.Type,
-	gvk schema.GroupVersionKind) *AbstractResource {
-
+	gvk schema.GroupVersionKind,
+) *AbstractResource {
 	return &AbstractResource{
 		context: context,
 		gvk:     gvk,

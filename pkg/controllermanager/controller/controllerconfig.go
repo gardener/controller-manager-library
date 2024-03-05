@@ -32,7 +32,6 @@ const POOL_RESYNC_PERIOD_OPTION = "pool.resync-period"
 const CONTROLLER_SET_PREFIX = "controller."
 
 func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
-
 	for name, def := range this.definitions {
 		ccfg := NewControllerConfig(name)
 		cfg.AddSource(name, ccfg)

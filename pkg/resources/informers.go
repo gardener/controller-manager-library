@@ -232,7 +232,7 @@ func (f *sharedFilteredInformerFactory) queryFactory(namespace string) *genericI
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	factory, _ := f.filters[namespace]
+	factory := f.filters[namespace]
 	return factory
 }
 

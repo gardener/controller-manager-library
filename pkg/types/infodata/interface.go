@@ -77,7 +77,7 @@ func (this *InfoDataList) Set(name string, data InfoData) error {
 			return nil
 		}
 	}
-	*this = append(*this, InfoDataEntry{name, data.TypeVersion(), runtime.RawExtension{bytes, nil}})
+	*this = append(*this, InfoDataEntry{name, data.TypeVersion(), runtime.RawExtension{Raw: bytes}})
 	return nil
 }
 

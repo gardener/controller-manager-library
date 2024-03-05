@@ -61,6 +61,9 @@ func (this *schemehandler) Handle(log logger.LogContext, version string, obj run
 	first := versions.First().(resources.ObjectData)
 	gvk := first.GetObjectKind().GroupVersionKind()
 	gv, err := schema.ParseGroupVersion(version)
+	if err != nil {
+		return nil, err
+	}
 	log.Infof("  converting %s/%s(%s)", first.GetName(), first.GetNamespace(), gvk)
 	gvk.Version = gv.Version
 	gvk.Group = gv.Group

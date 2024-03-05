@@ -18,7 +18,7 @@ import (
 )
 
 func toResourceSpecs(specs ...extension.ResourceKey) []interface{} {
-	result := make([]interface{}, len(specs), len(specs))
+	result := make([]interface{}, len(specs))
 	for i, r := range specs {
 		result[i] = r
 	}

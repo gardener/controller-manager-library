@@ -15,6 +15,7 @@ import (
 
 type Struct struct{}
 
+// nolint:staticcheck
 var _ = Describe("Types", func() {
 
 	Context("Nil interface", func() {

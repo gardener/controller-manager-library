@@ -11,7 +11,6 @@ import (
 	"fmt"
 
 	"github.com/Masterminds/semver/v3"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
@@ -34,7 +33,6 @@ type CustomResourceDefinitionVersions struct {
 
 var v122 = semver.MustParse("1.22.0")
 var v116 = semver.MustParse("1.16.0")
-var otype runtime.Object
 
 func NewDefaultedCustomResourceDefinitionVersions(spec CRDSpecification) (*CustomResourceDefinitionVersions, error) {
 	var def *CustomResourceDefinitionVersions
@@ -58,14 +56,15 @@ func NewDefaultedCustomResourceDefinitionVersions(spec CRDSpecification) (*Custo
 			return nil, err
 		}
 		def = NewCustomResourceDefinitionVersions(o.CRDGroupKind())
-		def.versioned.SetDefault(o)
+		if err := def.versioned.SetDefault(o); err != nil {
+			return nil, err
+		}
 	}
 	return def, nil
 }
 
 func NewCustomResourceDefinitionVersions(gk schema.GroupKind) *CustomResourceDefinitionVersions {
 	return &CustomResourceDefinitionVersions{gk, utils.NewVersioned(&CustomResourceDefinition{})}
-
 }
 
 func (this *CustomResourceDefinitionVersions) Name() string {

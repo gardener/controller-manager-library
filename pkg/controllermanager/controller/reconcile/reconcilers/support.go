@@ -46,7 +46,7 @@ func (this *ReconcilerSupport) Actions() ActionDefinition {
 
 func (this *ReconcilerSupport) EnqueueKeys(keys resources.ClusterObjectKeySet) {
 	for key := range keys {
-		this.Controller().EnqueueKey(key)
+		_ = this.Controller().EnqueueKey(key)
 	}
 }
 

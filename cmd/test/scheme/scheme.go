@@ -43,7 +43,6 @@ func (t *Test) Visible() {
 }
 
 func SchemeMain() {
-
 	{
 		s := &ST{&Test{}}
 		var i interface{} = s
@@ -64,7 +63,7 @@ func SchemeMain() {
 	cfg.KubeConfig = os.Args[1]
 	c, err := cluster.CreateCluster(ctx, logger.New(), def, "", cfg)
 	if err != nil {
-		fmt.Errorf("failed to create kube configmain %s: %s", os.Args[1], err)
+		fmt.Printf("failed to create kube configmain %s: %s", os.Args[1], err)
 		os.Exit(2)
 	}
 
@@ -85,7 +84,7 @@ func SchemeMain() {
 	*/
 
 	s := runtime.NewScheme()
-	corev1.AddToScheme(s)
+	_ = corev1.AddToScheme(s)
 	if listScheme {
 		for gvk, t := range s.AllKnownTypes() {
 			l := kutil.DetermineListType(s, gvk.GroupVersion(), t)
@@ -114,23 +113,34 @@ func SchemeMain() {
 
 	fmt.Printf("# get informer\n")
 	informer, err := factory.InformerForObject(&corev1.ConfigMap{})
+	_ = informer
 	if err != nil {
 		fmt.Printf("cannot create informer: %s\n", err)
 		os.Exit(4)
 	}
 	informer, err = factory.InformerForObject(&corev1.ConfigMap{})
+	_ = informer
+	if err != nil {
+		fmt.Printf("cannot create informer: %s\n", err)
+		os.Exit(40)
+	}
 	informer, err = factory.InformerForObject(&corev1.ConfigMap{})
+	_ = informer
+	if err != nil {
+		fmt.Printf("cannot create informer: %s\n", err)
+		os.Exit(41)
+	}
 
 	fmt.Printf("# get generic uncached configamp\n")
 
-	h, err := rctx.Resources().Get(schema.GroupKind{"", "ConfigMap"})
+	h, err := rctx.Resources().Get(schema.GroupKind{Group: "", Kind: "ConfigMap"})
 	if err != nil {
 		fmt.Printf("cannot get uncached resource: %s\n", err)
 		os.Exit(5)
 	}
 
 	fmt.Printf("# add handler\n")
-	h.AddEventHandler(resources.ResourceEventHandlerFuncs{
+	_ = h.AddEventHandler(resources.ResourceEventHandlerFuncs{
 		AddFunc:    add,
 		UpdateFunc: update,
 		DeleteFunc: delete,
@@ -183,17 +193,15 @@ func SchemeMain() {
 		fmt.Printf("cannot get uncached list: %s\n", err)
 		os.Exit(8)
 	}
-	if l != nil {
-		for i, o := range l {
-			fmt.Printf("List %d: %#v", i, o.Data())
-		}
+	for i, o := range l {
+		fmt.Printf("List %d: %#v", i, o.Data())
 	}
 }
 
 func add(obj resources.Object) {
 	fmt.Printf("add %s\n", obj.Data())
 }
-func update(old, new resources.Object) {
+func update(_, new resources.Object) {
 	fmt.Printf("update %s\n", new.Data())
 }
 func delete(obj resources.Object) {

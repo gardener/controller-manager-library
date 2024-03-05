@@ -91,11 +91,6 @@ type configState struct {
 	previous *configState
 }
 
-func (this *configState) pushState() {
-	save := *this
-	this.previous = &save
-}
-
 func Configure(name string) Configuration {
 	return Configuration{
 		settings: _Definition{
@@ -118,9 +113,7 @@ func (this Configuration) With(modifier ...ConfigurationModifier) Configuration 
 }
 
 func (this Configuration) Restore() Configuration {
-	if &this.configState != nil {
-		this.configState = *this.configState.previous
-	}
+	this.configState = *this.configState.previous
 	return this
 }
 

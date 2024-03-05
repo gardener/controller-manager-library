@@ -19,7 +19,7 @@ func (this *NamespaceLocalAccessOnly) Name() string {
 	return "LocalNamespaceAccessOnly"
 }
 
-func (this *NamespaceLocalAccessOnly) Allowed(src resources.ClusterObjectKey, verb string, tgt resources.ClusterObjectKey) (int, error) {
+func (this *NamespaceLocalAccessOnly) Allowed(src resources.ClusterObjectKey, _ string, tgt resources.ClusterObjectKey) (int, error) {
 	if src.Cluster() != tgt.Cluster() {
 		return ACCESS_DENIED, nil
 	}

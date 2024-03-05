@@ -94,7 +94,6 @@ func (this *UsageAccess) MasterResoures() []resources.Interface {
 }
 
 func (this *UsageAccess) LookupUsages(key resources.ClusterObjectKey, kinds ...schema.GroupKind) resources.ClusterObjectKeySet {
-
 	if len(kinds) == 0 {
 		return this.usages.GetUsages(key).Copy()
 	}
@@ -185,9 +184,9 @@ type UsageReconciler struct {
 
 var _ reconcile.Interface = &UsageReconciler{}
 
-func (this *UsageReconciler) Setup() {
+func (this *UsageReconciler) Setup() error {
 	this.UsageAccess.Setup()
-	this.NestedReconciler.Setup()
+	return this.NestedReconciler.Setup()
 }
 
 func (this *UsageReconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
@@ -229,7 +228,7 @@ func (this *UsageReconciler) requeueMasters(logger logger.LogContext, masters re
 				}
 			}
 			logger.Infof("requeue master %s", key)
-			this.EnqueueKey(key)
+			_ = this.EnqueueKey(key)
 		}
 	}
 }

@@ -10,7 +10,6 @@ package module
 import (
 	"fmt"
 
-	"github.com/gardener/controller-manager-library/pkg/certs"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/module/handler"
@@ -23,12 +22,11 @@ type module struct {
 	extension.ElementBase
 	extension.SharedAttributes
 
-	definition  Definition
-	env         Environment
-	clusters    cluster.Clusters
-	cluster     cluster.Interface
-	handlers    map[string]handler.Interface
-	certificate certs.CertificateSource
+	definition Definition
+	env        Environment
+	clusters   cluster.Clusters
+	cluster    cluster.Interface
+	handlers   map[string]handler.Interface
 
 	config *ModuleConfig
 }

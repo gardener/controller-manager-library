@@ -23,7 +23,7 @@ func ToInterfaceSlice(a interface{}) []interface{} {
 
 	switch v.Kind() {
 	case reflect.Array:
-		r := make([]interface{}, v.Len(), v.Len())
+		r := make([]interface{}, v.Len())
 		for i := 0; i < v.Len(); i++ {
 			r[i] = v.Index(i).Interface()
 		}
@@ -32,7 +32,7 @@ func ToInterfaceSlice(a interface{}) []interface{} {
 		if v.Type().Elem() == t_interface {
 			return a.([]interface{})
 		}
-		r := make([]interface{}, v.Len(), v.Len())
+		r := make([]interface{}, v.Len())
 		for i := 0; i < v.Len(); i++ {
 			r[i] = v.Index(i).Interface()
 		}

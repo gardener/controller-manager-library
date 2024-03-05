@@ -112,7 +112,6 @@ func (this *Ticker) WaitForInactivity(ctx context.Context, d time.Duration) {
 			}
 			logger.Infof("continue grace period for %s with %s", this.key, rest)
 			timer.Reset(rest)
-
 		}
 	}
 }

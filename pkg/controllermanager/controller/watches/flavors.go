@@ -23,11 +23,11 @@ import (
 
 type dummyFlavor struct{}
 
-func (dummyFlavor) WatchResourceDef(wctx WatchContext, def WatchResourceDef) WatchResourceDef {
+func (dummyFlavor) WatchResourceDef(_ WatchContext, def WatchResourceDef) WatchResourceDef {
 	return def
 }
 
-func (dummyFlavor) RequestMinimalFor(gk schema.GroupKind) {
+func (dummyFlavor) RequestMinimalFor(_ schema.GroupKind) {
 }
 
 // Conditional decribes a resource flavor checked if a dedicated contraint is met.
@@ -71,7 +71,7 @@ func Minimal() ResourceFlavor {
 
 type minimalFlavor struct{ dummyFlavor }
 
-func (*minimalFlavor) WatchResourceDef(wctx WatchContext, def WatchResourceDef) WatchResourceDef {
+func (*minimalFlavor) WatchResourceDef(_ WatchContext, def WatchResourceDef) WatchResourceDef {
 	def.Minimal = true
 	return def
 }
@@ -92,7 +92,7 @@ type namespaceFlavor struct {
 	namespace string
 }
 
-func (this *namespaceFlavor) WatchResourceDef(wctx WatchContext, def WatchResourceDef) WatchResourceDef {
+func (this *namespaceFlavor) WatchResourceDef(_ WatchContext, def WatchResourceDef) WatchResourceDef {
 	def.Namespace = this.namespace
 	return def
 }
@@ -154,11 +154,11 @@ func (this WatchTweaker) WatchResourceDef(wctx WatchContext, def WatchResourceDe
 	}
 	return def
 }
-func (WatchTweaker) RequestMinimalFor(gk schema.GroupKind) {
+func (WatchTweaker) RequestMinimalFor(_ schema.GroupKind) {
 }
 func (this WatchTweaker) String() string {
 	// TODO print function: fmt.Sprintf("{tweaker %v}", this) does not work
-	return fmt.Sprintf("{tweaker}")
+	return "{tweaker}"
 }
 
 //
@@ -176,11 +176,11 @@ func (this ObjectSelector) WatchResourceDef(wctx WatchContext, def WatchResource
 	}
 	return def
 }
-func (ObjectSelector) RequestMinimalFor(gk schema.GroupKind) {
+func (ObjectSelector) RequestMinimalFor(_ schema.GroupKind) {
 }
 func (this ObjectSelector) String() string {
 	// TODO print function
-	return fmt.Sprintf("{object selector}")
+	return "{object selector}"
 }
 
 type objectFlavor struct {
@@ -220,7 +220,7 @@ type localObjectFlavor struct {
 
 func (this *localObjectFlavor) String() string {
 	// TODO print struct
-	return fmt.Sprintf("{local object}")
+	return "{local object}"
 }
 
 //

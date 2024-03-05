@@ -7,7 +7,6 @@
 package abstract
 
 import (
-	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,10 +36,6 @@ func (this *AbstractObject) IsA(spec interface{}) bool {
 	switch s := spec.(type) {
 	case GroupKindProvider:
 		return s.GroupKind() == this.GroupKind()
-	case schema.GroupVersionKind:
-		return s == this.resource.GroupVersionKind()
-	case *schema.GroupVersionKind:
-		return *s == this.resource.GroupVersionKind()
 	case schema.GroupKind:
 		return s == this.GroupKind()
 	case *schema.GroupKind:
@@ -99,7 +94,7 @@ func (this *AbstractObject) Key() ObjectKey {
 }
 
 func (this *AbstractObject) Description() string {
-	return fmt.Sprintf("%s", this.Key())
+	return this.Key().String()
 }
 
 func (this *AbstractObject) GroupKind() schema.GroupKind {

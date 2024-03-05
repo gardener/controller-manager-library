@@ -9,8 +9,9 @@ package preferred
 import (
 	"context"
 	"fmt"
-	"github.com/gardener/controller-manager-library/pkg/resources"
 	"os"
+
+	"github.com/gardener/controller-manager-library/pkg/resources"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
 	"github.com/gardener/controller-manager-library/pkg/ctxutil"
@@ -24,17 +25,24 @@ import (
 )
 
 func PreferredMain() {
-
 	ctx := ctxutil.CancelContext(context.Background())
 	scheme := runtime.NewScheme()
-	adminregv1.AddToScheme(scheme)
-	adminregv1beta1.AddToScheme(scheme)
+	err := adminregv1.AddToScheme(scheme)
+	if err != nil {
+		fmt.Printf("AddToScheme failed: %s", err)
+		os.Exit(1)
+	}
+	err = adminregv1beta1.AddToScheme(scheme)
+	if err != nil {
+		fmt.Printf("AddToScheme failed: %s", err)
+		os.Exit(2)
+	}
 
 	fmt.Printf("create cluster\n")
 	def := cluster.Configure("main", "", "").Scheme(scheme).Definition()
 	c, err := cluster.CreateCluster(ctx, logger.New(), def, "", nil)
 	if err != nil {
-		fmt.Errorf("failed to create cluster: %s", err)
+		fmt.Printf("failed to create cluster: %s", err)
 		os.Exit(2)
 	}
 	fmt.Printf("got cluster\n")
@@ -62,7 +70,7 @@ func PreferredMain() {
 	gk := resources.NewGroupKind(adminregv1.GroupName, "ValidatingWebhookConfiguration")
 	r, err := rs.Get(gk)
 	if err != nil {
-		fmt.Errorf("failed to get resource: %s", err)
+		fmt.Printf("failed to get resource: %s", err)
 		os.Exit(2)
 	}
 	fmt.Printf("%s\n", r.Info())

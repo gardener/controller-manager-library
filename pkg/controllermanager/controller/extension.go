@@ -26,7 +26,7 @@ import (
 const TYPE = areacfg.OPTION_SOURCE
 
 func init() {
-	extension.RegisterExtension(&ExtensionType{DefaultRegistry()})
+	utils.Must(extension.RegisterExtension(&ExtensionType{DefaultRegistry()}))
 }
 
 type ExtensionType struct {
@@ -211,7 +211,7 @@ func (this *Extension) GetConfig() *areacfg.Config {
 	return this.config
 }
 
-func (this *Extension) Setup(ctx context.Context) error {
+func (this *Extension) Setup(_ context.Context) error {
 	return nil
 }
 
@@ -339,12 +339,12 @@ func (this *Extension) startController(cntr *controller) error {
 
 func (this *Extension) Enqueue(obj resources.Object) {
 	for _, c := range this.controllers {
-		c.Enqueue(obj)
+		_ = c.Enqueue(obj)
 	}
 }
 
 func (this *Extension) EnqueueKey(key resources.ClusterObjectKey) {
 	for _, c := range this.controllers {
-		c.EnqueueKey(key)
+		_ = c.EnqueueKey(key)
 	}
 }

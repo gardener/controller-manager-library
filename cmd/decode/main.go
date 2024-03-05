@@ -45,7 +45,6 @@ spec:
 `
 
 func main() {
-
 	o, gvk, err := decoder.Decode([]byte(manifest))
 	if err != nil {
 		fmt.Printf("err: %s\n", err)

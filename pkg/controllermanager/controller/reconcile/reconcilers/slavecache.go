@@ -379,7 +379,7 @@ func (this *SlaveReconciler) Start() error {
 		if this.master_resources.Contains(k.Cluster(), k.GroupKind()) {
 			if _, err := this.GetClusterById(k.Cluster()).GetCachedObject(k); errors.IsNotFound(err) {
 				this.Infof("trigger vanished origin %s", k.ObjectKey())
-				this.EnqueueKey(k)
+				_ = this.EnqueueKey(k)
 			} else {
 				this.Debugf("found origin %s", k.ObjectKey())
 			}
@@ -412,6 +412,6 @@ func (this *SlaveReconciler) requeueMasters(logger logger.LogContext, masters re
 			}
 		}
 		logger.Infof("requeue master %s", key)
-		this.EnqueueKey(key)
+		_ = this.EnqueueKey(key)
 	}
 }

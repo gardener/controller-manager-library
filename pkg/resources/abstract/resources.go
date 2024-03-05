@@ -91,24 +91,10 @@ func (this *AbstractResources) Get(spec interface{}) (Resource, error) {
 		return this.GetByGK(o.GroupKind())
 	case runtime.Object:
 		return this.GetByExample(o)
-	case schema.GroupVersionKind:
-		return this.GetByGVK(o)
-	case *schema.GroupVersionKind:
-		return this.GetByGVK(*o)
 	case schema.GroupKind:
 		return this.GetByGK(o)
 	case *schema.GroupKind:
 		return this.GetByGK(*o)
-
-	case ObjectKey:
-		return this.GetByGK(o.GroupKind())
-	case *ObjectKey:
-		return this.GetByGK(o.GroupKind())
-
-	case ClusterObjectKey:
-		return this.GetByGK(o.GroupKind())
-	case *ClusterObjectKey:
-		return this.GetByGK(o.GroupKind())
 
 	default:
 		return nil, errors.ErrUnexpectedType.New("object identifier", spec)
@@ -149,25 +135,10 @@ func (this *AbstractResources) GetUnstructured(spec interface{}) (Resource, erro
 		return this.GetUnstructuredByGVK(o.GroupVersionKind())
 	case GroupKindProvider:
 		return this.GetUnstructuredByGK(o.GroupKind())
-	case schema.GroupVersionKind:
-		return this.GetUnstructuredByGVK(o)
-	case *schema.GroupVersionKind:
-		return this.GetUnstructuredByGVK(*o)
 	case schema.GroupKind:
 		return this.GetUnstructuredByGK(o)
 	case *schema.GroupKind:
 		return this.GetUnstructuredByGK(*o)
-
-	case ObjectKey:
-		return this.GetUnstructuredByGK(o.GroupKind())
-	case *ObjectKey:
-		return this.GetUnstructuredByGK(o.GroupKind())
-
-	case ClusterObjectKey:
-		return this.GetUnstructuredByGK(o.GroupKind())
-	case *ClusterObjectKey:
-		return this.GetUnstructuredByGK(o.GroupKind())
-
 	default:
 		return nil, errors.ErrUnexpectedType.New("object identifier", spec)
 	}
@@ -182,7 +153,6 @@ func (this *AbstractResources) GetUnstructuredByGVK(gvk schema.GroupVersionKind)
 }
 
 func (this *AbstractResources) _newResource(gvk schema.GroupVersionKind, otype reflect.Type) (Resource, error) {
-
 	if otype == nil {
 		otype = unstructuredType
 	}

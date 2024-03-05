@@ -200,7 +200,7 @@ func (this *ResourceInfos) doUpdateGroup(dc *discovery.DiscoveryClient, group v1
 				this.groupVersionKinds[gv] = m
 			}
 			for _, r := range list.APIResources {
-				if strings.Index(r.Name, "/") < 0 {
+				if !strings.Contains(r.Name, "/") {
 					m[r.Kind] = &Info{groupVersion: &gv, resourcename: r.Name, kind: r.Kind, namespaced: r.Namespaced, subresources: utils.StringSet{}}
 				}
 			}
@@ -230,7 +230,7 @@ func (this *ResourceInfos) GetGroups() []schema.GroupVersion {
 	grps := []schema.GroupVersion{}
 outer:
 	for gk, v := range this.preferredVersions {
-		gv := schema.GroupVersion{gk.Group, v}
+		gv := schema.GroupVersion{Group: gk.Group, Version: v}
 		for _, f := range grps {
 			if f.Group == gv.Group && f.Version == gv.Version {
 				continue outer

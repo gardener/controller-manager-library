@@ -129,7 +129,7 @@ func (this *_registry) AddToRegistry(r Registry) {
 		}
 		for v, o := range v.GetVersions() {
 			if v != nil {
-				r.OverwriteCRD(v, o)
+				utils.Must(r.OverwriteCRD(v, o))
 			}
 		}
 	}

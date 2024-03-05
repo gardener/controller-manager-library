@@ -42,7 +42,7 @@ var _ = Describe("Conversions", func() {
 			v := true
 
 			r := Bool(&v)
-			Expect(r).To(Equal(true))
+			Expect(r).To(BeTrue())
 		})
 
 		It("converts int", func() {

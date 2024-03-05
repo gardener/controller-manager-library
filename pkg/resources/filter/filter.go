@@ -19,11 +19,11 @@ type ClusterObjectKey = resources.ClusterObjectKey
 
 /////////////////////////////////////////////////////////////////////////////////
 
-func All(key ClusterObjectKey) bool {
+func All(_ ClusterObjectKey) bool {
 	return true
 }
 
-func None(key ClusterObjectKey) bool {
+func None(_ ClusterObjectKey) bool {
 	return false
 }
 

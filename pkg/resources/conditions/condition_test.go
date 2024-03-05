@@ -36,7 +36,7 @@ type MyCondition struct {
 }
 
 func checkCondition(msg string, my *My, now time.Time, length int, conds ...*MyCondition) {
-	Expect(len(my.Status.Conditions)).To(Equal(length))
+	Expect(my.Status.Conditions).To(HaveLen(length))
 next:
 	for _, cond := range conds {
 		for _, c := range my.Status.Conditions {
@@ -64,15 +64,15 @@ var _ = Describe("Conditions", func() {
 			my := &My{}
 
 			now := time.Now()
-			type1.SetStatus(my, "True")
-			type2.SetStatus(my, "False")
+			Expect(type1.SetStatus(my, "True")).NotTo(HaveOccurred())
+			Expect(type2.SetStatus(my, "False")).NotTo(HaveOccurred())
 			checkCondition("create for status", my, now, 2,
 				&MyCondition{Type: type1.Name(), Status: "True"},
 				&MyCondition{Type: type2.Name(), Status: "False"},
 			)
 
-			type1.SetStatus(my, "False")
-			type2.SetStatus(my, "True")
+			Expect(type1.SetStatus(my, "False")).NotTo(HaveOccurred())
+			Expect(type2.SetStatus(my, "True")).NotTo(HaveOccurred())
 			checkCondition("set status", my, now, 2,
 				&MyCondition{Type: type1.Name(), Status: "False"},
 				&MyCondition{Type: type2.Name(), Status: "True"},
@@ -83,15 +83,15 @@ var _ = Describe("Conditions", func() {
 			my := &My{}
 
 			now := time.Now()
-			type1.SetReason(my, "True")
-			type2.SetReason(my, "False")
+			Expect(type1.SetReason(my, "True")).NotTo(HaveOccurred())
+			Expect(type2.SetReason(my, "False")).NotTo(HaveOccurred())
 			checkCondition("create for reason", my, now, 2,
 				&MyCondition{Type: type1.Name(), Reason: "True"},
 				&MyCondition{Type: type2.Name(), Reason: "False"},
 			)
 
-			type1.SetReason(my, "False")
-			type2.SetReason(my, "True")
+			Expect(type1.SetReason(my, "False")).NotTo(HaveOccurred())
+			Expect(type2.SetReason(my, "True")).NotTo(HaveOccurred())
 			checkCondition("set reason", my, now, 2,
 				&MyCondition{Type: type1.Name(), Reason: "False"},
 				&MyCondition{Type: type2.Name(), Reason: "True"},
@@ -101,15 +101,15 @@ var _ = Describe("Conditions", func() {
 			my := &My{}
 
 			now := time.Now()
-			type1.SetMessage(my, "True")
-			type2.SetMessage(my, "False")
+			Expect(type1.SetMessage(my, "True")).NotTo(HaveOccurred())
+			Expect(type2.SetMessage(my, "False")).NotTo(HaveOccurred())
 			checkCondition("create for message", my, now, 2,
 				&MyCondition{Type: type1.Name(), Message: "True"},
 				&MyCondition{Type: type2.Name(), Message: "False"},
 			)
 
-			type1.SetMessage(my, "False")
-			type2.SetMessage(my, "True")
+			Expect(type1.SetMessage(my, "False")).NotTo(HaveOccurred())
+			Expect(type2.SetMessage(my, "True")).NotTo(HaveOccurred())
 			checkCondition("set message", my, now, 2,
 				&MyCondition{Type: type1.Name(), Message: "False"},
 				&MyCondition{Type: type2.Name(), Message: "True"},
@@ -120,9 +120,9 @@ var _ = Describe("Conditions", func() {
 			my := &My{}
 
 			now := time.Now()
-			type1.SetStatus(my, "True")
-			type2.SetStatus(my, "False")
-			type3.SetStatus(my, "Other")
+			Expect(type1.SetStatus(my, "True")).NotTo(HaveOccurred())
+			Expect(type2.SetStatus(my, "False")).NotTo(HaveOccurred())
+			Expect(type3.SetStatus(my, "Other")).NotTo(HaveOccurred())
 			checkCondition("delete create", my, now, 3,
 				&MyCondition{Type: type1.Name(), Status: "True"},
 				&MyCondition{Type: type2.Name(), Status: "False"},
@@ -157,11 +157,11 @@ var _ = Describe("Conditions", func() {
 
 			cond1 := conds.Get(type1.Name())
 			Expect(cond1, err).NotTo(BeNil())
-			cond1.SetStatus("True")
+			Expect(cond1.SetStatus("True")).NotTo(HaveOccurred())
 
 			cond2 := conds.Get(type2.Name())
 			Expect(cond2, err).NotTo(BeNil())
-			cond2.SetStatus("False")
+			Expect(cond2.SetStatus("False")).NotTo(HaveOccurred())
 
 			checkCondition("set status", my, now, 2,
 				&MyCondition{Type: type1.Name(), Status: "True"},
@@ -180,12 +180,12 @@ var _ = Describe("Conditions", func() {
 			cond1 := conds.Get(type1.Name())
 			cond2 := conds.Get(type2.Name())
 
-			cond1.SetStatus("True")
-			cond2.SetStatus("False")
+			Expect(cond1.SetStatus("True")).NotTo(HaveOccurred())
+			Expect(cond2.SetStatus("False")).NotTo(HaveOccurred())
 
 			conds.ResetModified()
 			Expect(conds.IsModified()).To(BeFalse())
-			cond2.SetReason("reason")
+			Expect(cond2.SetReason("reason")).NotTo(HaveOccurred())
 			Expect(conds.IsModified()).To(BeTrue())
 
 			checkCondition("set status", my, now, 2,
@@ -201,12 +201,12 @@ var _ = Describe("Conditions", func() {
 			conds, _ := layout.For(my)
 
 			cond := conds.Get(type1.Name())
-			cond.SetStatus("A")
+			Expect(cond.SetStatus("A")).NotTo(HaveOccurred())
 
 			ts := my.Status.Conditions[0].TransitionTime
 			time.Sleep(10 * time.Nanosecond)
 
-			cond.SetStatus("B")
+			Expect(cond.SetStatus("B")).NotTo(HaveOccurred())
 			Expect(my.Status.Conditions[0].TransitionTime.Nanosecond()).To(BeNumerically(">", ts.Nanosecond()))
 		})
 
@@ -215,11 +215,11 @@ var _ = Describe("Conditions", func() {
 			conds, _ := layout.For(my)
 
 			cond := conds.Get(type1.Name())
-			cond.SetStatus("A")
+			Expect(cond.SetStatus("A")).NotTo(HaveOccurred())
 
 			ts := my.Status.Conditions[0].TransitionTime
 
-			cond.SetStatus("A")
+			Expect(cond.SetStatus("A")).NotTo(HaveOccurred())
 			Expect(my.Status.Conditions[0].TransitionTime).To(Equal(ts))
 		})
 
@@ -228,11 +228,11 @@ var _ = Describe("Conditions", func() {
 			conds, _ := layout.For(my)
 
 			cond := conds.Get(type1.Name())
-			cond.SetStatus("A")
+			Expect(cond.SetStatus("A")).NotTo(HaveOccurred())
 
 			ts := my.Status.Conditions[0].TransitionTime
 
-			cond.SetReason("x")
+			Expect(cond.SetReason("x")).NotTo(HaveOccurred())
 			Expect(my.Status.Conditions[0].TransitionTime).To(Equal(ts))
 		})
 	})

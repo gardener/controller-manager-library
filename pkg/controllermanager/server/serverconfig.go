@@ -79,12 +79,11 @@ func (this *ServerConfig) Reconfigure(def Definition) (Definition, error) {
 
 	if def.Kind() == HTTPS {
 		if this.Secret == "" && this.CertFile == "" {
-			if !this.CertConfig.IsSecretMaintenanceDisabled() {
-				this.Secret = def.Name()
-				this.MaintainSecret = true
-			} else {
+			if this.CertConfig.IsSecretMaintenanceDisabled() {
 				return def, fmt.Errorf("server certificate file or secret name required for HTTPS server")
 			}
+			this.Secret = def.Name()
+			this.MaintainSecret = true
 		}
 		if this.Secret != "" && this.CertFile != "" {
 			return def, fmt.Errorf("only one of server certificate file or secret name possible")
@@ -111,7 +110,6 @@ func (this *ServerConfig) Reconfigure(def Definition) (Definition, error) {
 }
 
 func (this *_Definitions) ExtendConfig(cfg *areacfg.Config) {
-
 	for name, def := range this.definitions {
 		ccfg := NewServerConfig(name)
 		if !def.AllowSecretMaintenance() {

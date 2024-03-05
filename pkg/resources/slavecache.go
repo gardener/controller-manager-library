@@ -142,7 +142,8 @@ func (this *SlaveCache) CreateOrModifySlave(obj Object, slave Object, mod Modifi
 func (this *SlaveCache) Remove(obj Object, slave Object) bool {
 	mod := slave.RemoveOwner(obj)
 	if mod {
-		this.cache.UpdateSubObject(slave)
+		// TODO handle error
+		_ = this.cache.UpdateSubObject(slave)
 	}
 	return mod
 }

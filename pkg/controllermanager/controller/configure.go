@@ -75,14 +75,14 @@ func getStringOptionValue(c Interface, name string, srcnames ...string) string {
 			panic(fmt.Errorf("option source %q not found for option selection in controller resource for %s: %s",
 				src, c.GetName(), err))
 		}
-		if opts, ok := src.(config.Options); ok {
-			opt := opts.GetOption(name)
-			if opt != nil {
-				return opt.StringValue()
-			}
-		} else {
+		opts, ok := src.(config.Options)
+		if !ok {
 			panic(fmt.Errorf("option source %q for option selection in controller resource for %s has no option access: %s",
 				src, c.GetName(), err))
+		}
+		opt := opts.GetOption(name)
+		if opt != nil {
+			return opt.StringValue()
 		}
 	}
 	value, err := c.GetStringOption(name)
@@ -278,7 +278,7 @@ func (this *_Definition) String() string {
 		s += fmt.Sprintf("  lease on:    %s\n", this.LeaseClusterName())
 	}
 	if this.scheme != nil {
-		s += fmt.Sprintf("  scheme is set\n")
+		s += "  scheme is set\n"
 	}
 	return s
 }
@@ -307,7 +307,7 @@ func (this *_Definition) MainWatchResource() WatchResource {
 func (this *_Definition) Watches() Watches {
 	r := Watches{}
 	for k, v := range this.watches {
-		a := make([]Watch, len(v), len(v))
+		a := make([]Watch, len(v))
 		for i, w := range v {
 			a[i] = w
 		}
@@ -497,9 +497,7 @@ func (this Configuration) With(modifier ...ConfigurationModifier) Configuration 
 }
 
 func (this Configuration) Restore() Configuration {
-	if &this.configState != nil {
-		this.configState = *this.configState.previous
-	}
+	this.configState = *this.configState.previous
 	return this
 }
 
@@ -1060,7 +1058,7 @@ func (this *selectorFlavor) WatchResourceDef(wctx WatchContext, def WatchResourc
 	}
 	return def
 }
-func (this *selectorFlavor) RequestMinimalFor(gk schema.GroupKind) {
+func (this *selectorFlavor) RequestMinimalFor(_ schema.GroupKind) {
 }
 
 func (this *selectorFlavor) String() string {

@@ -182,10 +182,10 @@ func (this *_i_resource) I_modifyByName(name ObjectDataName, status_only, create
 	data.SetNamespace(name.GetNamespace())
 
 	data, mod, err := this.I_modify(data, status_only, true, create, modifier)
-	if err == nil {
-		return this.helper.ObjectAsResource(data), mod, err
+	if err != nil {
+		return nil, mod, err
 	}
-	return nil, mod, err
+	return this.helper.ObjectAsResource(data), mod, nil
 }
 
 func (this *_i_resource) I_modify(data ObjectData, status_only, read, create bool, modifier Modifier) (ObjectData, bool, error) {
@@ -224,10 +224,10 @@ func (this *_i_resource) I_modify(data ObjectData, status_only, read, create boo
 	for cnt > 0 {
 		mod, err := modifier(data)
 		if !mod {
-			if err == nil {
-				return data, mod, err
+			if err != nil {
+				return nil, mod, err
 			}
-			return nil, mod, err
+			return data, mod, nil
 		}
 		if err == nil {
 			var modified ObjectData

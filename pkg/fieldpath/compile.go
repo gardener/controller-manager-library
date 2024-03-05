@@ -122,7 +122,6 @@ func parseSequence(ctx Node, s *scanner) (Node, error) {
 		}
 		last = next
 	}
-	return last, nil
 }
 
 func parseField(ctx Node, s *scanner, last Node) (Node, error) {

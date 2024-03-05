@@ -47,7 +47,7 @@ func (this *DefinitionWrapper) Definition() Definition {
 }
 
 func (this *DefinitionWrapper) ResourceFilters() []ResourceFilter {
-	return append(this.ResourceFilters(), this.filters...)
+	return this.filters
 }
 
 var _ Definition = &DefinitionWrapper{}
@@ -87,11 +87,10 @@ func (this WatchedResources) GatheredAdd(key string, added resources.GroupKindSe
 	}
 	for _, gk := range gks {
 		if added != nil {
-			if !set.Contains(gk) {
-				added.Add(gk)
-			} else {
+			if set.Contains(gk) {
 				continue
 			}
+			added.Add(gk)
 		}
 		set.Add(gk)
 	}
@@ -103,11 +102,10 @@ func (this WatchedResources) GatheredRemove(key string, removed resources.GroupK
 	if set != nil {
 		for _, gk := range gks {
 			if removed != nil {
-				if set.Contains(gk) {
-					removed.Add(gk)
-				} else {
+				if !set.Contains(gk) {
 					continue
 				}
+				removed.Add(gk)
 			}
 			set.Remove(gk)
 		}

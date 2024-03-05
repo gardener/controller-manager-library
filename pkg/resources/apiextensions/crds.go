@@ -157,7 +157,9 @@ func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd r
 				spec, _ := resources.GetObjectSpec(data)
 				if !reflect.DeepEqual(spec, new) {
 					msg.Default("updating %s", crd.GetName())
-					resources.SetObjectSpec(data, new)
+					if err := resources.SetObjectSpec(data, new); err != nil {
+						return true, err
+					}
 					mod = true
 				}
 				if v, _ := resources.GetAnnotation(data, A_MAINTAINER); v != maintainer.Ident {
@@ -241,7 +243,7 @@ func WaitCRDReady(cluster resources.Cluster, crdName string) error {
 	return nil
 }
 
-func Migrate(log logger.LogContext, cluster resources.Cluster, crdName string, migscheme *runtime.Scheme) error {
+func Migrate(log logger.LogContext, cluster resources.Cluster, crdName string, _ *runtime.Scheme) error {
 	key := NewKey(crdName)
 	obj, err := cluster.Resources().GetObject(key)
 	if err != nil {
@@ -258,29 +260,27 @@ func Migrate(log logger.LogContext, cluster resources.Cluster, crdName string, m
 			stored = v.Name
 		}
 	}
-	if stored != "" {
-		switch len(crd.Status.StoredVersions) {
-		case 0:
-			log.Infof("no stored versions for %s found (should be %s)", crdName, stored)
-			return nil
-		case 1:
-			if stored == crd.Status.StoredVersions[0] {
-				log.Infof("stored versions for %s: %s", crdName, stored)
-				return nil
-			}
-			log.Infof("stored versions mismatch for %s:  found %s (should be %s)", crdName, crd.Status.StoredVersions[0], stored)
-			return nil
-		default:
-			log.Infof("stored versions for %s: %s, required %s", crdName, crd.Status.StoredVersions, stored)
-		}
-	} else {
+	if stored == "" {
 		log.Infof("no stored version indicated for %s: found %s", crdName, utils.Strings(crd.Status.StoredVersions...))
 		return nil
 	}
-	log.Infof("migration required...")
-	if migscheme == nil {
-		migscheme = cluster.Resources().Scheme()
+
+	switch len(crd.Status.StoredVersions) {
+	case 0:
+		log.Infof("no stored versions for %s found (should be %s)", crdName, stored)
+		return nil
+	case 1:
+		if stored == crd.Status.StoredVersions[0] {
+			log.Infof("stored versions for %s: %s", crdName, stored)
+			return nil
+		}
+		log.Infof("stored versions mismatch for %s:  found %s (should be %s)", crdName, crd.Status.StoredVersions[0], stored)
+		return nil
+	default:
+		log.Infof("stored versions for %s: %s, required %s", crdName, crd.Status.StoredVersions, stored)
 	}
+
+	log.Infof("migration required...")
 	gk := resources.NewGroupKind(crd.Spec.Group, crd.Spec.Names.Kind)
 	resc, err := cluster.Resources().GetByGK(gk)
 	if err != nil {
@@ -297,13 +297,13 @@ func Migrate(log logger.LogContext, cluster resources.Cluster, crdName string, m
 			err = nerr
 		}
 	}
-	if err == nil {
-		crd.Status.StoredVersions = []string{stored}
-		err := scheme.Convert(crd, obj.Data(), nil)
-		if err != nil {
-			return err
-		}
-		err = obj.UpdateStatus()
+	if err != nil {
+		return err
 	}
-	return err
+	crd.Status.StoredVersions = []string{stored}
+	err = scheme.Convert(crd, obj.Data(), nil)
+	if err != nil {
+		return err
+	}
+	return obj.UpdateStatus()
 }

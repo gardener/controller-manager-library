@@ -47,6 +47,9 @@ func (this *SecretUsageCache) getCluster(src ...cluster.Interface) cluster.Inter
 func (this *SecretUsageCache) GetSecretDataByName(name resources.ObjectName, src ...cluster.Interface) (map[string][]byte, error) {
 	cluster := this.getCluster(src...)
 	resc, err := cluster.GetResource(secretGK)
+	if err != nil {
+		return nil, err
+	}
 	obj, err := resc.GetCached(name)
 	if err != nil {
 		return nil, err

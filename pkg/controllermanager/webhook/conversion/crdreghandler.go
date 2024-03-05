@@ -87,7 +87,7 @@ func (this *crdhandler) RegistrationNames(def webhook.Definition) []string {
 	return names
 }
 
-func (this *crdhandler) CreateDeclarations(log logger.LogContext, def webhook.Definition, target cluster.Interface, client apiextensions.WebhookClientConfigSource) (webhook.WebhookDeclarations, error) {
+func (this *crdhandler) CreateDeclarations(log logger.LogContext, def webhook.Definition, target cluster.Interface, _ apiextensions.WebhookClientConfigSource) (webhook.WebhookDeclarations, error) {
 	result := webhook.WebhookDeclarations{}
 	log.Infof("creating crd manifests of %s(%s) for cluster %s(%s)", def.Name(), def.Kind(), target.GetId(), target.GetServerVersion())
 	for _, r := range def.Resources() {
@@ -103,7 +103,7 @@ func (this *crdhandler) CreateDeclarations(log logger.LogContext, def webhook.De
 	return result, nil
 }
 
-func (this *crdhandler) Register(ctx webhook.RegistrationContext, labels map[string]string, cluster cluster.Interface, name string, declarations ...webhook.WebhookDeclaration) error {
+func (this *crdhandler) Register(ctx webhook.RegistrationContext, labels map[string]string, cluster cluster.Interface, _ string, declarations ...webhook.WebhookDeclaration) error {
 	ctx.Infof("registering crds...")
 	log := ctx.AddIndent("  ")
 	sub := log.AddIndent("  ")

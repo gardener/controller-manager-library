@@ -30,7 +30,7 @@ func NewSchemeCache() SchemeCache {
 	return &schemeCache{clusters: map[*runtime.Scheme]clusters{}}
 }
 
-func (this schemeCache) Cleanup(id string) {
+func (this *schemeCache) Cleanup(id string) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
@@ -39,13 +39,13 @@ func (this schemeCache) Cleanup(id string) {
 	}
 }
 
-func (this schemeCache) Add(c Interface) {
+func (this *schemeCache) Add(c Interface) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	this.add(c)
 }
 
-func (this schemeCache) add(c Interface) {
+func (this *schemeCache) add(c Interface) {
 	s := c.ResourceContext().Scheme()
 	e := this.clusters[s]
 	if e == nil {
@@ -55,13 +55,13 @@ func (this schemeCache) add(c Interface) {
 	e[c.GetId()] = c
 }
 
-func (this schemeCache) Get(s *runtime.Scheme, id string) Interface {
+func (this *schemeCache) Get(s *runtime.Scheme, id string) Interface {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 	return this.get(s, id)
 }
 
-func (this schemeCache) get(s *runtime.Scheme, id string) Interface {
+func (this *schemeCache) get(s *runtime.Scheme, id string) Interface {
 	e := this.clusters[s]
 	if e == nil {
 		return nil
@@ -69,7 +69,7 @@ func (this schemeCache) get(s *runtime.Scheme, id string) Interface {
 	return e[id]
 }
 
-func (this schemeCache) WithScheme(c Interface, s *runtime.Scheme) (Interface, error) {
+func (this *schemeCache) WithScheme(c Interface, s *runtime.Scheme) (Interface, error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 

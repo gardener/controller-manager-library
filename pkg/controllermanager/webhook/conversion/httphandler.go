@@ -9,7 +9,7 @@ package conversion
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,14 +93,13 @@ func (this *HTTPHandler) serveHTTP(r *http.Request) (runtime.Object, *Response) 
 	var body []byte
 	var err error
 
-	if r.Body != nil {
-		if body, err = ioutil.ReadAll(r.Body); err != nil {
-			this.Error(err, "unable to read the body from the incoming request")
-			return nil, ErrorResponse(nil, http.StatusBadRequest, err)
-		}
-	} else {
+	if r.Body == nil {
 		err = fmt.Errorf("request body is empty")
 		this.Error(err)
+		return nil, ErrorResponse(nil, http.StatusBadRequest, err)
+	}
+	if body, err = io.ReadAll(r.Body); err != nil {
+		this.Error(err, "unable to read the body from the incoming request")
 		return nil, ErrorResponse(nil, http.StatusBadRequest, err)
 	}
 

@@ -20,14 +20,14 @@ func getStringOptionValue(wctx WatchContext, name string, srcnames ...string) st
 			panic(fmt.Errorf("option source %q not found for option selection in controller resource for %s: %s",
 				src, wctx.Name(), err))
 		}
-		if opts, ok := src.(config.Options); ok {
-			opt := opts.GetOption(name)
-			if opt != nil {
-				return opt.StringValue()
-			}
-		} else {
+		opts, ok := src.(config.Options)
+		if !ok {
 			panic(fmt.Errorf("option source %q for option selection in controller resource for %s has no option access: %s",
 				src, wctx.Name(), err))
+		}
+		opt := opts.GetOption(name)
+		if opt != nil {
+			return opt.StringValue()
 		}
 	}
 	value, err := wctx.GetStringOption(name)

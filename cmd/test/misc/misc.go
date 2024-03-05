@@ -52,7 +52,6 @@ func MiscMain() {
 }
 
 func MiscBackoff() {
-
 	b := wait.Backoff{
 		Duration: time.Second,
 		Factor:   1.1,
@@ -71,11 +70,10 @@ func MiscBackoff() {
 	}()
 	fmt.Printf("wait\n")
 
-	select {
-	case <-timer.C:
-		fmt.Printf("shutdown\n")
-		cancel()
-	}
+	<-timer.C
+	fmt.Printf("shutdown\n")
+	cancel()
+
 	timer.Reset(5 * time.Second)
 	<-timer.C
 	fmt.Printf("done\n")
