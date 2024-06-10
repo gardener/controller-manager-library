@@ -115,7 +115,7 @@ func NewCommand(ctx context.Context, use, short, long string, def Definition) *c
 		Long:    long,
 		Version: Version,
 	}
-	cmd.RunE = func(c *cobra.Command, args []string) error {
+	cmd.RunE = func(_ *cobra.Command, _ []string) error {
 		if fileName != "" {
 			logger.Infof("reading config from file %q", fileName)
 			if err := config.MergeConfigFile(fileName, cmd.Flags(), false); err != nil {

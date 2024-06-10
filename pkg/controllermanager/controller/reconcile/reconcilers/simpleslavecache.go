@@ -72,7 +72,7 @@ func (this *SimpleSlaveCache) UpdateSlave(slave resources.Object) {
 }
 
 func (this *SimpleSlaveCache) SetupFor(log logger.LogContext, resc resources.Interface) error {
-	return ProcessResource(log, "setup owners for", resc, func(log logger.LogContext, obj resources.Object) (bool, error) {
+	return ProcessResource(log, "setup owners for", resc, func(_ logger.LogContext, obj resources.Object) (bool, error) {
 		if this.migration != nil {
 			err := resources.MigrateOwnerClusterIds(obj, this.migration)
 			if err != nil {

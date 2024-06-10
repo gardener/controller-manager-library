@@ -30,7 +30,7 @@ import (
 //
 
 func NamespaceSelection(namespace string) WatchSelectionFunction {
-	return func(c Interface) (string, resources.TweakListOptionsFunc) {
+	return func(_ Interface) (string, resources.TweakListOptionsFunc) {
 		return namespace, nil
 	}
 }

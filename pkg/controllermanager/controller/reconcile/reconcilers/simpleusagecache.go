@@ -220,7 +220,7 @@ func (this *SimpleUsageCache) cleanup(user resources.ClusterObjectKey, uses reso
 }
 
 func (this *SimpleUsageCache) SetupFor(log logger.LogContext, resc resources.Interface, extract resources.UsedExtractor) error {
-	return ProcessResource(log, "setup", resc, func(log logger.LogContext, obj resources.Object) (bool, error) {
+	return ProcessResource(log, "setup", resc, func(_ logger.LogContext, obj resources.Object) (bool, error) {
 		used := extract(obj)
 		this.UpdateUsesFor(obj.ClusterKey(), used)
 		return true, nil
@@ -228,7 +228,7 @@ func (this *SimpleUsageCache) SetupFor(log logger.LogContext, resc resources.Int
 }
 
 func (this *SimpleUsageCache) SetupFilteredFor(log logger.LogContext, resc resources.Interface, filter resources.KeyFilter, extract resources.UsedExtractor) error {
-	return ProcessResource(log, "setup", resc, func(log logger.LogContext, obj resources.Object) (bool, error) {
+	return ProcessResource(log, "setup", resc, func(_ logger.LogContext, obj resources.Object) (bool, error) {
 		used := extract(obj)
 		this.UpdateFilteredUsesFor(obj.ClusterKey(), filter, used)
 		return true, nil
@@ -236,7 +236,7 @@ func (this *SimpleUsageCache) SetupFilteredFor(log logger.LogContext, resc resou
 }
 
 func (this *SimpleUsageCache) setupFilteredFor(log logger.LogContext, resc resources.Interface, filter resources.KeyFilter, extract resources.UsedExtractor) error {
-	return ProcessResource(log, "setup", resc, func(log logger.LogContext, obj resources.Object) (bool, error) {
+	return ProcessResource(log, "setup", resc, func(_ logger.LogContext, obj resources.Object) (bool, error) {
 		used := extract(obj)
 		this.updateFilteredUsesFor(obj.ClusterKey(), filter, used)
 		return true, nil
