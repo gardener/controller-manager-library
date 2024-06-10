@@ -494,7 +494,7 @@ func ValidateElementConfigs(elemtype string, areacfg config.OptionSourceSource, 
 		var cerr error
 		options := areacfg.GetSource(n).(config.OptionSourceSource)
 		var f func(n string, s config.OptionSource) bool
-		f = func(n string, s config.OptionSource) bool {
+		f = func(_ string, s config.OptionSource) bool {
 			if p, ok := s.(ConfigValidation); ok {
 				err := p.Prepare()
 				if err != nil {

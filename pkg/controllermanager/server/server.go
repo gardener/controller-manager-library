@@ -183,7 +183,7 @@ func (this *httpserver) Start() error {
 
 	if w, ok := this.certificate.(certs.Watchable); ok {
 		this.Infof("server certificate is watchable -> register change notification")
-		w.RegisterConsumer(certs.CertificateUpdaterFunc(func(info certmgmt.CertificateInfo) {
+		w.RegisterConsumer(certs.CertificateUpdaterFunc(func(_ certmgmt.CertificateInfo) {
 			this.certificateUpdated()
 		}))
 	}
