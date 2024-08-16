@@ -131,8 +131,9 @@ func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, 
 		return nil, err
 	}
 
-	crds := cfg.OmitCRDs
-	if crds {
+	if cfg.ConditionalCRDs {
+		cluster.SetAttr(SUBOPTION_CONDITIONAL_DEPLOY_CRDS, true)
+	} else if cfg.OmitCRDs {
 		cluster.SetAttr(SUBOPTION_DISABLE_DEPLOY_CRDS, true)
 	}
 
