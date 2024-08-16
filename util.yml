@@ -57,4 +57,5 @@ helper:
           build:
             image: 'golang:1.23.0'
             output_dir: 'binary'
+          component_descriptor: null
       jobs: (( sum[j|{}|s,e|-> s eval("*.helper.templates.jobs." e)] ))
