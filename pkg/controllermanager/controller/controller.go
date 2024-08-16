@@ -13,10 +13,15 @@ import (
 	"sync"
 	"time"
 
+	resourceserrors "github.com/gardener/controller-manager-library/pkg/resources/errors"
+	resourcesv1alpha1 "github.com/gardener/gardener/pkg/apis/resources/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/utils/set"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
@@ -324,13 +329,13 @@ func NewController(env Environment, def Definition, cmp mappings.Definition) (*c
 	return this, nil
 }
 
-func (this *controller) deployImplicitCustomResourceDefinitions(log logger.LogContext, eff WatchedResources, gks resources.GroupKindSet, cluster cluster.Interface) error {
+func (this *controller) deployImplicitCustomResourceDefinitions(log logger.LogContext, eff WatchedResources, gks resources.GroupKindSet, cl cluster.Interface) error {
 	for gk := range gks {
-		if eff.Contains(cluster.GetId(), gk) {
-			eff.Remove(cluster.GetId(), gk)
+		if eff.Contains(cl.GetId(), gk) {
+			eff.Remove(cl.GetId(), gk)
 			v, err := apiextensions.NewDefaultedCustomResourceDefinitionVersions(gk)
 			if err == nil {
-				err := v.Deploy(log, cluster, this.env.ControllerManager().GetMaintainer())
+				err := conditionalDeploy(v, log, cl, this.env.ControllerManager().GetMaintainer())
 				if err != nil {
 					return err
 				}
@@ -377,17 +382,21 @@ func (this *controller) deployCRDS() error {
 	// now deploy explicit requested CRDs or implicitly available CRDs for used resources
 	log := this.AddIndent("  ")
 	for n, crds := range this.definition.CustomResourceDefinitions() {
-		cluster := this.GetCluster(n)
-		if isDeployCRDsDisabled(cluster) {
-			this.Infof("deployment of required crds is disabled for cluster %q (used for %q)", cluster.GetName(), n)
+		cl := this.GetCluster(n)
+		disabled, err := isDeployCRDsDisabled(cl)
+		if err != nil {
+			return err
+		}
+		if disabled {
+			this.Infof("deployment of required crds is disabled for cluster %q (used for %q)", cl.GetName(), n)
 			continue
 		}
-		this.Infof("ensure required crds for cluster %q (used for %q)", cluster.GetName(), n)
+		this.Infof("ensure required crds for cluster %q (used for %q)", cl.GetName(), n)
 		for _, v := range crds {
 			clusterResources.Remove(n, v.GroupKind())
-			if effClusterResources.Contains(cluster.GetId(), v.GroupKind()) {
-				effClusterResources.Remove(cluster.GetId(), v.GroupKind())
-				err := v.Deploy(log, cluster, this.env.ControllerManager().GetMaintainer())
+			if effClusterResources.Contains(cl.GetId(), v.GroupKind()) {
+				effClusterResources.Remove(cl.GetId(), v.GroupKind())
+				err := conditionalDeploy(v, log, cl, this.env.ControllerManager().GetMaintainer())
 				if err != nil {
 					return err
 				}
@@ -395,28 +404,44 @@ func (this *controller) deployCRDS() error {
 				log.Infof("crd for %s already handled", v.GroupKind())
 			}
 		}
-		err := this.deployImplicitCustomResourceDefinitions(log, effClusterResources, clusterResources[n], cluster)
+		if err := this.deployImplicitCustomResourceDefinitions(log, effClusterResources, clusterResources[n], cl); err != nil {
+			return err
+		}
+		delete(clusterResources, cl.GetId())
+	}
+	for n, gks := range clusterResources {
+		cl := this.GetCluster(n)
+		if len(gks) == 0 {
+			continue
+		}
+		disabled, err := isDeployCRDsDisabled(cl)
 		if err != nil {
 			return err
 		}
-		delete(clusterResources, cluster.GetId())
-	}
-	for n, gks := range clusterResources {
-		cluster := this.GetCluster(n)
-		if isDeployCRDsDisabled(cluster) || len(gks) == 0 {
+		if disabled {
 			continue
 		}
-		this.Infof("ensure required crds for cluster %q (used for %q)", cluster.GetName(), n)
-		err := this.deployImplicitCustomResourceDefinitions(log, effClusterResources, gks, cluster)
-		if err != nil {
+		this.Infof("ensure required crds for cluster %q (used for %q)", cl.GetName(), n)
+		if err := this.deployImplicitCustomResourceDefinitions(log, effClusterResources, gks, cl); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func isDeployCRDsDisabled(cl cluster.Interface) bool {
-	return cl.GetAttr(cluster.SUBOPTION_DISABLE_DEPLOY_CRDS) == true
+func isDeployCRDsDisabled(cl cluster.Interface) (bool, error) {
+	if cl.GetAttr(cluster.SUBOPTION_CONDITIONAL_DEPLOY_CRDS) == true {
+		if cl.GetAttr(cluster.ConditionalDeployCRDIgnoreSetAttrKey) == nil {
+			set, err := findCRDsDeployedByManagedResources(cl)
+			if err != nil {
+				return false, err
+			}
+			cl.SetAttr(cluster.ConditionalDeployCRDIgnoreSetAttrKey, set)
+		}
+		return false, nil
+	}
+
+	return cl.GetAttr(cluster.SUBOPTION_DISABLE_DEPLOY_CRDS) == true, nil
 }
 
 func (this *controller) whenReady() {
@@ -905,4 +930,64 @@ func (this *controller) WithLease(name string, regain bool, action func(ctx cont
 		}
 	}()
 	return nil
+}
+
+func conditionalDeploy(v *apiextensions.CustomResourceDefinitionVersions, log logger.LogContext, cl cluster.Interface, maintainerInfo extension.MaintainerInfo) error {
+	ignoreSet := set.Set[string]{}
+	if v := cl.GetAttr(cluster.ConditionalDeployCRDIgnoreSetAttrKey).(set.Set[string]); v != nil {
+		maintainerInfo.ForceCRDUpdate = true
+		ignoreSet = v
+	}
+
+	if ignoreSet.Has(v.Name()) {
+		log.Infof("ignoring CRD managed by Gardener managed resources: %s", v.GroupKind())
+		return nil
+	}
+
+	return v.Deploy(log, cl, maintainerInfo)
+}
+
+func findCRDsDeployedByManagedResources(cl cluster.Interface) (set.Set[string], error) {
+	resns, err := cl.Resources().GetByExample(&corev1.Namespace{})
+	if err != nil {
+		return nil, fmt.Errorf("findCRDsDeployedByManagedResources: could not get resources for namespaces: %w", err)
+	}
+
+	ns := &corev1.Namespace{}
+	if _, err := resns.GetInto(resources.NewObjectName("garden"), ns); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("findCRDsDeployedByManagedResources: could not get namespace: %w", err)
+	}
+
+	resmr, err := cl.Resources().GetByExample(&resourcesv1alpha1.ManagedResource{})
+	if err != nil {
+		if resourceserrors.IsKind(resourceserrors.ERR_UNKNOWN_RESOURCE, err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("findCRDsDeployedByManagedResources: could not get resources for unstructured managed resource: %w", err)
+	}
+
+	objs, err := resmr.Namespace("garden").List(metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("findCRDsDeployedByManagedResources: could not list managed resources: %w", err)
+	}
+	crdNames := set.Set[string]{}
+	for _, obj := range objs {
+		mr, ok := obj.Data().(*resourcesv1alpha1.ManagedResource)
+		if !ok {
+			return nil, fmt.Errorf("findCRDsDeployedByManagedResources: could not cast object to ManagedResource: %t", obj.Data())
+		}
+		for _, item := range mr.Status.Resources {
+			if item.APIVersion != "apiextensions.k8s.io/v1" {
+				continue
+			}
+			if item.Kind != "CustomResourceDefinition" {
+				continue
+			}
+			crdNames.Insert(item.Name)
+		}
+	}
+	return crdNames, nil
 }

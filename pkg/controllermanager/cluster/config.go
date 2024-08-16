@@ -19,12 +19,19 @@ const SUBOPTION_ID = "id"
 const SUBOPTION_MIGIDS = "migration-ids"
 const SUBOPTION_DISABLE_DEPLOY_CRDS = "disable-deploy-crds"
 
+// SUBOPTION_CONDITIONAL_DEPLOY_CRDS is an option to deploy the crd only if there is no managed resource in
+// garden namespace deploying it.
+const SUBOPTION_CONDITIONAL_DEPLOY_CRDS = "conditional-deploy-crds"
+
+const ConditionalDeployCRDIgnoreSetAttrKey = "conditional_deploy_ignore_set"
+
 type Config struct {
 	Definition
-	KubeConfig   string
-	ClusterId    string
-	MigrationIds utils.StringSet
-	OmitCRDs     bool
+	KubeConfig      string
+	ClusterId       string
+	MigrationIds    utils.StringSet
+	OmitCRDs        bool
+	ConditionalCRDs bool
 
 	migrationIds string
 
@@ -47,6 +54,7 @@ func NewConfig(def Definition) *Config {
 	cfg.AddStringOption(&cfg.ClusterId, SUBOPTION_ID, "", "", fmt.Sprintf("id for cluster %s", def.Name()))
 	cfg.AddStringOption(&cfg.migrationIds, SUBOPTION_MIGIDS, "", "", fmt.Sprintf("migration id for cluster %s", def.Name()))
 	cfg.AddBoolOption(&cfg.OmitCRDs, SUBOPTION_DISABLE_DEPLOY_CRDS, "", false, fmt.Sprintf("disable deployment of required crds for cluster %s", def.Name()))
+	cfg.AddBoolOption(&cfg.ConditionalCRDs, SUBOPTION_CONDITIONAL_DEPLOY_CRDS, "", false, fmt.Sprintf("deployment of required crds for cluster %s only if there is no managed resource in garden namespace deploying it", def.Name()))
 	_ = callExtensions(func(e Extension) error { e.ExtendConfig(def, cfg); return nil })
 	return cfg
 }
