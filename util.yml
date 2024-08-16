@@ -51,7 +51,7 @@ helper:
             inject_effective_version: true
         steps:
           check:
-            image: 'golang:1.23.0'
+            image: 'golang:1.22.6'
           test:
             image: 'golang:1.23.0'
           build:
