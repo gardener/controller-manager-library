@@ -934,9 +934,9 @@ func (this *controller) WithLease(name string, regain bool, action func(ctx cont
 
 func conditionalDeploy(v *apiextensions.CustomResourceDefinitionVersions, log logger.LogContext, cl cluster.Interface, maintainerInfo extension.MaintainerInfo) error {
 	ignoreSet := set.Set[string]{}
-	if v := cl.GetAttr(cluster.ConditionalDeployCRDIgnoreSetAttrKey).(set.Set[string]); v != nil {
+	if v := cl.GetAttr(cluster.ConditionalDeployCRDIgnoreSetAttrKey); v != nil {
 		maintainerInfo.ForceCRDUpdate = true
-		ignoreSet = v
+		ignoreSet = v.(set.Set[string])
 	}
 
 	if ignoreSet.Has(v.Name()) {
