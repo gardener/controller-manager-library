@@ -23,13 +23,11 @@ helper:
         <<: (( &template ))
         head-update:
           traits:
-            component_descriptor: ~
       pull:
         <<: (( &template ))
         pull-request:
           traits:
             pull-request: ~
-            component_descriptor: ~
       rel:
         <<: (( &template ))
         release:
@@ -57,5 +55,4 @@ helper:
           build:
             image: 'golang:1.23.0'
             output_dir: 'binary'
-          component_descriptor: null
       jobs: (( sum[j|{}|s,e|-> s eval("*.helper.templates.jobs." e)] ))
