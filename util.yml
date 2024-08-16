@@ -22,7 +22,6 @@ helper:
       head:
         <<: (( &template ))
         head-update:
-          traits:
       pull:
         <<: (( &template ))
         pull-request:
