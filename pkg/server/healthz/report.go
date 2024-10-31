@@ -18,7 +18,11 @@ func Tick(key string) {
 	lock.Lock()
 	defer lock.Unlock()
 
-	setCheck(key)
+	if c := checks[key]; c != nil {
+		c.last = time.Now()
+	} else {
+		logger.Warnf("check with key %q not configured", key)
+	}
 }
 
 func Start(key string, period time.Duration) {
@@ -44,14 +48,6 @@ var (
 	checks = map[string]*check{}
 	lock   sync.Mutex
 )
-
-func setCheck(key string) {
-	c := checks[key]
-	if c == nil {
-		panic(fmt.Sprintf("check with key %q not configured", key))
-	}
-	c.last = time.Now()
-}
 
 func removeCheck(key string) {
 	delete(checks, key)
