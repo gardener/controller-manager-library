@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"reflect"
 
@@ -248,7 +247,7 @@ func FieldMain() {
 	tArray1()
 	t0()
 	t1()
-	data, err := ioutil.ReadFile("local/test.yaml")
+	data, err := os.ReadFile("local/test.yaml")
 	if err == nil {
 		d := yaml.NewDecoder(bytes.NewBuffer(data))
 

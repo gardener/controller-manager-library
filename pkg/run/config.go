@@ -7,8 +7,8 @@
 package run
 
 import (
-	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gardener/controller-manager-library/pkg/config"
@@ -39,7 +39,7 @@ func (this *Config) AddOptionsToSet(set config.OptionSet) {
 		namespace = n
 	} else {
 		f := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
-		bytes, err := ioutil.ReadFile(f)
+		bytes, err := os.ReadFile(filepath.Clean(f))
 		if err == nil {
 			n = string(bytes)
 			n = strings.TrimSpace(n)

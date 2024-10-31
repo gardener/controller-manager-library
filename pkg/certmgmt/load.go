@@ -7,29 +7,30 @@
 package certmgmt
 
 import (
-	"io/ioutil"
+	"os"
+	"path/filepath"
 )
 
 func LoadCertInfo(certFile, keyFile, caFile, cakeyFile string) (CertificateInfo, error) {
-	certPEMBlock, err := ioutil.ReadFile(certFile)
+	certPEMBlock, err := os.ReadFile(filepath.Clean(certFile))
 	if err != nil {
 		return NewCertInfo(nil, nil, nil, nil), err
 	}
-	keyPEMBlock, err := ioutil.ReadFile(keyFile)
+	keyPEMBlock, err := os.ReadFile(filepath.Clean(keyFile))
 	if err != nil {
 		return NewCertInfo(certPEMBlock, nil, nil, nil), err
 	}
 
 	var caPEMBlock []byte
 	if caFile != "" {
-		caPEMBlock, err = ioutil.ReadFile(caFile)
+		caPEMBlock, err = os.ReadFile(filepath.Clean(caFile))
 		if err != nil {
 			return NewCertInfo(certPEMBlock, keyPEMBlock, nil, nil), err
 		}
 	}
 	var cakeyPEMBlock []byte
 	if cakeyFile != "" {
-		cakeyPEMBlock, err = ioutil.ReadFile(cakeyFile)
+		cakeyPEMBlock, err = os.ReadFile(filepath.Clean(cakeyFile))
 		if err != nil {
 			return NewCertInfo(certPEMBlock, keyPEMBlock, caPEMBlock, nil), err
 		}

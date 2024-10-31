@@ -9,7 +9,8 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/yaml"
@@ -63,7 +64,7 @@ func MergeFlags(flags *pflag.FlagSet, args []string, override bool) error {
 // ReadConfigFile reads a yaml or json file are parses its content to
 // a list of equivalent command line arguments
 func ReadConfigFile(name string, flags *pflag.FlagSet) ([]string, error) {
-	bytes, err := ioutil.ReadFile(name)
+	bytes, err := os.ReadFile(filepath.Clean(name))
 
 	if err != nil {
 		return nil, err

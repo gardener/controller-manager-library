@@ -5,6 +5,7 @@
 package v1alpha1
 
 import (
+	"github.com/gardener/controller-manager-library/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -37,7 +38,7 @@ func init() {
 	// makes the code compile even when the generated files are missing.
 	localSchemeBuilder.Register(addDefaultingFuncs, addKnownTypes)
 
-	resources.Register(SchemeBuilder)
+	utils.Must(resources.Register(SchemeBuilder))
 }
 
 // Adds the list of known types to api.Scheme.

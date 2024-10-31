@@ -35,7 +35,7 @@ func SetValue(f reflect.Value, v interface{}) error {
 	}
 	if !f.CanSet() {
 		if !f.CanInterface() && f.CanAddr() {
-			f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
+			f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // #nosec G103 -- needed to access unexported fields
 		}
 	}
 	f.Set(vv)
@@ -44,7 +44,7 @@ func SetValue(f reflect.Value, v interface{}) error {
 
 func GetValue(f reflect.Value) interface{} {
 	if !f.CanInterface() && f.CanAddr() {
-		f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
+		f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // #nosec G103 -- needed to access unexported fields
 	}
 	return f.Interface()
 }

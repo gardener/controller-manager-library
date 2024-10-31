@@ -97,15 +97,17 @@ func CertsMain() {
 	}
 
 	tlscfg := &tls.Config{
+		MinVersion:     tls.VersionTLS12,
 		GetCertificate: cert.GetCertificate,
 	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", HelloServer)
 	server := http.Server{
-		Addr:      ":8443",
-		TLSConfig: tlscfg,
-		Handler:   mux,
+		Addr:              ":8443",
+		TLSConfig:         tlscfg,
+		Handler:           mux,
+		ReadHeaderTimeout: 3 * time.Second,
 	}
 
 	fmt.Printf("Starting server\n")
