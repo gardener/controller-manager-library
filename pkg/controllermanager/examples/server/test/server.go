@@ -20,12 +20,12 @@ func init() {
 	server.Configure("test").AllowSecretMaintenance(true).
 		RegisterHandler("demo", server.HandlerFunc("demo", http.HandlerFunc(demo))).
 		RegisterHandler("message", Create).
-		Register()
+		MustRegister()
 }
 
 func demo(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("this is a test"))
+	_, _ = w.Write([]byte("this is a test"))
 }
 
 type Handler struct {
@@ -55,7 +55,7 @@ func (this *Handler) handle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	m := this.shared.Values["message"]
 	if m == nil {
-		w.Write([]byte("no message configured\n"))
+		_, _ = w.Write([]byte("no message configured\n"))
 	}
-	w.Write([]byte(fmt.Sprintf("%s\n", m)))
+	_, _ = w.Write([]byte(fmt.Sprintf("%s\n", m)))
 }

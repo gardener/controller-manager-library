@@ -61,6 +61,7 @@ func (this *HTTPServer) Start(source certs.CertificateSource, bindAddress string
 		this.Infof("starting %s as https server (serving on %s)", this.name, listenAddress)
 		tlscfg = &tls.Config{
 			NextProtos:     []string{"h2"},
+			MinVersion:     tls.VersionTLS12,
 			GetCertificate: source.GetCertificate,
 		}
 		for _, f := range tweak {
@@ -70,9 +71,10 @@ func (this *HTTPServer) Start(source certs.CertificateSource, bindAddress string
 		this.Infof("starting %s as http server (serving on %s)", this.name, listenAddress)
 	}
 	this.server = &http.Server{
-		Addr:      listenAddress,
-		Handler:   this.servMux,
-		TLSConfig: tlscfg,
+		Addr:              listenAddress,
+		Handler:           this.servMux,
+		TLSConfig:         tlscfg,
+		ReadHeaderTimeout: 3 * time.Second,
 	}
 
 	ctxutil.WaitGroupAdd(this.ctx)

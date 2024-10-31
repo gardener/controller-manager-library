@@ -173,14 +173,14 @@ func (this *Condition) set(name string, value interface{}) (bool, error) {
 			tmp := reflect.New(f.Type()).Elem()
 			f := tmp.Field(0)
 			if !f.CanSet() {
-				f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
+				f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // #nosec G103 -- needed to access unexported fields
 			}
 			f.Set(vv)
 			vv = tmp
 		}
 	}
 	if !f.CanSet() {
-		f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // yepp, access unexported fields
+		f = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem() // #nosec G103 -- needed to access unexported fields
 	}
 	old := f.Interface()
 	if !reflect.DeepEqual(old, value) {

@@ -100,10 +100,17 @@ func (h *reconciler) Setup() error {
 	return nil
 }
 
-func (h *reconciler) Start() {
-	h.controller.EnqueueCommand("poll")
-	h.controller.WithLease("temporary", false, h.temporary)
-	h.controller.WithLease("ongoing", true, h.exclusive)
+func (h *reconciler) Start() error {
+	if err := h.controller.EnqueueCommand("poll"); err != nil {
+		return err
+	}
+	if err := h.controller.WithLease("temporary", false, h.temporary); err != nil {
+		return err
+	}
+	if err := h.controller.WithLease("ongoing", true, h.exclusive); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *reconciler) Command(logger logger.LogContext, cmd string) reconcile.Status {
