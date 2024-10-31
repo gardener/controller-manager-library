@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 TOOLS_BIN_DIR            := $(TOOLS_DIR)/bin
-KUBEBUILDER_K8S_VERSION  := 1.29.0
+KUBEBUILDER_K8S_VERSION  := 1.30.0
 KUBEBUILDER_TAG          := $(TOOLS_BIN_DIR)/kubebuilder
 KUBEBUILDER_DIR          := "$(shell realpath $(TOOLS_DIR))/bin/kube_builder_$(KUBEBUILDER_K8S_VERSION)"
 KUBEBUILDER_ASSETS       := $(KUBEBUILDER_DIR)/bin
@@ -16,8 +16,8 @@ VGOPATH                  := $(TOOLS_BIN_DIR)/vgopath
 export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
-GOLANGCI_LINT_VERSION ?= v1.59.1
-VGOPATH_VERSION ?= v0.1.4
+GOLANGCI_LINT_VERSION ?= v1.61.0
+VGOPATH_VERSION ?= v0.1.5
 
 # Use this function to get the version of a go module from go.mod
 version_gomod = $(shell go list -mod=mod -f '{{ .Version }}' -m $(1))
