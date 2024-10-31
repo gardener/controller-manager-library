@@ -10,11 +10,13 @@ tidy:
 	go mod tidy
 
 .PHONY: check
-check: format $(GOIMPORTS) $(GOLANGCI_LINT)
+check: sast-report fastcheck
+
+.PHONY: fastcheck
+fastcheck: format $(GOIMPORTS) $(GOLANGCI_LINT)
 	@TOOLS_BIN_DIR="$(TOOLS_DIR)/bin" ./hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
 	@echo "Running go vet..."
 	@go vet ./cmd/... ./pkg/...
-
 
 .PHONY: build
 build:
@@ -39,3 +41,11 @@ generate: $(VGOPATH)
 .PHONY: format
 format:
 	@go fmt ./cmd/... ./pkg/...
+
+.PHONY: sast
+sast: $(GOSEC)
+	@./hack/sast.sh
+
+.PHONY: sast-report
+sast-report: $(GOSEC)
+	@./hack/sast.sh --gosec-report true

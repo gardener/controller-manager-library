@@ -9,6 +9,7 @@ KUBEBUILDER_DIR          := "$(shell realpath $(TOOLS_DIR))/bin/kube_builder_$(K
 KUBEBUILDER_ASSETS       := $(KUBEBUILDER_DIR)/bin
 CONTROLLER_GEN           := $(TOOLS_BIN_DIR)/controller-gen
 GOLANGCI_LINT            := $(TOOLS_BIN_DIR)/golangci-lint
+GOSEC                    := $(TOOLS_BIN_DIR)/gosec
 GOIMPORTS                := $(TOOLS_BIN_DIR)/goimports
 GINKGO                   := $(TOOLS_BIN_DIR)/ginkgo
 VGOPATH                  := $(TOOLS_BIN_DIR)/vgopath
@@ -18,6 +19,7 @@ export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
 GOLANGCI_LINT_VERSION ?= v1.61.0
 VGOPATH_VERSION ?= v0.1.5
+GOSEC_VERSION ?= v2.21.4
 
 # Use this function to get the version of a go module from go.mod
 version_gomod = $(shell go list -mod=mod -f '{{ .Version }}' -m $(1))
@@ -60,3 +62,6 @@ $(KUBEBUILDER_TAG): $(call tool_version_file,$(KUBEBUILDER_TAG),$(KUBEBUILDER_K8
 
 $(VGOPATH): $(call tool_version_file,$(VGOPATH),$(VGOPATH_VERSION))
 	go build -o $(VGOPATH) github.com/ironcore-dev/vgopath
+
+$(GOSEC): $(call tool_version_file,$(GOSEC),$(GOSEC_VERSION))
+	@GOSEC_VERSION=$(GOSEC_VERSION) bash $(TOOLS_DIR)/install-gosec.sh

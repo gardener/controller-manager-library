@@ -5,7 +5,7 @@
 /test-webhook
 /example
 
-/hack/tools
+/hack/tools/bin
 /args
 /bin
 /.kube-secrets
@@ -24,3 +24,6 @@
 # Virtual go & fuse
 .virtualgo
 .fuse_hidden*
+
+# gosec
+gosec-report.sarif
