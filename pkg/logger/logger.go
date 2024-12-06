@@ -8,6 +8,7 @@ package logger
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ type LogContext interface {
 	Errorf(msgfmt string, args ...interface{})
 }
 
+// SetLevel sets the log level for the default logger.
 func SetLevel(name string) error {
 	lvl, err := logrus.ParseLevel(name)
 	if err != nil {
@@ -39,6 +41,11 @@ func SetLevel(name string) error {
 	logrus.SetLevel(lvl)
 	defaultLogger.SetLevel(lvl)
 	return nil
+}
+
+// SetOutput sets the logger output for the default logger.
+func SetOutput(output io.Writer) {
+	defaultLogger.SetOutput(output)
 }
 
 type _context struct {

@@ -46,13 +46,20 @@ type ControllerManager struct {
 
 var _ extension.ControllerManager = &ControllerManager{}
 
+// DisableOptionSettingsLogging disables the logging of option settings on calling NewControllerManager.
+var DisableOptionSettingsLogging bool
+
 func NewControllerManager(ctx context.Context, def Definition) (*ControllerManager, error) {
 	maincfg := configmain.Get(ctx)
 	cfg := areacfg.GetConfig(maincfg)
 	lgr := logger.New()
-	logger.Info("using option settings:")
-	config.Print(logger.Infof, "", cfg.OptionSet)
-	logger.Info("-----------------------")
+	if DisableOptionSettingsLogging {
+		logger.Info("option settings logging is disabled")
+	} else {
+		logger.Info("using option settings:")
+		config.Print(logger.Infof, "", cfg.OptionSet)
+		logger.Info("-----------------------")
+	}
 	ctx = logger.Set(ctxutil.WaitGroupContext(ctx, "controllermanager"), lgr)
 	ctx = context.WithValue(ctx, resources.ATTR_EVENTSOURCE, def.GetName()) // //nolint:staticcheck
 
