@@ -38,7 +38,7 @@ type Config struct {
 	config.OptionSet
 }
 
-var _ config.OptionSource = (*Config)(nil)
+var _ config.OptionSource = &Config{}
 
 func NewConfig(name string) *Config {
 	cfg := &Config{

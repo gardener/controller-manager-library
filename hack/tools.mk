@@ -17,9 +17,9 @@ VGOPATH                  := $(TOOLS_BIN_DIR)/vgopath
 export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
-GOLANGCI_LINT_VERSION ?= v1.61.0
-VGOPATH_VERSION ?= v0.1.5
-GOSEC_VERSION ?= v2.21.4
+GOLANGCI_LINT_VERSION ?= v1.64.7
+VGOPATH_VERSION ?= v0.1.7
+GOSEC_VERSION ?= v2.22.2
 
 # Use this function to get the version of a go module from go.mod
 version_gomod = $(shell go list -mod=mod -f '{{ .Version }}' -m $(1))
