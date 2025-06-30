@@ -140,7 +140,7 @@ func panicWatchErrorHandler(r *cache.Reflector, err error) {
 	if strings.Contains(err.Error(), "failed to list") && strings.Contains(err.Error(), "the server could not find the requested resource") {
 		panic(err)
 	}
-	cache.DefaultWatchErrorHandler(r, err)
+	cache.DefaultWatchErrorHandler(context.Background(), r, err)
 }
 
 // resyncPeriod returns a function which generates a duration each time it is
