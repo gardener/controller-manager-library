@@ -7,9 +7,11 @@
 package logger
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
 
 	"github.com/sirupsen/logrus"
 )
@@ -63,6 +65,40 @@ var defaultLogger = &logrus.Logger{
 	Formatter: &logrus.TextFormatter{
 		DisableColors: true,
 	},
+}
+
+var defaultInitLogger *logrus.Logger
+var initOut atomic.Pointer[bytes.Buffer]
+
+func init() {
+	initOut.Store(&bytes.Buffer{})
+	defaultInitLogger = &logrus.Logger{
+		Out:   initOut.Load(),
+		Level: logrus.InfoLevel,
+		Formatter: &logrus.TextFormatter{
+			DisableColors: true,
+		},
+	}
+}
+
+// InitInfof logs an initialization message to the init logger.
+// If the init logger is already cleaned up, it falls back to the default logger.
+func InitInfof(msgfmt string, args ...interface{}) {
+	if initOut.Load() == nil {
+		Infof(msgfmt, args...)
+		return
+	}
+	defaultInitLogger.Infof(msgfmt, args...)
+}
+
+// OutputInitLogging outputs the delayed initialization log messages to the default logger.
+// This function should be called after the initialization phase is complete.
+func OutputInitLogging() {
+	out := initOut.Load()
+	if out == nil || !initOut.CompareAndSwap(out, nil) {
+		return
+	}
+	fmt.Fprintln(defaultLogger.Out, out.String())
 }
 
 func NewContext(key, value string) LogContext {

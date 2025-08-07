@@ -108,7 +108,7 @@ func (this *_Registry) RegisterController(reg Registerable, group ...string) err
 	if d, ok := this.definitions[def.Name()]; ok && d != def {
 		return fmt.Errorf("multiple registration of controller %q", def.Name())
 	}
-	logger.Infof("Registering controller %s", def.Name())
+	logger.InitInfof("Registering controller %s", def.Name())
 
 	if len(group) == 0 {
 		err := this.addToGroup(def, groups.DEFAULT)

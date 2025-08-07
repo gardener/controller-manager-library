@@ -50,6 +50,7 @@ var _ extension.ControllerManager = &ControllerManager{}
 var DisableOptionSettingsLogging bool
 
 func NewControllerManager(ctx context.Context, def Definition) (*ControllerManager, error) {
+	logger.OutputInitLogging()
 	maincfg := configmain.Get(ctx)
 	cfg := areacfg.GetConfig(maincfg)
 	lgr := logger.New()
