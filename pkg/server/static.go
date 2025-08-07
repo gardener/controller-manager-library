@@ -15,11 +15,11 @@ import (
 var servMux = http.NewServeMux()
 
 func Register(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	logger.Infof("adding %s endpoint", pattern)
+	logger.InitInfof("adding %s endpoint", pattern)
 	servMux.HandleFunc(pattern, handler)
 }
 
 func RegisterHandler(pattern string, handler http.Handler) {
-	logger.Infof("adding %s endpoint", pattern)
+	logger.InitInfof("adding %s endpoint", pattern)
 	servMux.Handle(pattern, handler)
 }

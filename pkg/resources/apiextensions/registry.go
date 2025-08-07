@@ -52,7 +52,7 @@ func (this *_registry) RegisterCRD(spec CRDSpecification) error {
 	}
 	this.lock.Lock()
 	defer this.lock.Unlock()
-	logger.Infof("found crd specification %s: %s", crds.GroupKind(), crds.GetDefault().CRDVersions())
+	logger.InitInfof("found crd specification %s: %s", crds.GroupKind(), crds.GetDefault().CRDVersions())
 	this.registry[crds.GroupKind()] = crds
 	return nil
 }
