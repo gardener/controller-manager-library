@@ -98,7 +98,7 @@ func OutputInitLogging() {
 	if out == nil || !initOut.CompareAndSwap(out, nil) {
 		return
 	}
-	fmt.Fprintln(defaultLogger.Out, out.String())
+	_, _ = fmt.Fprintln(defaultLogger.Out, out.String())
 }
 
 func NewContext(key, value string) LogContext {
