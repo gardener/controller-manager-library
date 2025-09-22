@@ -245,6 +245,13 @@ func CreateCluster(ctx context.Context, logger logger.LogContext, def Definition
 		return nil, err
 	}
 
+	if cfg.QPS > 0 {
+		kubeConfig.QPS = float32(cfg.QPS)
+	}
+	if cfg.Burst > 0 {
+		kubeConfig.Burst = cfg.Burst
+	}
+
 	return CreateClusterForScheme(ctx, logger, def, id, kubeConfig, nil)
 }
 
