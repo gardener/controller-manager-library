@@ -1,0 +1,9 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+aliases:
+  controller-manager-library-reviewers:
+  - MartinWeindel
+  - marc1404
+  controller-manager-library-approvers:
+  - MartinWeindel
+  - marc1404
