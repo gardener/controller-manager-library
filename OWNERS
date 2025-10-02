@@ -1,0 +1,6 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+reviewers:
+- controller-manager-library-reviewers
+approvers:
+- controller-manager-library-approvers
