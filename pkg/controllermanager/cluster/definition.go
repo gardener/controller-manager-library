@@ -136,6 +136,9 @@ func (this *_Definitions) create(ctx context.Context, logger logger.LogContext, 
 	} else if cfg.OmitCRDs {
 		cluster.SetAttr(SUBOPTION_DISABLE_DEPLOY_CRDS, true)
 	}
+	if cfg.CRDsShootNoCleanupLabel {
+		cluster.SetAttr(SUBOPTION_CRDS_SHOOT_NO_CLEANUP_LABEL, true)
+	}
 
 	if !cfg.MigrationIds.IsEmpty() {
 		cluster.AddMigrationIds(cfg.MigrationIds.AsArray()...)
