@@ -11,22 +11,22 @@ import (
 	"reflect"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
+	"github.com/gardener/controller-manager-library/pkg/controllermanager/cluster"
+	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	k8serr "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/extension"
 	"github.com/gardener/controller-manager-library/pkg/logger"
+	"github.com/gardener/controller-manager-library/pkg/resources"
 	"github.com/gardener/controller-manager-library/pkg/resources/errors"
 	"github.com/gardener/controller-manager-library/pkg/utils"
-
-	"github.com/gardener/controller-manager-library/pkg/resources"
 )
 
 const A_MAINTAINER = "crds.gardener.cloud/maintainer"
@@ -154,6 +154,9 @@ func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd r
 			new, _ := resources.GetObjectSpec(crd)
 			_, err := found.Modify(func(data resources.ObjectData) (bool, error) {
 				mod := false
+				if wantsShootNoCleanupLabel(cluster) {
+					mod = resources.SetLabel(data, v1beta1constants.ShootNoCleanup, "true")
+				}
 				spec, _ := resources.GetObjectSpec(data)
 				if !reflect.DeepEqual(spec, new) {
 					msg.Default("updating %s", crd.GetName())
@@ -178,6 +181,9 @@ func CreateCRDFromObject(log logger.LogContext, cluster resources.Cluster, crd r
 	} else {
 		if errors.IsKind(errors.ERR_UNKNOWN_RESOURCE, err) {
 			return err
+		}
+		if wantsShootNoCleanupLabel(cluster) {
+			resources.SetLabel(crd, v1beta1constants.ShootNoCleanup, "true")
 		}
 		msg.Default("creating %s", crd.GetName())
 		err = _CreateCRDFromObject(cluster, crd)
@@ -306,4 +312,9 @@ func Migrate(log logger.LogContext, cluster resources.Cluster, crdName string, _
 		return err
 	}
 	return obj.UpdateStatus()
+}
+
+func wantsShootNoCleanupLabel(cl resources.Cluster) bool {
+	v, _ := cl.GetAttr(cluster.SUBOPTION_CRDS_SHOOT_NO_CLEANUP_LABEL).(bool)
+	return v
 }
