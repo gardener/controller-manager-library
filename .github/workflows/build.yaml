@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      mode:
+        required: true
+        type: string
+        default: snapshot
+        description: |
+          the mode to use. either `snapshot` or `release`. Will affect effective version, as well
+          as target-oci-registry.
+
+jobs:
+  prepare:
+    uses: gardener/cc-utils/.github/workflows/prepare.yaml@master
+    with:
+      mode: ${{ inputs.mode }}
+      version-commit-callback-action-path:
+    permissions:
+      contents: read
+
+  sast-lint:
+    uses: gardener/cc-utils/.github/workflows/sastlint-ocm.yaml@master
+    permissions:
+      contents: read
+    with:
+      linter: gosec
+      run: .ci/check
+
+  test-and-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        args:
+          - run: .ci/build
+          - run: .ci/check
+          - run: .ci/test
+
+    steps:
+      - uses: gardener/cc-utils/.github/actions/trusted-checkout@master
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.1'
+      - run: |
+          set -euo pipefail
+          ${{ matrix.args.run }} |& tee /tmp/log.txt
+        shell: bash
+      - if: ${{ matrix.args.run == '.ci/check' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/blobs.d
+          tar czf /tmp/blobs.d/log.tar.gz -C /tmp log.txt
+      - if: ${{ matrix.args.run == 'check' }}
+        uses: gardener/cc-utils/.github/actions/export-ocm-fragments@master
+        name: add-check-log-to-component-descriptor
+        with:
+          blobs-directory: /tmp/blobs.d
+          ocm-resources: |
+            - name: test-results
+              relation: local
+              access:
+                type: localBlob
+                localReference: log.tar.gz
+              labels:
+                - name: gardener.cloud/purposes
+                  value:
+                    - test
