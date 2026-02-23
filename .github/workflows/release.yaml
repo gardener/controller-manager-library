@@ -12,9 +12,8 @@ jobs:
   build:
     uses: ./.github/workflows/build.yaml
     permissions:
-      contents: write
+      contents: read
       id-token: write
-      packages: write
     with:
       mode: release
 
@@ -30,5 +29,4 @@ jobs:
     with:
       release-commit-target: branch
       next-version: ${{ inputs.next-version }}
-      next-version-callback-action-path:
       slack-channel-id: C9CEBQPGE # #sap-tech-gardener

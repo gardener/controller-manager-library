@@ -30,8 +30,8 @@ build-local:
         ./pkg/... ./cmd/...
 
 .PHONY: test
-test: $(KUBEBUILDER_TAG) $(GINKGO)
-	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) ginkgo ${COVER_FLAG} -r cmd pkg plugin
+test: $(SETUP_ENVTEST) $(GINKGO)
+	KUBEBUILDER_ASSETS="$(shell realpath $(shell $(SETUP_ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(KUBEBUILDER_DIR) -p path))" ginkgo ${COVER_FLAG} -r cmd pkg plugin
 
 .PHONY: generate
 generate: $(VGOPATH)

@@ -3,16 +3,19 @@
 # SPDX-License-Identifier: Apache-2.0
 
 TOOLS_BIN_DIR            := $(TOOLS_DIR)/bin
-KUBEBUILDER_K8S_VERSION  := 1.30.0
-KUBEBUILDER_TAG          := $(TOOLS_BIN_DIR)/kubebuilder
-KUBEBUILDER_DIR          := "$(shell realpath $(TOOLS_DIR))/bin/kube_builder_$(KUBEBUILDER_K8S_VERSION)"
-KUBEBUILDER_ASSETS       := $(KUBEBUILDER_DIR)/bin
 CONTROLLER_GEN           := $(TOOLS_BIN_DIR)/controller-gen
 GOLANGCI_LINT            := $(TOOLS_BIN_DIR)/golangci-lint
 GOSEC                    := $(TOOLS_BIN_DIR)/gosec
 GOIMPORTS                := $(TOOLS_BIN_DIR)/goimports
 GINKGO                   := $(TOOLS_BIN_DIR)/ginkgo
 VGOPATH                  := $(TOOLS_BIN_DIR)/vgopath
+
+SYSTEM_NAME                := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+SYSTEM_ARCH                := $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+SETUP_ENVTEST            := $(TOOLS_BIN_DIR)/setup-envtest
+ENVTEST_K8S_VERSION      := 1.35.0
+CONTROLLER_RUNTIME_VERSION ?= $(call version_gomod,sigs.k8s.io/controller-runtime)
+KUBEBUILDER_DIR          := $(TOOLS_BIN_DIR)/kubebuilder
 
 export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -54,11 +57,9 @@ $(GOIMPORTS): $(call tool_version_file,$(GOIMPORTS),$(GOIMPORTS_VERSION))
 $(GINKGO): $(call tool_version_file,$(GINKGO),$(GINKGO_VERSION))
 	go build -o $(GINKGO) github.com/onsi/ginkgo/v2/ginkgo
 
-$(KUBEBUILDER_TAG): $(call tool_version_file,$(KUBEBUILDER_TAG),$(KUBEBUILDER_K8S_VERSION))
-	curl -sSL https://go.kubebuilder.io/test-tools/$(KUBEBUILDER_K8S_VERSION)/$(shell go env GOOS)/$(shell go env GOARCH) | tar -xvz
-	@mkdir -p $(KUBEBUILDER_ASSETS)
-	@mv kubebuilder/bin/* $(KUBEBUILDER_ASSETS); rm -rf kubebuilder
-	@touch $(KUBEBUILDER_TAG)
+$(SETUP_ENVTEST): $(call tool_version_file,$(SETUP_ENVTEST),$(CONTROLLER_RUNTIME_VERSION))
+	curl -Lo $(SETUP_ENVTEST) https://github.com/kubernetes-sigs/controller-runtime/releases/download/$(CONTROLLER_RUNTIME_VERSION)/setup-envtest-$(SYSTEM_NAME)-$(SYSTEM_ARCH)
+	chmod +x $(SETUP_ENVTEST)
 
 $(VGOPATH): $(call tool_version_file,$(VGOPATH),$(VGOPATH_VERSION))
 	go build -o $(VGOPATH) github.com/ironcore-dev/vgopath
