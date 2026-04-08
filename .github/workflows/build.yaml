@@ -13,14 +13,14 @@ on:
 
 jobs:
   prepare:
-    uses: gardener/cc-utils/.github/workflows/prepare.yaml@master
+    uses: gardener/cc-utils/.github/workflows/prepare.yaml@v1
     with:
       mode: ${{ inputs.mode }}
     permissions:
       id-token: write
 
   sast-lint:
-    uses: gardener/cc-utils/.github/workflows/sastlint-ocm.yaml@master
+    uses: gardener/cc-utils/.github/workflows/sastlint-ocm.yaml@v1
     permissions:
       contents: read
     with:
@@ -37,7 +37,7 @@ jobs:
           - run: .ci/test
 
     steps:
-      - uses: gardener/cc-utils/.github/actions/trusted-checkout@master
+      - uses: gardener/cc-utils/.github/actions/trusted-checkout@v1
       - uses: actions/setup-go@v5
         with:
           go-version: '1.24.1'
@@ -52,7 +52,7 @@ jobs:
           mkdir -p /tmp/blobs.d
           tar czf /tmp/blobs.d/log.tar.gz -C /tmp log.txt
       - if: ${{ matrix.args.run == 'check' }}
-        uses: gardener/cc-utils/.github/actions/export-ocm-fragments@master
+        uses: gardener/cc-utils/.github/actions/export-ocm-fragments@v1
         name: add-check-log-to-component-descriptor
         with:
           blobs-directory: /tmp/blobs.d
