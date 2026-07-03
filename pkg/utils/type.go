@@ -19,7 +19,7 @@ func TypeKey(v interface{}) (reflect.Type, error) {
 	if t == nil {
 		return nil, fmt.Errorf("invalid type spec %s(%T)", v, v)
 	}
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	return t, nil

@@ -153,7 +153,7 @@ func (f *sharedInformerFactory) InformerForObject(obj runtime.Object) (GenericIn
 
 func (f *sharedInformerFactory) FilteredInformerForObject(obj runtime.Object, namespace string, optionsFunc TweakListOptionsFunc) (GenericInformer, error) {
 	informerType := reflect.TypeOf(obj)
-	for informerType.Kind() == reflect.Ptr {
+	for informerType.Kind() == reflect.Pointer {
 		informerType = informerType.Elem()
 	}
 

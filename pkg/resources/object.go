@@ -23,7 +23,7 @@ func newObject(data ObjectData, resource Internal) Object {
 }
 
 func (this *_object) DeepCopy() Object {
-	data := this.ObjectData.DeepCopyObject().(ObjectData)
+	data := this.DeepCopyObject().(ObjectData)
 	return newObject(data, this.resource)
 }
 

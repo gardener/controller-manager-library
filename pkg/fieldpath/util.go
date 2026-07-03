@@ -25,7 +25,7 @@ func IsSimpleType(t reflect.Type) bool {
 	switch t.Kind() {
 	case reflect.Map, reflect.Slice, reflect.Struct, reflect.Array, reflect.Func, reflect.Chan:
 		return false
-	case reflect.Ptr, reflect.Uintptr, reflect.UnsafePointer:
+	case reflect.Pointer, reflect.Uintptr, reflect.UnsafePointer:
 		return false
 	default:
 		return true
@@ -37,7 +37,7 @@ func Value(val interface{}) interface{} {
 		return nil
 	}
 	v := reflect.ValueOf(val)
-	for v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer {
 		if v.IsNil() {
 			return nil
 		}
@@ -49,7 +49,7 @@ func Value(val interface{}) interface{} {
 ////////////////////////////////////////////////////////////////////////////////
 
 func valueType(t reflect.Type) reflect.Type {
-	for t != nil && t.Kind() == reflect.Ptr {
+	for t != nil && t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	return t
@@ -59,5 +59,5 @@ func IsPtr(v value) bool {
 	if !v.IsValid() {
 		return false
 	}
-	return v.Kind() == reflect.Ptr
+	return v.Kind() == reflect.Pointer
 }

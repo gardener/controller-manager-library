@@ -176,7 +176,7 @@ func (this *httpserver) handleSetup() error {
 
 func (this *httpserver) Start() error {
 	var err error
-	this.certificate, err = this.config.CertConfig.CreateAccess(this.GetContext(), this, this.cluster, this.env.Namespace(), secret.TLSKeys())
+	this.certificate, err = this.config.CreateAccess(this.GetContext(), this, this.cluster, this.env.Namespace(), secret.TLSKeys())
 	if err != nil {
 		return err
 	}

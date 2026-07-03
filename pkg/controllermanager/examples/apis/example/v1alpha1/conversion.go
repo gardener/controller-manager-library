@@ -17,7 +17,7 @@ import (
 	"github.com/gardener/controller-manager-library/pkg/controllermanager/examples/apis/example"
 )
 
-func Convert_v1alpha1_ExampleSpec_To_example_ExampleSpec(in *ExampleSpec, out *example.ExampleSpec, s conversion.Scope) error {
+func Convert_v1alpha1_ExampleSpec_To_example_ExampleSpec(in *ExampleSpec, out *example.ExampleSpec, _ conversion.Scope) error {
 	if in.Port > 0 {
 		out.URL = fmt.Sprintf("%s://%s:%d/%s", in.URLScheme, in.Hostname, in.Port, in.Path)
 	} else {
@@ -26,7 +26,7 @@ func Convert_v1alpha1_ExampleSpec_To_example_ExampleSpec(in *ExampleSpec, out *e
 	return nil
 }
 
-func Convert_example_ExampleSpec_To_v1alpha1_ExampleSpec(in *example.ExampleSpec, out *ExampleSpec, s conversion.Scope) error {
+func Convert_example_ExampleSpec_To_v1alpha1_ExampleSpec(in *example.ExampleSpec, out *ExampleSpec, _ conversion.Scope) error {
 	u, err := url.Parse(in.URL)
 	if err == nil {
 		out.URLScheme = u.Scheme

@@ -32,7 +32,7 @@ func ConvertTo(v interface{}, proto interface{}) (interface{}, error) {
 	t, ok := proto.(reflect.Type)
 	if !ok {
 		t = reflect.TypeOf(proto)
-		if t.Kind() == reflect.Ptr {
+		if t.Kind() == reflect.Pointer {
 			t = t.Elem()
 		}
 	}
@@ -74,7 +74,7 @@ func ConvertTo(v interface{}, proto interface{}) (interface{}, error) {
 			}
 		}
 
-		if value.Kind() != reflect.Ptr || value.IsNil() {
+		if value.Kind() != reflect.Pointer || value.IsNil() {
 			return nil, fmt.Errorf("%T is not convertibe to %s", v, t)
 		}
 		value = value.Elem()

@@ -35,7 +35,7 @@ func AddGenericType(elem, list interface{}) {
 }
 
 func IsListType(t reflect.Type) (reflect.Type, bool) {
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	field, ok := t.FieldByName("Items")
@@ -48,7 +48,7 @@ func IsListType(t reflect.Type) (reflect.Type, bool) {
 		return nil, false
 	}
 	t = t.Elem()
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {

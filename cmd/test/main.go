@@ -42,7 +42,7 @@ func pv(gap, prefix string, v reflect.Value) {
 		return
 	}
 	switch v.Kind() {
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Pointer, reflect.Interface:
 		fmt.Printf("%s elem:\n", k)
 		pv(g, "", v.Elem())
 	case reflect.Struct:

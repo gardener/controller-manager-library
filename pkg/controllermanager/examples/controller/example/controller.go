@@ -46,7 +46,6 @@ var _ reconcile.Interface = &reconciler{}
 ///////////////////////////////////////////////////////////////////////////////
 
 func Create(controller controller.Interface) (reconcile.Interface, error) {
-
 	config, err := controller.GetOptionSource("options")
 	if err == nil {
 		controller.Infof("found message option: %s", config.(*Config).message)
@@ -62,12 +61,12 @@ func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) r
 	return reconcile.Succeeded(logger)
 }
 
-func (h *reconciler) Delete(logger logger.LogContext, obj resources.Object) reconcile.Status {
+func (h *reconciler) Delete(logger logger.LogContext, _ resources.Object) reconcile.Status {
 	logger.Infof("should delete")
 	return reconcile.Succeeded(logger)
 }
 
-func (h *reconciler) Deleted(logger logger.LogContext, key resources.ClusterObjectKey) reconcile.Status {
+func (h *reconciler) Deleted(logger logger.LogContext, _ resources.ClusterObjectKey) reconcile.Status {
 	logger.Infof("is deleted")
 	return reconcile.Succeeded(logger)
 }

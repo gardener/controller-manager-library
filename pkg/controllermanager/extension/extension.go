@@ -412,7 +412,7 @@ func OptionSourceCreatorByExample(proto config.OptionSource) OptionSourceCreator
 		return nil
 	}
 	t := reflect.TypeOf(proto)
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	return func() config.OptionSource {

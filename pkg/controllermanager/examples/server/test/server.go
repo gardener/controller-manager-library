@@ -23,7 +23,7 @@ func init() {
 		MustRegister()
 }
 
-func demo(w http.ResponseWriter, r *http.Request) {
+func demo(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("this is a test"))
 }
@@ -50,12 +50,12 @@ func (this *Handler) Setup() error {
 	return nil
 }
 
-func (this *Handler) handle(w http.ResponseWriter, r *http.Request) {
+func (this *Handler) handle(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("content-type", "application/text")
 	w.WriteHeader(http.StatusOK)
 	m := this.shared.Values["message"]
 	if m == nil {
 		_, _ = w.Write([]byte("no message configured\n"))
 	}
-	_, _ = w.Write([]byte(fmt.Sprintf("%s\n", m)))
+	_, _ = fmt.Fprintf(w, "%s\n", m)
 }

@@ -101,7 +101,7 @@ func (w *worker) processNextWorkItem() bool {
 
 	defer w.loggerForKey(key)()
 
-	cmd, rkey, r, err := w.pool.controller.DecodeKey(key)
+	cmd, rkey, r, err := w.pool.DecodeKey(key)
 
 	if err != nil {
 		// The resources may no longer exist, in which case we stop processing.
@@ -171,7 +171,7 @@ func (w *worker) processNextWorkItem() bool {
 
 		for _, reconciler := range reconcilers {
 			status := catch(f(reconciler))
-			w.pool.controller.requestHandled(w, reconciler, *rkey)
+			w.pool.requestHandled(w, reconciler, *rkey)
 			if !status.Completed {
 				ok = false
 			}

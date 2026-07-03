@@ -73,7 +73,7 @@ func (this *_Registry) RegisterMapping(reg Registerable) error {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	defs := this._Definitions.getForType(def.Type())
+	defs := this.getForType(def.Type())
 	if old := defs[def.Name()]; old != nil {
 		return fmt.Errorf("mapping for %s %q already defined", def.Type(), def.Name())
 	} else {

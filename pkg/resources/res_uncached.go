@@ -24,7 +24,7 @@ func (this *AbstractResource) Create(obj ObjectData) (Object, error) {
 	if err := this.CheckOType(obj); err != nil {
 		return nil, err
 	}
-	result, err := this.helper.Internal.I_create(obj)
+	result, err := this.helper.I_create(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +39,7 @@ func (this *AbstractResource) CreateOrUpdate(obj ObjectData) (Object, error) {
 		return nil, err
 	}
 	if obj.GetResourceVersion() == "" {
-		result, err := this.helper.Internal.I_create(obj)
+		result, err := this.helper.I_create(obj)
 		if err == nil {
 			return this.helper.ObjectAsResource(result), nil
 		}
@@ -48,13 +48,13 @@ func (this *AbstractResource) CreateOrUpdate(obj ObjectData) (Object, error) {
 		}
 		result.SetName(obj.GetName())
 		result.SetNamespace(obj.GetNamespace())
-		err = this.helper.Internal.I_get(result)
+		err = this.helper.I_get(result)
 		if err != nil {
 			return nil, err
 		}
 		obj.SetResourceVersion(result.GetResourceVersion())
 	}
-	result, err := this.helper.Internal.I_update(obj)
+	result, err := this.helper.I_update(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (this *AbstractResource) Update(obj ObjectData) (Object, error) {
 	if err := this.CheckOType(obj); err != nil {
 		return nil, err
 	}
-	result, err := this.helper.Internal.I_update(obj)
+	result, err := this.helper.I_update(obj)
 	if err != nil {
 		return nil, err
 	}
@@ -83,15 +83,15 @@ func (this *AbstractResource) Modify(obj ObjectData, modifier Modifier) (ObjectD
 	if err := this.CheckOType(obj); err != nil {
 		return nil, false, err
 	}
-	return this.helper.Internal.I_modify(obj, false, false, false, modifier)
+	return this.helper.I_modify(obj, false, false, false, modifier)
 }
 
 func (this *AbstractResource) ModifyByName(obj ObjectDataName, modifier Modifier) (Object, bool, error) {
-	return this.helper.Internal.I_modifyByName(obj, false, false, modifier)
+	return this.helper.I_modifyByName(obj, false, false, modifier)
 }
 
 func (this *AbstractResource) CreateOrModifyByName(obj ObjectDataName, modifier Modifier) (Object, bool, error) {
-	return this.helper.Internal.I_modifyByName(obj, false, true, modifier)
+	return this.helper.I_modifyByName(obj, false, true, modifier)
 }
 
 func (this *AbstractResource) ModifyStatus(obj ObjectData, modifier Modifier) (ObjectData, bool, error) {
@@ -101,11 +101,11 @@ func (this *AbstractResource) ModifyStatus(obj ObjectData, modifier Modifier) (O
 	if err := this.CheckOType(obj); err != nil {
 		return nil, false, err
 	}
-	return this.helper.Internal.I_modify(obj, true, false, false, modifier)
+	return this.helper.I_modify(obj, true, false, false, modifier)
 }
 
 func (this *AbstractResource) ModifyStatusByName(obj ObjectDataName, modifier Modifier) (Object, bool, error) {
-	return this.helper.Internal.I_modifyByName(obj, true, false, modifier)
+	return this.helper.I_modifyByName(obj, true, false, modifier)
 }
 
 func (this *AbstractResource) Delete(obj ObjectData) error {
@@ -115,7 +115,7 @@ func (this *AbstractResource) Delete(obj ObjectData) error {
 	if err := this.CheckOType(obj); err != nil {
 		return err
 	}
-	err := this.helper.Internal.I_delete(obj)
+	err := this.helper.I_delete(obj)
 	if err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func (this *AbstractResource) Delete(obj ObjectData) error {
 }
 
 func (this *AbstractResource) DeleteByName(obj ObjectDataName) error {
-	return this.helper.Internal.I_delete(obj)
+	return this.helper.I_delete(obj)
 }
 
 func (this *AbstractResource) handleList(result runtime.Object) (ret []Object, err error) {
@@ -210,7 +210,7 @@ func (this *AbstractResource) Get(obj interface{}) (Object, error) {
 }
 
 func (this *AbstractResource) List(opts metav1.ListOptions) (ret []Object, err error) {
-	return this.helper.Internal.I_list(metav1.NamespaceAll, opts)
+	return this.helper.I_list(metav1.NamespaceAll, opts)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -233,5 +233,5 @@ func (this *namespacedResource) List(opts metav1.ListOptions) (ret []Object, err
 	if !this.resource.Namespaced() {
 		return nil, errors.ErrNotNamespaced.New(this.resource.GroupVersionKind())
 	}
-	return this.resource.helper.Internal.I_list(this.namespace, opts)
+	return this.resource.helper.I_list(this.namespace, opts)
 }

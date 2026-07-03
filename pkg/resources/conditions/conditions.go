@@ -165,7 +165,7 @@ func (this *Condition) set(name string, value interface{}) (bool, error) {
 		if vv.Type().ConvertibleTo(f.Type()) {
 			vv = vv.Convert(f.Type())
 		} else {
-			if !(f.Kind() == reflect.Struct && f.NumField() == 1 && f.Field(0).Type() == vv.Type()) {
+			if f.Kind() != reflect.Struct || f.NumField() != 1 || f.Field(0).Type() != vv.Type() {
 				return false, fmt.Errorf("invalid type (%s) for field %s in conditions of %s (expected %s)",
 					vv.Type(), name, this.otype, f.Type())
 			}
@@ -346,7 +346,7 @@ func (this *ConditionLayout) For(o interface{}) (*Conditions, error) {
 
 func (this *ConditionLayout) conditions(o interface{}) *reflect.Value {
 	v := reflect.ValueOf(o)
-	for v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 

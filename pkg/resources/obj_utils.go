@@ -7,6 +7,6 @@
 package resources
 
 func (this *AbstractObject) GetLabel(name string) string {
-	labels := this.ObjectData.GetLabels()
+	labels := this.GetLabels()
 	return labels[name]
 }

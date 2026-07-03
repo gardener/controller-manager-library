@@ -49,7 +49,7 @@ func MustRegister(kind, extensionType, subType, extensionVersion string, v inter
 
 func Register(kind, extensionType, subType, extensionVersion string, v interface{}) error {
 	t := reflect.TypeOf(v)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 

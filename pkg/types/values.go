@@ -38,7 +38,7 @@ func (this Values) MarshalJSON() ([]byte, error) {
 	if this.Values == nil {
 		return []byte("null"), nil
 	}
-	return this.Values.Marshal()
+	return this.Marshal()
 }
 
 func (this *Values) UnmarshalJSON(in []byte) error {

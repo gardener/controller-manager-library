@@ -90,7 +90,7 @@ func (this *AbstractResource) CreateListData() runtime.Object {
 
 func (this *AbstractResource) CheckOType(obj ObjectData, unstructured ...bool) error {
 	t := reflect.TypeOf(obj)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		if t.Elem() == this.otype {
 			return nil
 		}
@@ -100,5 +100,5 @@ func (this *AbstractResource) CheckOType(obj ObjectData, unstructured ...bool) e
 			}
 		}
 	}
-	return errors.ErrTypeMismatch.New(obj, reflect.PtrTo(this.otype))
+	return errors.ErrTypeMismatch.New(obj, reflect.PointerTo(this.otype))
 }

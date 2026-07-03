@@ -105,7 +105,7 @@ func cycle(a []string) []string {
 	}
 	min := 0
 	for i, n := range a {
-		if strings.Compare(a[min], n) > 0 {
+		if strings.Compare(a[min], n) > 0 { // #nosec G602 false positive of conservative static analysis
 			min = i
 		}
 	}

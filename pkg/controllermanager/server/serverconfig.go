@@ -79,7 +79,7 @@ func (this *ServerConfig) Reconfigure(def Definition) (Definition, error) {
 
 	if def.Kind() == HTTPS {
 		if this.Secret == "" && this.CertFile == "" {
-			if this.CertConfig.IsSecretMaintenanceDisabled() {
+			if this.IsSecretMaintenanceDisabled() {
 				return def, fmt.Errorf("server certificate file or secret name required for HTTPS server")
 			}
 			this.Secret = def.Name()

@@ -16,7 +16,7 @@ import (
 
 func UnmarshalFunc(elem InfoData) Unmarshaller {
 	t := reflect.TypeOf(elem)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	return func(bytes []byte) (InfoData, error) {

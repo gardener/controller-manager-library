@@ -158,7 +158,7 @@ type watchDef struct {
 }
 
 func (this *watchDef) TweakListOptions(opts *metav1.ListOptions) {
-	for _, t := range this.WatchResourceDef.Tweaker {
+	for _, t := range this.Tweaker {
 		t(opts)
 	}
 }
