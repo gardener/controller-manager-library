@@ -27,3 +27,6 @@
 
 # gosec
 gosec-report.sarif
+
+# go workspace
+go.work.sum

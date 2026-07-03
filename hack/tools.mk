@@ -2,16 +2,15 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-TOOLS_BIN_DIR            := $(TOOLS_DIR)/bin
+SYSTEM_NAME              := $(shell uname -s | tr '[:upper:]' '[:lower:]')
+SYSTEM_ARCH              := $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+TOOLS_BIN_DIR            := $(TOOLS_DIR)/bin/$(SYSTEM_NAME)-$(SYSTEM_ARCH)
 CONTROLLER_GEN           := $(TOOLS_BIN_DIR)/controller-gen
 GOLANGCI_LINT            := $(TOOLS_BIN_DIR)/golangci-lint
 GOSEC                    := $(TOOLS_BIN_DIR)/gosec
 GOIMPORTS                := $(TOOLS_BIN_DIR)/goimports
 GINKGO                   := $(TOOLS_BIN_DIR)/ginkgo
-VGOPATH                  := $(TOOLS_BIN_DIR)/vgopath
 
-SYSTEM_NAME                := $(shell uname -s | tr '[:upper:]' '[:lower:]')
-SYSTEM_ARCH                := $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 SETUP_ENVTEST            := $(TOOLS_BIN_DIR)/setup-envtest
 ENVTEST_K8S_VERSION      := 1.35.0
 CONTROLLER_RUNTIME_VERSION ?= $(call version_gomod,sigs.k8s.io/controller-runtime)
@@ -20,17 +19,19 @@ KUBEBUILDER_DIR          := $(TOOLS_BIN_DIR)/kubebuilder
 export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
-GOLANGCI_LINT_VERSION ?= v1.64.7
-VGOPATH_VERSION ?= v0.1.7
-GOSEC_VERSION ?= v2.22.2
-
 # Use this function to get the version of a go module from go.mod
-version_gomod = $(shell go list -mod=mod -f '{{ .Version }}' -m $(1))
+version_gomod = $(shell go list $(MODFILE_TOOL_MOD) -f '{{ .Version }}' -m $(1))
+
+# Use this function to copy the tool binary built by Go to the location passed as arg.
+#   E.g., `$(call go_tool_copy,./path/to/tool)` will copy the tool binary built by Go to ./path/to/tool.
+go_tool_copy = $(shell cp $$(go tool $(MODFILE_TOOL_MOD) -n $$(basename $(1))) $(1))
 
 # tool versions from go.mod
-CONTROLLER_GEN_VERSION ?= $(call version_gomod,sigs.k8s.io/controller-tools)
-GINKGO_VERSION ?= $(call version_gomod,github.com/onsi/ginkgo/v2)
-GOIMPORTS_VERSION ?= $(call version_gomod,golang.org/x/tools)
+GOLANGCI_LINT_VERSION   ?= $(call version_gomod,github.com/golangci/golangci-lint/v2)
+GOSEC_VERSION           ?= $(call version_gomod,github.com/securego/gosec/v2)
+CONTROLLER_GEN_VERSION 	?= $(call version_gomod,sigs.k8s.io/controller-tools)
+GINKGO_VERSION          ?= $(call version_gomod,github.com/onsi/ginkgo/v2)
+GOIMPORTS_VERSION       ?= $(call version_gomod,golang.org/x/tools)
 
 # Use this "function" to add the version file as a prerequisite for the tool target: e.g.
 #   $(HELM): $(call tool_version_file,$(HELM),$(HELM_VERSION))
@@ -44,25 +45,20 @@ $(TOOLS_BIN_DIR)/.version_%:
 	@touch $@
 
 $(CONTROLLER_GEN): $(call tool_version_file,$(CONTROLLER_GEN),$(CONTROLLER_GEN_VERSION))
-	go build -o $(CONTROLLER_GEN) sigs.k8s.io/controller-tools/cmd/controller-gen
+	$(call go_tool_copy,$(CONTROLLER_GEN))
 
 $(GOLANGCI_LINT): $(call tool_version_file,$(GOLANGCI_LINT),$(GOLANGCI_LINT_VERSION))
-	@# CGO_ENABLED has to be set to 1 in order for golangci-lint to be able to load plugins
-	@# see https://github.com/golangci/golangci-lint/issues/1276
-	GOBIN=$(abspath $(TOOLS_BIN_DIR)) CGO_ENABLED=1 go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	$(call go_tool_copy,$(GOLANGCI_LINT))
 
 $(GOIMPORTS): $(call tool_version_file,$(GOIMPORTS),$(GOIMPORTS_VERSION))
-	go build -o $(GOIMPORTS) golang.org/x/tools/cmd/goimports
+	$(call go_tool_copy,$(GOIMPORTS))
 
 $(GINKGO): $(call tool_version_file,$(GINKGO),$(GINKGO_VERSION))
-	go build -o $(GINKGO) github.com/onsi/ginkgo/v2/ginkgo
+	$(call go_tool_copy,$(GINKGO))
 
 $(SETUP_ENVTEST): $(call tool_version_file,$(SETUP_ENVTEST),$(CONTROLLER_RUNTIME_VERSION))
 	curl -Lo $(SETUP_ENVTEST) https://github.com/kubernetes-sigs/controller-runtime/releases/download/$(CONTROLLER_RUNTIME_VERSION)/setup-envtest-$(SYSTEM_NAME)-$(SYSTEM_ARCH)
 	chmod +x $(SETUP_ENVTEST)
 
-$(VGOPATH): $(call tool_version_file,$(VGOPATH),$(VGOPATH_VERSION))
-	go build -o $(VGOPATH) github.com/ironcore-dev/vgopath
-
 $(GOSEC): $(call tool_version_file,$(GOSEC),$(GOSEC_VERSION))
-	@GOSEC_VERSION=$(GOSEC_VERSION) bash $(TOOLS_DIR)/install-gosec.sh
+	$(call go_tool_copy,$(GOSEC))
