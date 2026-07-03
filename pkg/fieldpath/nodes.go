@@ -196,7 +196,7 @@ func (this *node) _validateType(v reflect.Value, vtype reflect.Type) error {
 		return nil
 	}
 
-	if ftype.Kind() == reflect.Ptr {
+	if ftype.Kind() == reflect.Pointer {
 		ftype = ftype.Elem()
 		if ftype == vtype {
 			return nil
@@ -224,7 +224,7 @@ func (this *node) _set(v reflect.Value, val interface{}) error {
 
 	if val == nil {
 		k := v.Kind()
-		if k != reflect.Ptr &&
+		if k != reflect.Pointer &&
 			k != reflect.Slice &&
 			k != reflect.Map &&
 			k != reflect.Func &&
@@ -234,7 +234,7 @@ func (this *node) _set(v reflect.Value, val interface{}) error {
 		}
 		a = reflect.Zero(field.Type())
 	} else {
-		if field.Kind() == reflect.Ptr && a.Kind() != reflect.Ptr {
+		if field.Kind() == reflect.Pointer && a.Kind() != reflect.Pointer {
 			p := reflect.New(a.Type())
 			p.Elem().Set(a)
 			a = p
@@ -335,7 +335,7 @@ func (this *node) toType(t reflect.Type, v value, prev *node) (reflect.Type, val
 	if v != nil && !v.IsValid() {
 		v = nil
 	}
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 	if t.Kind() == reflect.Interface {
@@ -468,7 +468,7 @@ type SliceEntryBase struct {
 func (this *SliceEntryBase) vtype(t reflect.Type, v value, prev *node) (reflect.Type, value, error) {
 	t, v = this.toType(t, v, prev)
 	if t.Kind() != reflect.Array && t.Kind() != reflect.Slice {
-		return nil, nil, fmt.Errorf("%s is no slice or array(%s) ", this.node.String(), t)
+		return nil, nil, fmt.Errorf("%s is no slice or array(%s) ", this.String(), t)
 	}
 	index := this.index
 	if v.Value().Len() <= this.index {

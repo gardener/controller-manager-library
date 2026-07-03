@@ -76,7 +76,6 @@ var _ reconcile.Interface = &reconciler{}
 ///////////////////////////////////////////////////////////////////////////////
 
 func Create(controller controller.Interface) (reconcile.Interface, error) {
-
 	val, err := controller.GetStringOption("test")
 	if err == nil {
 		controller.Infof("found option test: %s", val)
@@ -131,7 +130,7 @@ func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) r
 	return reconcile.Succeeded(logger)
 }
 
-func (h *reconciler) Delete(logger logger.LogContext, obj resources.Object) reconcile.Status {
+func (h *reconciler) Delete(logger logger.LogContext, _ resources.Object) reconcile.Status {
 	// logger.Infof("delete infrastructure %s", resources.Description(obj))
 	logger.Infof("should delete")
 	return reconcile.Succeeded(logger)
@@ -167,12 +166,12 @@ func (h *reconciler) reconcileConfigMap(logger logger.LogContext, key resources.
 	return reconcile.Succeeded(logger)
 }
 
-func (h *reconciler) reconcileEndpoints(logger logger.LogContext, key resources.ClusterObjectKey, ep *corev1.Endpoints) reconcile.Status {
+func (h *reconciler) reconcileEndpoints(logger logger.LogContext, _ resources.ClusterObjectKey, _ *corev1.Endpoints) reconcile.Status {
 	logger.Infof("should reconcile endpoint")
 	return reconcile.Succeeded(logger)
 }
 
-func (h *reconciler) reconcileEndpointSlice(logger logger.LogContext, key resources.ClusterObjectKey, ep *v1beta1.EndpointSlice) reconcile.Status {
+func (h *reconciler) reconcileEndpointSlice(logger logger.LogContext, _ resources.ClusterObjectKey, _ *v1beta1.EndpointSlice) reconcile.Status {
 	logger.Infof("should reconcile endpoint slice instead of endpoint")
 	return reconcile.Succeeded(logger)
 }
@@ -190,8 +189,5 @@ func (h *reconciler) temporary(ctx context.Context) {
 
 func (h *reconciler) exclusive(ctx context.Context) {
 	h.controller.Infof("executing exclusive action")
-	select {
-	case <-ctx.Done():
-		return
-	}
+	<-ctx.Done()
 }

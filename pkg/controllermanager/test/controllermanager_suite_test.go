@@ -9,7 +9,6 @@ package test_test
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -93,7 +92,7 @@ users:
       client-certificate-data: %s
       client-key-data: %s`
 
-	tmpfile, err := ioutil.TempFile("", "kubeconfig-controllermanager-suite-test")
+	tmpfile, err := os.CreateTemp("", "kubeconfig-controllermanager-suite-test")
 	Expect(err).NotTo(HaveOccurred())
 	_, err = fmt.Fprintf(tmpfile, template, cfg.Host, base64.StdEncoding.EncodeToString(cfg.CAData),
 		base64.StdEncoding.EncodeToString(cfg.CertData), base64.StdEncoding.EncodeToString(cfg.KeyData))

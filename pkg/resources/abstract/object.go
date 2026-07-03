@@ -42,10 +42,10 @@ func (this *AbstractObject) IsA(spec interface{}) bool {
 		return *s == this.GroupKind()
 	default:
 		t := reflect.TypeOf(s)
-		for t.Kind() == reflect.Ptr {
+		for t.Kind() == reflect.Pointer {
 			t = t.Elem()
 		}
-		return reflect.PtrTo(t) == reflect.TypeOf(this.ObjectData)
+		return reflect.PointerTo(t) == reflect.TypeOf(this.ObjectData)
 	}
 }
 
@@ -76,7 +76,7 @@ func (this *AbstractObject) StatusField() interface{} {
 	if !f.IsValid() {
 		return nil
 	}
-	if f.Kind() == reflect.Ptr {
+	if f.Kind() == reflect.Pointer {
 		return f.Interface()
 	}
 	if !f.CanAddr() {

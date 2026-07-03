@@ -105,7 +105,7 @@ func cycle(a []string) []string {
 	}
 	min := 0
 	for i, n := range a {
-		if strings.Compare(a[min], n) > 0 {
+		if strings.Compare(a[min], n) > 0 { // #nosec G602 -- i is always a valid index into a (range loop); min is always set from a prior i, so a[min] is safe
 			min = i
 		}
 	}

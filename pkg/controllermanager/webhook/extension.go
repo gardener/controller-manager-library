@@ -281,7 +281,7 @@ func (this *Extension) certificateUpdated() {
 func (this *Extension) Start(ctx context.Context) error {
 	var err error
 
-	this.certificate, err = this.config.CertConfig.CreateAccess(ctx, this, this.GetCluster(this.config.Cluster), this.Namespace())
+	this.certificate, err = this.config.CreateAccess(ctx, this, this.GetCluster(this.config.Cluster), this.Namespace())
 	if err != nil {
 		return err
 	}

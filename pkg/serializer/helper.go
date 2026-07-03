@@ -19,7 +19,7 @@ func createElem(t reflect.Type) interface{} {
 
 func getKeyForType(v interface{}) *key {
 	t := reflect.TypeOf(v)
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 

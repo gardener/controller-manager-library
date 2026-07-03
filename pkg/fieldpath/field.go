@@ -88,15 +88,15 @@ func (this *field) GetAsValue(base interface{}) (interface{}, error) {
 	if value.IsNil() {
 		return nil, nil
 	}
-	for value.Kind() == reflect.Ptr {
+	for value.Kind() == reflect.Pointer {
 		value = value.Elem()
 	}
 	return value.Interface(), nil
 }
 
 func (this *field) Set(base interface{}, value interface{}) error {
-	if reflect.TypeOf(base) != reflect.PtrTo(this.baseType) {
-		return fmt.Errorf("invalid base element: got %T, expected %s", base, reflect.PtrTo(this.baseType))
+	if reflect.TypeOf(base) != reflect.PointerTo(this.baseType) {
+		return fmt.Errorf("invalid base element: got %T, expected %s", base, reflect.PointerTo(this.baseType))
 	}
 	return this.node.Set(base, value)
 }

@@ -65,7 +65,7 @@ func BestEffortBool(s interface{}) bool {
 
 	value := reflect.ValueOf(s)
 	switch value.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return !value.IsNil()
 	case reflect.Map, reflect.Slice, reflect.Array, reflect.Chan:
 		return value.Len() > 0

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/gardener/controller-manager-library/pkg/logger"
@@ -62,7 +61,7 @@ func (this *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		this.writeResponse(w, reviewResponse)
 		return
 	}
-	if body, err = ioutil.ReadAll(r.Body); err != nil {
+	if body, err = io.ReadAll(r.Body); err != nil {
 		this.Error(err, "unable to read the body from the incoming request")
 		reviewResponse = ErrorResponse(http.StatusBadRequest, err)
 		this.writeResponse(w, reviewResponse)

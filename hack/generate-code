@@ -8,11 +8,6 @@ set -e
 
 export REPO_ROOT=$(dirname $0)/..
 
-export VGOPATH="${VGOPATH}"
-
-# setup virtual GOPATH
-source "${REPO_ROOT}/hack"/vgopath-setup.sh
-
 CODE_GEN_DIR=$(go list -m -f '{{.Dir}}' k8s.io/code-generator)
 source "${CODE_GEN_DIR}/kube_codegen.sh"
 

@@ -110,7 +110,7 @@ func (this *_resource) addRawSelectedEventHandler(minimal bool, handlers cache.R
 		withNamespace = fmt.Sprintf("namespace %s", namespace)
 	}
 	logger.Infof("adding watch for %s (cluster %s, %s)", this.GroupVersionKind(), this.GetCluster().GetId(), withNamespace)
-	informer, err := this.helper.Internal.I_getInformer(minimal, namespace, optionsFunc)
+	informer, err := this.helper.I_getInformer(minimal, namespace, optionsFunc)
 	if err != nil {
 		return err
 	}

@@ -497,7 +497,7 @@ func (this Configuration) With(modifier ...ConfigurationModifier) Configuration 
 }
 
 func (this Configuration) Restore() Configuration {
-	this.configState = *this.configState.previous
+	this.configState = *this.previous
 	return this
 }
 

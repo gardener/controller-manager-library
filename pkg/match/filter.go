@@ -31,7 +31,7 @@ func FilterList(list interface{}, matchers ...Matcher) interface{} {
 		m = And(matchers...)
 	}
 	value := reflect.ValueOf(list)
-	for value.Kind() == reflect.Ptr {
+	for value.Kind() == reflect.Pointer {
 		value = value.Elem()
 	}
 	if value.Kind() == reflect.Array || value.Kind() == reflect.Slice {

@@ -89,7 +89,7 @@ func (f *listWatchFactoryBase) ListType() reflect.Type {
 
 func (f *listWatchFactoryBase) structuredListFunc(ctx context.Context, namespace string, optionsFunc TweakListOptionsFunc, client rest.Interface) cache.ListFunc {
 	res := f.Info()
-	parametercodec := f.rctx.Clients.parametercodec
+	parametercodec := f.rctx.parametercodec
 	listType := f.ListType()
 
 	return func(options metav1.ListOptions) (runtime.Object, error) {
@@ -111,7 +111,7 @@ func (f *listWatchFactoryBase) structuredListFunc(ctx context.Context, namespace
 
 func (f *listWatchFactoryBase) structuredWatchFunc(ctx context.Context, namespace string, optionsFunc TweakListOptionsFunc, client rest.Interface) cache.WatchFunc {
 	res := f.Info()
-	parametercodec := f.rctx.Clients.parametercodec
+	parametercodec := f.rctx.parametercodec
 
 	return func(options metav1.ListOptions) (watch.Interface, error) {
 		options.Watch = true

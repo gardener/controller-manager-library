@@ -45,5 +45,4 @@ func (this *MyHandler) Handle(logger logger.LogContext, req handler.Request) adm
 	}
 	return admission.Allowed(this.message)
 	//return admission.Denied("aetsch")
-
 }

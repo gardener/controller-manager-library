@@ -162,7 +162,7 @@ func capabilities(disc discovery.DiscoveryInterface) (*chartutil.Capabilities, e
 	}
 	vs, err := GetVersionSet(disc)
 	if err != nil {
-		return nil, fmt.Errorf("Could not get apiVersions from Kubernetes: %s", err)
+		return nil, fmt.Errorf("could not get apiVersions from Kubernetes: %s", err)
 	}
 	return &chartutil.Capabilities{
 		APIVersions: vs,

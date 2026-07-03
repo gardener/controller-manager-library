@@ -26,16 +26,16 @@ func (this *AbstractObject) HasFinalizer(key string) bool {
 
 func (this *AbstractObject) SetFinalizer(key string) error {
 	if !hasFinalizer(key, this.ObjectData) {
-		this.ObjectData.SetFinalizers(append(this.ObjectData.GetFinalizers(), key))
+		this.SetFinalizers(append(this.GetFinalizers(), key))
 	}
 	return nil
 }
 
 func (this *AbstractObject) RemoveFinalizer(key string) error {
-	list := this.ObjectData.GetFinalizers()
+	list := this.GetFinalizers()
 	for i, name := range list {
 		if name == key {
-			this.ObjectData.SetFinalizers(append(list[:i], list[i+1:]...))
+			this.SetFinalizers(append(list[:i], list[i+1:]...))
 			return nil
 		}
 	}

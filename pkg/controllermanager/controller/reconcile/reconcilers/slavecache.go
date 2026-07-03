@@ -375,7 +375,7 @@ func (this *SlaveReconciler) Setup() error {
 
 func (this *SlaveReconciler) Start() error {
 	this.Infof("determining dangling %s objects...", this.spec.Name)
-	for k := range this.SlaveAccess.GetMasters(false) {
+	for k := range this.GetMasters(false) {
 		if this.master_resources.Contains(k.Cluster(), k.GroupKind()) {
 			if _, err := this.GetClusterById(k.Cluster()).GetCachedObject(k); errors.IsNotFound(err) {
 				this.Infof("trigger vanished origin %s", k.ObjectKey())

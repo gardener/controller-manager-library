@@ -63,13 +63,13 @@ func (this *_Registry) RegisterGroup(name string) (*Configuration, error) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	def := this._Definitions.definitions[name]
+	def := this.definitions[name]
 	if def == nil {
 		if this.elements.Contains(name) {
 			return nil, fmt.Errorf("name %q already busy by configured %s with this name", name, this.typeName)
 		}
 		def = &_Definition{name: name, members: utils.StringSet{}, explicit: utils.StringSet{}}
-		this._Definitions.definitions[name] = def
+		this.definitions[name] = def
 	}
 	return &Configuration{this, def}, nil
 }

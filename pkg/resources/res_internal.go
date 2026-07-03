@@ -64,7 +64,7 @@ func (this *_i_resource) Resource() Interface {
 }
 
 func (this *_i_resource) I_CreateData(name ...ObjectDataName) ObjectData {
-	return this._resource.CreateData(name...)
+	return this.CreateData(name...)
 }
 
 func (this *_i_resource) I_update(data ObjectData) (ObjectData, error) {

@@ -1,21 +1,36 @@
 #!/usr/bin/env bash
 #
-# SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
+# SPDX-FileCopyrightText: SAP SE or an SAP affiliate company and Gardener contributors
 #
 # SPDX-License-Identifier: Apache-2.0
 
 set -e
 
-root_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." &> /dev/null && pwd )"
+report_dir="$(git rev-parse --show-toplevel)"
+report_fname='gosec-report.sarif'
 
 gosec_report="false"
 gosec_report_parse_flags=""
+exclude_dirs="hack,local"
+concurrency="${GOSEC_CONCURRENCY:-4}"
 
 parse_flags() {
   while test $# -gt 1; do
     case "$1" in
       --gosec-report)
         shift; gosec_report="$1"
+        ;;
+      --report-dir)
+        shift; report_dir="$1"
+        ;;
+      --report-fname)
+        shift; report_fname="$1"
+        ;;
+      --exclude-dirs)
+        shift; exclude_dirs="$1"
+        ;;
+      --concurrency)
+        shift; concurrency="$1"
         ;;
       *)
         echo "Unknown argument: $1"
@@ -28,17 +43,19 @@ parse_flags() {
 
 parse_flags "$@"
 
+report_path="${report_dir}/${report_fname}"
+
 echo "> Running gosec"
 gosec --version
 if [[ "$gosec_report" != "false" ]]; then
-  echo "Exporting report to $root_dir/gosec-report.sarif"
-  gosec_report_parse_flags="-track-suppressions -fmt=sarif -out=gosec-report.sarif -stdout"
+  echo "Exporting report to ${report_path}"
+  gosec_report_parse_flags="-track-suppressions -fmt=sarif -out=${report_path} -stdout"
 fi
 
 # Gardener uses code-generators https://github.com/kubernetes/code-generator and https://github.com/protocolbuffers/protobuf
 # which create lots of G103 (CWE-242: Use of unsafe calls should be audited) & G104 (CWE-703: Errors unhandled) errors.
-# However, those generators are best-pratice in Kubernetes environment and their results are tested well.
+# However, those generators are best-practice in Kubernetes environment and their results are tested well.
 # Thus, generated code is excluded from gosec scan.
 # Nested go modules are not supported by gosec (see https://github.com/securego/gosec/issues/501), so the ./hack folder
 # is excluded too. It does not contain productive code anyway.
-gosec -exclude-generated -exclude-dir=hack -exclude-dir=local -exclude=G115 $gosec_report_parse_flags ./...
+gosec -concurrency="$concurrency" -exclude=G115 -exclude-generated $(echo "$exclude_dirs" | awk -v RS=',' '{printf "-exclude-dir %s ", $1}') $gosec_report_parse_flags ./...

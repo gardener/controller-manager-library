@@ -108,8 +108,8 @@ func (c *resourceContext) GetGVK(obj runtime.Object) (schema.GroupVersionKind, e
 
 // NewSharedInformerFactory constructs a new instance of sharedInformerFactory for all namespaces.
 func (c *resourceContext) SharedInformerFactory() SharedInformerFactory {
-	c.AbstractResourceContext.Lock()
-	defer c.AbstractResourceContext.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	if c.sharedInformerFactory == nil {
 		c.sharedInformerFactory = newSharedInformerFactory(c, c.defaultResync)

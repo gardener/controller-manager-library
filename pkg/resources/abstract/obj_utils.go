@@ -11,7 +11,7 @@ import (
 )
 
 func (this *AbstractObject) GetLabel(name string) string {
-	labels := this.ObjectData.GetLabels()
+	labels := this.GetLabels()
 	if labels == nil {
 		return ""
 	}
@@ -19,7 +19,7 @@ func (this *AbstractObject) GetLabel(name string) string {
 }
 
 func (this *AbstractObject) GetAnnotation(name string) string {
-	annos := this.ObjectData.GetAnnotations()
+	annos := this.GetAnnotations()
 	if annos == nil {
 		return ""
 	}

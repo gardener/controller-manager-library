@@ -103,7 +103,7 @@ func (this *AbstractResources) Get(spec interface{}) (Resource, error) {
 
 func (this *AbstractResources) GetByExample(obj runtime.Object) (Resource, error) {
 	t := reflect.TypeOf(obj)
-	for t.Kind() == reflect.Ptr {
+	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
 

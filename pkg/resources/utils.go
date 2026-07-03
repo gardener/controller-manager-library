@@ -113,7 +113,7 @@ func getField(o ObjectData, name string) (interface{}, bool) {
 		return nil, false
 	}
 	v := reflect.ValueOf(o)
-	for v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
@@ -126,7 +126,7 @@ func getField(o ObjectData, name string) (interface{}, bool) {
 	if f.Kind() == reflect.Struct {
 		return f.Addr().Interface(), true
 	}
-	if f.Kind() == reflect.Ptr {
+	if f.Kind() == reflect.Pointer {
 		return f.Interface(), true
 	}
 	return f.Interface(), false
@@ -145,7 +145,7 @@ func setField(o ObjectData, name string, value interface{}) error {
 		return rerrors.New(rerrors.ERR_INVALID, "no object given")
 	}
 	v := reflect.ValueOf(o)
-	for v.Kind() == reflect.Ptr {
+	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.Struct {
@@ -159,7 +159,7 @@ func setField(o ObjectData, name string, value interface{}) error {
 		return rerrors.New(rerrors.ERR_INVALID, "cannot set field %q for type %T", name, o)
 	}
 	tv := reflect.ValueOf(value)
-	for tv.Kind() == reflect.Ptr && f.Kind() != reflect.Ptr {
+	for tv.Kind() == reflect.Pointer && f.Kind() != reflect.Pointer {
 		tv = tv.Elem()
 	}
 	if tv.Type() != f.Type() {

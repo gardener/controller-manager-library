@@ -30,8 +30,7 @@ func (l *locker) Unlock() {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// golint: ignore
-var aborted = fmt.Errorf("go routine aborted")
+var errAborted = fmt.Errorf("go routine aborted")
 
 type Runner struct {
 	name        string
@@ -62,7 +61,7 @@ func (r *Runner) Blocked() error {
 	r.shouldblock = true
 	select {
 	case <-r.env.shutdown:
-		return aborted
+		return errAborted
 	case <-r.locked:
 		return fmt.Errorf("%s was not blocked", r.name)
 	case _, ok := <-r.blocked:
@@ -70,7 +69,7 @@ func (r *Runner) Blocked() error {
 			fmt.Printf("ok blocked %s\n", r.name)
 			return nil
 		}
-		return aborted
+		return errAborted
 	}
 }
 func (r *Runner) Locked() error {
@@ -79,7 +78,7 @@ func (r *Runner) Locked() error {
 		select {
 		case _, ok := <-r.blocked:
 			if !ok {
-				return aborted
+				return errAborted
 			}
 			return fmt.Errorf("%s was blocked", r.name)
 		default:
@@ -87,7 +86,7 @@ func (r *Runner) Locked() error {
 	}
 	select {
 	case <-r.env.shutdown:
-		return aborted
+		return errAborted
 	case <-r.locked:
 		return nil
 	}
@@ -161,7 +160,7 @@ func (e *Env) TestSeq(name string, step ...func() error) bool {
 	for i, s := range step {
 		err := s()
 		if err != nil {
-			if err != aborted {
+			if err != errAborted {
 				fmt.Printf("%s: step %d: failed: %s \n", name, i+1, err)
 				close(e.shutdown)
 				return false
