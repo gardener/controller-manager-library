@@ -9,8 +9,10 @@ package test_test
 import (
 	"context"
 	"fmt"
+	"maps"
 	"reflect"
 	"runtime"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -120,11 +122,21 @@ func createObject(obj Object, ignoreAlreadyExists bool) {
 	Expect(err).NotTo(HaveOccurred())
 }
 
-func updateObject(obj Object) {
+// updateObject fetches a fresh copy of obj, applies mutate to it and updates
+// it at the server. It returns the updated object (carrying the new resource
+// version). The shared object passed in is never mutated, so it cannot briefly
+// diverge from the server state and race a reconcile in flight.
+func updateObject(obj Object, mutate func(obj Object)) Object {
 	cl, err := client.New(restConfig, client.Options{})
 	Expect(err).NotTo(HaveOccurred())
-	err = cl.Update(context.Background(), obj)
+	ctx := context.Background()
+	fresh := obj.DeepCopyObject().(Object)
+	err = cl.Get(ctx, client.ObjectKeyFromObject(obj), fresh)
 	Expect(err).NotTo(HaveOccurred())
+	mutate(fresh)
+	err = cl.Update(ctx, fresh)
+	Expect(err).NotTo(HaveOccurred())
+	return fresh
 }
 
 func deleteObject(obj Object, ignoreNotFound bool) {
@@ -150,10 +162,21 @@ func deleteObject(obj Object, ignoreNotFound bool) {
 }
 
 type reconcilerData struct {
+	// lock guards all fields below; they are read from the test goroutine
+	// and written from the controller's reconciler goroutine (and vice versa).
+	lock sync.Mutex
+
 	secret1       Object
 	secret2       Object
 	testNamespace Object
 	testKind      MinimalWatchTestKind
+
+	// expectedSecret2Data is the data the test last successfully wrote to
+	// secret2 at the server, together with the resource version that write
+	// produced. The reconciler only asserts on secret2 data when the object
+	// it observes carries exactly this resource version.
+	expectedSecret2Data    map[string][]byte
+	expectedSecret2Version string
 
 	setup   bool
 	started bool
@@ -162,6 +185,30 @@ type reconcilerData struct {
 	reconcileCountSecret2 int
 	deletedCountSecret2   int
 	lastError             error
+}
+
+func (d *reconcilerData) getBool(p *bool) bool {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	return *p
+}
+
+func (d *reconcilerData) getInt(p *int) int {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	return *p
+}
+
+func (d *reconcilerData) getSecret2() Object {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	return d.secret2
+}
+
+func (d *reconcilerData) getLastError() error {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	return d.lastError
 }
 
 var _ = Describe("Informers", func() {
@@ -191,7 +238,7 @@ var _ = Describe("Informers", func() {
 			deleteBigSecret(i)
 		}
 		deleteObject(data.secret1, false)
-		deleteObject(data.secret2, true)
+		deleteObject(data.getSecret2(), true)
 	})
 
 	var startControllerManager = func(testkind MinimalWatchTestKind) {
@@ -243,35 +290,47 @@ var _ = Describe("Informers", func() {
 	var testFunc = func(testkind MinimalWatchTestKind) {
 		timeout := (5 + bigSecretsCount/2) * time.Second
 		startControllerManager(testkind)
-		waitFor("setup of controller", func() bool { return data.setup }, 1*time.Second)
-		waitFor("start of controller", func() bool { return data.started }, 1*time.Second)
+		waitFor("setup of controller", func() bool { return data.getBool(&data.setup) }, 1*time.Second)
+		waitFor("start of controller", func() bool { return data.getBool(&data.started) }, 1*time.Second)
 
-		waitFor("reconciling existing secret1", func() bool { return data.reconcileCountSecret1 > 0 }, timeout)
+		waitFor("reconciling existing secret1", func() bool { return data.getInt(&data.reconcileCountSecret1) > 0 }, timeout)
 
 		By("create secret2", func() {
 			minimal.ConvertCounter = 0
 			data.testNamespace = createNamespace("test")
-			data.secret2 = createSecret("informers-test-2", "test")
+			secret2 := createSecret("informers-test-2", "test")
+			data.lock.Lock()
+			data.secret2 = secret2
+			data.expectedSecret2Data = maps.Clone(secret2.(*kcorev1.Secret).Data)
+			data.expectedSecret2Version = secret2.GetResourceVersion()
+			data.lock.Unlock()
 		})
-		waitFor("reconciling new secret2", func() bool { return data.reconcileCountSecret2 > 0 }, timeout)
+		waitFor("reconciling new secret2", func() bool { return data.getInt(&data.reconcileCountSecret2) > 0 }, timeout)
 
-		oldCount := data.reconcileCountSecret2
+		oldCount := data.getInt(&data.reconcileCountSecret2)
 		By("update secret2", func() {
-			s := data.secret2.(*kcorev1.Secret)
-			s.Data["foo2"] = []byte("blabla")
-			updateObject(data.secret2)
+			updated := updateObject(data.getSecret2(), func(obj Object) {
+				obj.(*kcorev1.Secret).Data["foo2"] = []byte("blabla")
+			})
+			// After the server update succeeded, publish the new expected
+			// data/version so the reconciler asserts against exactly the
+			// version it observes.
+			data.lock.Lock()
+			data.expectedSecret2Data = maps.Clone(updated.(*kcorev1.Secret).Data)
+			data.expectedSecret2Version = updated.GetResourceVersion()
+			data.lock.Unlock()
 		})
-		waitFor("reconciling updated secret2", func() bool { return data.reconcileCountSecret2 > oldCount }, timeout)
+		waitFor("reconciling updated secret2", func() bool { return data.getInt(&data.reconcileCountSecret2) > oldCount }, timeout)
 
 		By("delete secret2", func() {
-			deleteObject(data.secret2, false)
+			deleteObject(data.getSecret2(), false)
 		})
-		waitFor("watch deleted secret2", func() bool { return data.deletedCountSecret2 > 0 }, timeout)
+		waitFor("watch deleted secret2", func() bool { return data.getInt(&data.deletedCountSecret2) > 0 }, timeout)
 
-		oldCount = data.reconcileCountSecret1
-		waitFor("periodic reconciling secret1", func() bool { return data.reconcileCountSecret1 > oldCount }, 5*time.Second+timeout)
+		oldCount = data.getInt(&data.reconcileCountSecret1)
+		waitFor("periodic reconciling secret1", func() bool { return data.getInt(&data.reconcileCountSecret1) > oldCount }, 5*time.Second+timeout)
 
-		Expect(data.lastError).NotTo(HaveOccurred())
+		Expect(data.getLastError()).NotTo(HaveOccurred())
 
 		switch testkind {
 		case Normal:
@@ -316,12 +375,16 @@ type reconciler struct {
 }
 
 func (h *reconciler) Setup() error {
+	h.data.lock.Lock()
 	h.data.setup = true
+	h.data.lock.Unlock()
 	return nil
 }
 
 func (h *reconciler) Start() error {
+	h.data.lock.Lock()
 	h.data.started = true
+	h.data.lock.Unlock()
 	return nil
 }
 
@@ -333,43 +396,88 @@ func (h *reconciler) Command(logger logger.LogContext, cmd string) reconcile.Sta
 func (h *reconciler) Reconcile(logger logger.LogContext, obj resources.Object) reconcile.Status {
 	logger.Infof("reconcile %s", obj.ObjectName())
 
-	check := func(candidate Object, count *int) {
-		if obj.GetName() == candidate.GetName() && obj.GetNamespace() == candidate.GetNamespace() {
-			(*count)++
-			switch h.data.testKind {
-			case Normal:
-				if obj.IsMinimal() {
-					h.data.lastError = fmt.Errorf("secret object %s unexpected minimal", candidate.GetName())
-					return
-				}
-				if !reflect.DeepEqual(obj.Data().(*kcorev1.Secret).Data, candidate.(*kcorev1.Secret).Data) {
-					h.data.lastError = fmt.Errorf("secret %s data mismatch", candidate.GetName())
-				}
-			case ControllerMinimalWatch, GloballyMinimalWatch:
-				if !obj.IsMinimal() {
-					h.data.lastError = fmt.Errorf("secret object %s unexpected not minimal", candidate.GetName())
-				}
-				if obj.MinimalData() == nil {
-					h.data.lastError = fmt.Errorf("secret %s unexpected data type: %T", obj.Data(), candidate.GetName())
-					return
-				}
-				if obj.MinimalData().GetResourceVersion() != candidate.GetResourceVersion() {
-					h.data.lastError = fmt.Errorf("secret %s resource version mismatch", candidate.GetName())
-				}
-				realObj, err := obj.GetFullObject()
-				if err != nil {
-					h.data.lastError = err
-					return
-				}
-				if !reflect.DeepEqual(realObj.Data().(*kcorev1.Secret).Data, candidate.(*kcorev1.Secret).Data) {
-					h.data.lastError = fmt.Errorf("secret %s data mismatch", candidate.GetName())
-				}
+	h.data.lock.Lock()
+	secret1 := h.data.secret1
+	secret2 := h.data.secret2
+	testKind := h.data.testKind
+	expectedSecret2Data := maps.Clone(h.data.expectedSecret2Data)
+	expectedSecret2Version := h.data.expectedSecret2Version
+	h.data.lock.Unlock()
+
+	setErr := func(err error) {
+		h.data.lock.Lock()
+		if h.data.lastError == nil {
+			h.data.lastError = err
+		}
+		h.data.lock.Unlock()
+	}
+	incCount := func(p *int) {
+		h.data.lock.Lock()
+		*p++
+		h.data.lock.Unlock()
+	}
+
+	// check verifies an observed object against the expected data. expectedData
+	// is the data the object should carry; expectedVersion, when non-empty,
+	// gates the data assertion: it is only performed when the observed object's
+	// resource version matches expectedVersion. This avoids false mismatches
+	// when the reconciler observes a version the test has already superseded
+	// (redelivery, resync, or a reconcile triggered by another reconciler).
+	check := func(candidate Object, expectedData map[string][]byte, expectedVersion string, count *int) {
+		if candidate == nil ||
+			obj.GetName() != candidate.GetName() || obj.GetNamespace() != candidate.GetNamespace() {
+			return
+		}
+		incCount(count)
+		switch testKind {
+		case Normal:
+			if obj.IsMinimal() {
+				setErr(fmt.Errorf("secret object %s unexpected minimal", candidate.GetName()))
+				return
+			}
+			if expectedVersion != "" && obj.GetResourceVersion() != expectedVersion {
+				return
+			}
+			if !reflect.DeepEqual(obj.Data().(*kcorev1.Secret).Data, expectedData) {
+				setErr(fmt.Errorf("secret %s data mismatch", candidate.GetName()))
+			}
+		case ControllerMinimalWatch, GloballyMinimalWatch:
+			if !obj.IsMinimal() {
+				setErr(fmt.Errorf("secret object %s unexpected not minimal", candidate.GetName()))
+				return
+			}
+			if obj.MinimalData() == nil {
+				setErr(fmt.Errorf("secret %s unexpected data type: %T", obj.Data(), candidate.GetName()))
+				return
+			}
+			realObj, err := obj.GetFullObject()
+			if err != nil {
+				setErr(err)
+				return
+			}
+			// GetFullObject does a live API GET returning the latest server
+			// state, which is not necessarily the version this event was
+			// delivered for. Only assert data when the minimal event, the full
+			// object, and the expected version all agree; otherwise this
+			// reconcile is racing a newer write and the assertion is moot.
+			if expectedVersion != "" &&
+				(obj.MinimalData().GetResourceVersion() != expectedVersion ||
+					realObj.GetResourceVersion() != expectedVersion) {
+				return
+			}
+			if !reflect.DeepEqual(realObj.Data().(*kcorev1.Secret).Data, expectedData) {
+				setErr(fmt.Errorf("secret %s data mismatch", candidate.GetName()))
 			}
 		}
 	}
-	check(h.data.secret1, &h.data.reconcileCountSecret1)
-	if h.data.secret2 != nil {
-		check(h.data.secret2, &h.data.reconcileCountSecret2)
+
+	// secret1 is never modified after creation, so its data is stable and we do
+	// not gate on a version.
+	if secret1 != nil {
+		check(secret1, secret1.(*kcorev1.Secret).Data, "", &h.data.reconcileCountSecret1)
+	}
+	if secret2 != nil {
+		check(secret2, expectedSecret2Data, expectedSecret2Version, &h.data.reconcileCountSecret2)
 	}
 
 	return reconcile.Succeeded(logger)
@@ -382,6 +490,8 @@ func (h *reconciler) Delete(logger logger.LogContext, obj resources.Object) reco
 
 func (h *reconciler) Deleted(logger logger.LogContext, key resources.ClusterObjectKey) reconcile.Status {
 	logger.Infof("deleted %s", key.ObjectName())
+	h.data.lock.Lock()
+	defer h.data.lock.Unlock()
 	if h.data.secret2 != nil {
 		if key.Name() == h.data.secret2.GetName() && key.Namespace() == h.data.secret2.GetNamespace() {
 			h.data.deletedCountSecret2++
