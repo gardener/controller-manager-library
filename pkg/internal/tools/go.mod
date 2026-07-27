@@ -154,7 +154,7 @@ require (
 	github.com/golangci/swaggoswag v0.0.0-20250504205917-77f2aca3143e // indirect
 	github.com/golangci/unconvert v0.0.0-20250410112200-a129a6e6413e // indirect
 	github.com/google/addlicense v1.2.0 // indirect
-	github.com/google/cel-go v0.27.0 // indirect
+	github.com/google/cel-go v0.29.0 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20260507013755-92041b743c96 // indirect
@@ -330,11 +330,11 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.7.0 // indirect
-	k8s.io/api v0.36.2 // indirect
-	k8s.io/apiextensions-apiserver v0.36.2 // indirect
-	k8s.io/apimachinery v0.36.2 // indirect
-	k8s.io/client-go v0.36.2 // indirect
-	k8s.io/code-generator v0.36.2 // indirect
+	k8s.io/api v0.36.3 // indirect
+	k8s.io/apiextensions-apiserver v0.36.3 // indirect
+	k8s.io/apimachinery v0.36.3 // indirect
+	k8s.io/client-go v0.36.3 // indirect
+	k8s.io/code-generator v0.36.3 // indirect
 	k8s.io/gengo/v2 v2.0.0-20251215205346-5ee0d033ba5b // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260603220949-865597e52e25 // indirect
